@@ -40,17 +40,39 @@ export const ProfessionalDrawer = ({
 }: ProfessionalDrawerProps) => {
   const { maskValue } = useFinancialPrivacy();
   const [loading, setLoading] = useState(true);
+  
+  // Local filter states
+  const [localStartDate, setLocalStartDate] = useState(format(startDate, 'yyyy-MM-dd'));
+  const [localEndDate, setLocalEndDate] = useState(format(endDate, 'yyyy-MM-dd'));
+  const [appliedStartDate, setAppliedStartDate] = useState(startDate);
+  const [appliedEndDate, setAppliedEndDate] = useState(endDate);
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+
   const [details, setDetails] = useState<any>({
     topServices: [],
     topClients: [],
     history: [],
   });
 
+  // Reset local dates when the drawer opens or the main filter changes
+  useEffect(() => {
+    if (isOpen) {
+      setLocalStartDate(format(startDate, 'yyyy-MM-dd'));
+      setLocalEndDate(format(endDate, 'yyyy-MM-dd'));
+      setAppliedStartDate(startDate);
+      setAppliedEndDate(endDate);
+      setCurrentPage(1);
+    }
+  }, [isOpen, startDate, endDate]);
+
   useEffect(() => {
     if (isOpen && professional?.id) {
       fetchProfessionalDetails();
     }
-  }, [isOpen, professional, startDate, endDate]);
+  }, [isOpen, professional?.id, appliedStartDate, appliedEndDate]);
 
   const fetchProfessionalDetails = async () => {
     setLoading(true);
@@ -75,8 +97,8 @@ export const ProfessionalDrawer = ({
         `)
         .eq('professional_id', professional.id)
         .eq('company_id', companyId)
-        .gte('start_time', startDate.toISOString())
-        .lte('start_time', endDate.toISOString());
+        .gte('start_time', startOfDay(appliedStartDate).toISOString())
+        .lte('start_time', endOfDay(appliedEndDate).toISOString());
 
       if (status !== 'all') {
         query = query.eq('status', status as any);
@@ -141,6 +163,38 @@ export const ProfessionalDrawer = ({
       setLoading(false);
     }
   };
+
+  const handleApplyFilter = () => {
+    setAppliedStartDate(parseISO(localStartDate));
+    setAppliedEndDate(parseISO(localEndDate));
+    setCurrentPage(1);
+  };
+
+  const handleClearFilter = () => {
+    const start = startDate;
+    const end = endDate;
+    setLocalStartDate(format(start, 'yyyy-MM-dd'));
+    setLocalEndDate(format(end, 'yyyy-MM-dd'));
+    setAppliedStartDate(start);
+    setAppliedEndDate(end);
+    setCurrentPage(1);
+  };
+
+  // Derived data for the period summary (always based on full filtered history)
+  const periodSummary = useMemo(() => {
+    return details.history.reduce((acc: any, h: any) => ({
+      revenue: acc.revenue + h.revenue,
+      professionalValue: acc.professionalValue + h.professionalValue,
+      companyValue: acc.companyValue + h.companyValue,
+    }), { revenue: 0, professionalValue: 0, companyValue: 0 });
+  }, [details.history]);
+
+  // Paginated history
+  const totalPages = Math.ceil(details.history.length / itemsPerPage);
+  const paginatedHistory = details.history.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
 
   if (!professional) return null;
 
