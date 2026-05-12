@@ -24,8 +24,13 @@ export const calculateFinancials = (
   serviceCount: number,
   collaboratorType: string,
   commissionType: string,
-  commissionValue: number
+  commissionValue: number,
+  isSubscriptionCovered: boolean = false
 ): FinancialBreakdown => {
+  if (isSubscriptionCovered) {
+    return { professionalValue: 0, companyValue: revenue };
+  }
+
   if (commissionType === 'own_revenue') {
     return { professionalValue: revenue, companyValue: 0 };
   }

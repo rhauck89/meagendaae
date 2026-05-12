@@ -236,6 +236,7 @@ export type Database = {
           extra_fee_value: number | null
           final_price: number | null
           id: string
+          is_subscription_covered: boolean | null
           manual_discount: number | null
           notes: string | null
           original_price: number | null
@@ -273,6 +274,7 @@ export type Database = {
           extra_fee_value?: number | null
           final_price?: number | null
           id?: string
+          is_subscription_covered?: boolean | null
           manual_discount?: number | null
           notes?: string | null
           original_price?: number | null
@@ -310,6 +312,7 @@ export type Database = {
           extra_fee_value?: number | null
           final_price?: number | null
           id?: string
+          is_subscription_covered?: boolean | null
           manual_discount?: number | null
           notes?: string | null
           original_price?: number | null
@@ -4563,6 +4566,120 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      professional_commissions: {
+        Row: {
+          client_id: string | null
+          commission_amount: number
+          commission_rate: number
+          commission_type: string
+          company_id: string
+          company_net_amount: number
+          created_at: string | null
+          description: string | null
+          gross_amount: number
+          id: string
+          paid_at: string | null
+          professional_id: string
+          source_id: string
+          source_type: string
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          client_id?: string | null
+          commission_amount?: number
+          commission_rate?: number
+          commission_type: string
+          company_id: string
+          company_net_amount?: number
+          created_at?: string | null
+          description?: string | null
+          gross_amount?: number
+          id?: string
+          paid_at?: string | null
+          professional_id: string
+          source_id: string
+          source_type: string
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          client_id?: string | null
+          commission_amount?: number
+          commission_rate?: number
+          commission_type?: string
+          company_id?: string
+          company_net_amount?: number
+          created_at?: string | null
+          description?: string | null
+          gross_amount?: number
+          id?: string
+          paid_at?: string | null
+          professional_id?: string
+          source_id?: string
+          source_type?: string
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "professional_commissions_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "professional_commissions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "professional_commissions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies_billing"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "professional_commissions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "marketplace_active_services"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "professional_commissions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "public_company"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "professional_commissions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "public_company_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "professional_commissions_professional_id_fkey"
+            columns: ["professional_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "professional_commissions_professional_id_fkey"
+            columns: ["professional_id"]
+            isOneToOne: false
+            referencedRelation: "public_professionals"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       professional_working_hours: {
         Row: {

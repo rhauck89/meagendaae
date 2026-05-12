@@ -107,11 +107,12 @@ const FinanceDashboard = () => {
   const fetchPeriodData = async () => {
     const { start, end } = dateRange;
 
-    const [aptsRes, manualRes, expsRes, collabRes] = await Promise.all([
-      supabase.from('appointments').select('total_price, final_price, professional_id').eq('company_id', companyId!).eq('status', 'completed').gte('start_time', `${start}T00:00:00`).lte('start_time', `${end}T23:59:59`),
+    const [aptsRes, manualRes, expsRes, collabRes, commsRes] = await Promise.all([
+      supabase.from('appointments').select('total_price, final_price, professional_id, is_subscription_covered').eq('company_id', companyId!).eq('status', 'completed').gte('start_time', `${start}T00:00:00`).lte('start_time', `${end}T23:59:59`),
       supabase.from('company_revenues').select('amount').eq('company_id', companyId!).eq('is_automatic', false).gte('revenue_date', start).lte('revenue_date', end),
       supabase.from('company_expenses').select('amount').eq('company_id', companyId!).gte('expense_date', start).lte('expense_date', end),
       supabase.from('collaborators').select('profile_id, collaborator_type, commission_type, commission_value, commission_percent').eq('company_id', companyId!),
+      supabase.from('professional_commissions').select('gross_amount, commission_amount').eq('company_id', companyId!).gte('paid_at', `${start}T00:00:00`).lte('paid_at', `${end}T23:59:59`),
     ]);
 
     const apts = aptsRes.data || [];
@@ -133,12 +134,25 @@ const FinanceDashboard = () => {
     Object.entries(proRevMap).forEach(([pid, rev]) => {
       const c = collabMap[pid];
       if (c) {
-        const fin = calculateFinancials(rev, proCountMap[pid], c.collaborator_type, c.commission_type, c.commission_value ?? c.commission_percent ?? 0);
-        totalProfValue += fin.professionalValue;
+        // Find if any appointments for this pro were covered by subscription
+        const proApts = apts.filter(a => a.professional_id === pid);
+        // This is a bit tricky for aggregation, but for dashboard KPIs it's usually fine
+        // We'll calculate each appointment correctly
+        let proTotalComm = 0;
+        proApts.forEach(a => {
+          const fin = calculateFinancials(getAppointmentRevenue(a), 1, c.collaborator_type, c.commission_type, c.commission_value ?? c.commission_percent ?? 0, a.is_subscription_covered);
+          proTotalComm += fin.professionalValue;
+        });
+        totalProfValue += proTotalComm;
       }
     });
 
-    setRevenue(aptRevenue + manualRevenue);
+    // Add subscription commissions
+    const totalSubComm = (commsRes.data || []).reduce((s, c) => s + Number(c.commission_amount), 0);
+    const totalSubRev = (commsRes.data || []).reduce((s, c) => s + Number(c.gross_amount), 0);
+    totalProfValue += totalSubComm;
+
+    setRevenue(aptRevenue + manualRevenue + totalSubRev);
     setExpenses(totalExpenses);
     setServiceCount(apts.length);
     setProfessionalValue(totalProfValue);
