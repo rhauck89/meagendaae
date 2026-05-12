@@ -22,6 +22,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { ReviewForm } from '@/components/public-profile/ReviewForm';
+import { Calendar as CalendarUI } from "@/components/ui/calendar";
 
 type BusinessType = 'barbershop' | 'esthetic';
 
