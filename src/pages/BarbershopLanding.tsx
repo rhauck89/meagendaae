@@ -364,11 +364,16 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
               }
             }
 
-            const enrichedReviews = reviewsRes.data.map((r: any) => ({
-              ...r,
-              client_display_name: r.reviewer_name || (r.appointment_id && clientNameMap[r.appointment_id] ? formatReviewerName(clientNameMap[r.appointment_id]) : null),
-              client_avatar_url: r.reviewer_avatar || null,
-            }));
+            const enrichedReviews = reviewsRes.data.map((r: any) => {
+              const { comment, tags } = parseReviewContent(r.comment, r.tags);
+              return {
+                ...r,
+                comment,
+                tags,
+                client_display_name: r.reviewer_name || (r.appointment_id && clientNameMap[r.appointment_id] ? formatReviewerName(clientNameMap[r.appointment_id]) : null),
+                client_avatar_url: r.reviewer_avatar || null,
+              };
+            });
 
             const companyReviews = enrichedReviews.filter((r: any) => r.review_type === 'company');
             if (companyReviews.length > 0) {
