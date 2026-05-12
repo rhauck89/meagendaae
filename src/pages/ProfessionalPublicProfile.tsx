@@ -22,6 +22,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { ReviewForm } from '@/components/public-profile/ReviewForm';
+import { BenefitsSection } from '@/components/public-profile/BenefitsSection';
 import { Calendar as CalendarUI } from "@/components/ui/calendar";
 
 type BusinessType = 'barbershop' | 'esthetic';
@@ -693,6 +694,9 @@ export default function ProfessionalPublicProfile() {
             <span className="truncate">Mensagem</span>
           </button>
         </div>
+
+        {/* BENEFÍCIOS E VANTAGENS */}
+        <BenefitsSection companyId={company?.id} professionalId={professional?.id} />
 
         {/* BLOCO COMPACTO DE AVALIAÇÕES PREMIUM COM CARROSSEL */}
         {rating && (
