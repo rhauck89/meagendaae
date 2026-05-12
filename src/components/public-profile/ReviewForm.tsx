@@ -1,25 +1,38 @@
 import React, { useState } from 'react';
 import { Star, Send, X, StarHalf } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface ReviewFormProps {
   onCancel: () => void;
-  onSubmit: (rating: number, comment: string) => Promise<void>;
+  onSubmit: (data: { 
+    rating: number; 
+    comment: string; 
+    tags: string[]; 
+    reviewer_name?: string;
+    reviewer_phone?: string;
+  }) => Promise<void>;
   theme: any;
   title: string;
   subtitle?: string;
   image?: string;
+  initialName?: string;
+  initialPhone?: string;
 }
 
-export function ReviewForm({ onCancel, onSubmit, theme: T, title, subtitle, image }: ReviewFormProps) {
+export function ReviewForm({ onCancel, onSubmit, theme: T, title, subtitle, image, initialName = '', initialPhone = '' }: ReviewFormProps) {
   const [rating, setRating] = useState(0);
   const [hoverRating, setHoverRating] = useState(0);
   const [comment, setComment] = useState('');
+  const [firstName, setFirstName] = useState(initialName.split(' ')[0] || '');
+  const [lastName, setLastName] = useState(initialName.split(' ').slice(1).join(' ') || '');
+  const [phone, setPhone] = useState(initialPhone || '');
   const [submitting, setSubmitting] = useState(false);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const isIdentified = !!initialName;
 
   const tags = ["Atendimento", "Ambiente", "Serviço", "Pontualidade"];
 
@@ -36,15 +49,22 @@ export function ReviewForm({ onCancel, onSubmit, theme: T, title, subtitle, imag
       toast.error("Por favor, selecione uma nota.");
       return;
     }
+
+    if (!isIdentified && (!firstName.trim() || !lastName.trim())) {
+      toast.error("Por favor, informe seu nome e sobrenome.");
+      return;
+    }
+
     setSubmitting(true);
     
-    // Combine tags with comment if tags are selected
-    const finalComment = selectedTags.length > 0 
-      ? `[${selectedTags.join(', ')}] ${comment}`.trim()
-      : comment.trim();
-
     try {
-      await onSubmit(rating, finalComment);
+      await onSubmit({
+        rating,
+        comment: comment.trim(),
+        tags: selectedTags,
+        reviewer_name: isIdentified ? undefined : `${firstName.trim()} ${lastName.trim()}`,
+        reviewer_phone: isIdentified ? undefined : phone.trim() || undefined
+      });
     } catch (err) {
       // Error handled by parent
     } finally {
@@ -187,6 +207,44 @@ export function ReviewForm({ onCancel, onSubmit, theme: T, title, subtitle, imag
             ))}
           </div>
         </div>
+
+        {/* Reviewer Details (Only if not identified) */}
+        {!isIdentified && (
+          <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
+            <p className="text-[11px] font-bold uppercase tracking-wider opacity-50 px-1" style={{ color: T.textSec }}>
+              Seus dados
+            </p>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Input
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                  placeholder="Nome"
+                  required
+                  className="h-12 rounded-xl bg-white/5 border-white/10 text-sm"
+                  style={{ background: T.card, borderColor: `${T.border}80`, color: T.text }}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Input
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                  placeholder="Sobrenome"
+                  required
+                  className="h-12 rounded-xl bg-white/5 border-white/10 text-sm"
+                  style={{ background: T.card, borderColor: `${T.border}80`, color: T.text }}
+                />
+              </div>
+            </div>
+            <Input
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="WhatsApp (opcional)"
+              className="h-12 rounded-xl bg-white/5 border-white/10 text-sm"
+              style={{ background: T.card, borderColor: `${T.border}80`, color: T.text }}
+            />
+          </div>
+        )}
 
         {/* Comment Section */}
         <div className="space-y-3">
