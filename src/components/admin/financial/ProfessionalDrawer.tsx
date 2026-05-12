@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   Sheet,
   SheetContent,
@@ -10,11 +10,13 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { useFinancialPrivacy } from '@/contexts/FinancialPrivacyContext';
 import { supabase } from '@/integrations/supabase/client';
-import { format } from 'date-fns';
+import { format, parseISO, startOfDay, endOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { TrendingUp, Users, History, DollarSign, Wallet } from 'lucide-react';
+import { TrendingUp, Users, History, DollarSign, Wallet, ChevronLeft, ChevronRight, CalendarDays, FilterX, Search } from 'lucide-react';
 import { getAppointmentRevenue, calculateFinancials, commissionLabel, collaboratorTypeLabel, remunerationLabel } from '@/lib/financial-engine';
 
 interface ProfessionalDrawerProps {
