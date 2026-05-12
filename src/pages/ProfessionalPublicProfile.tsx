@@ -3,7 +3,7 @@ import { useEffect, useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
-import { Star, MessageCircle, MapPin, Share2, Check, Calendar, Clock, Instagram, Sparkles, Scissors, BadgeCheck, Trophy, Flame, Crown, Users, ArrowLeft, Heart, ShieldCheck, Zap, Repeat, Home } from 'lucide-react';
+import { Star, MessageCircle, MapPin, Share2, Check, Calendar, Clock, Instagram, Sparkles, Scissors, BadgeCheck, Trophy, Flame, Crown, Users, ArrowLeft, Heart, ShieldCheck, Zap, Repeat, Home, ChevronLeft, ChevronRight, Navigation } from 'lucide-react';
 import { LocationBlock } from '@/components/LocationBlock';
 import { SEOHead } from '@/components/SEOHead';
 import { format, addDays, startOfDay, isToday, isTomorrow, differenceInYears, parseISO } from 'date-fns';
@@ -116,6 +116,27 @@ export default function ProfessionalPublicProfile() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [availableSlotsForDate, setAvailableSlotsForDate] = useState<string[]>([]);
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
+  const [currentReviewIndex, setCurrentReviewIndex] = useState(0);
+
+  const nextReview = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (reviews.length > 1) {
+      setCurrentReviewIndex((prev) => (prev + 1) % reviews.length);
+    }
+  };
+
+  const prevReview = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (reviews.length > 1) {
+      setCurrentReviewIndex((prev) => (prev - 1 + reviews.length) % reviews.length);
+    }
+  };
+
+  useEffect(() => {
+    if (reviews.length > 0 && currentReviewIndex >= reviews.length) {
+      setCurrentReviewIndex(0);
+    }
+  }, [reviews.length]);
 
   const { amenities: companyAmenities } = useCompanyAmenities(company?.id);
   const { scrollY } = useScroll();
@@ -558,6 +579,8 @@ export default function ProfessionalPublicProfile() {
 
   const firstName = professional.name.split(' ')[0];
   const goldGradient = `linear-gradient(135deg, ${T.accent} 0%, #F4C752 50%, ${T.accent} 100%)`;
+  const fullAddress = [company?.address, company?.address_number, company?.district, company?.city, company?.state].filter(Boolean).join(', ');
+  const companyWhatsapp = company?.whatsapp ? formatWhatsApp(company.whatsapp) : (company?.phone ? formatWhatsApp(company.phone) : null);
 
   return (
     <div className="min-h-screen overflow-x-hidden pb-28" style={{ background: T.bg }}>
@@ -696,13 +719,12 @@ export default function ProfessionalPublicProfile() {
           </button>
         </div>
 
-        {/* BLOCO COMPACTO DE AVALIAÇÕES PREMIUM */}
-        {rating && rating.count > 0 && (
-          <motion.button
+        {/* BLOCO COMPACTO DE AVALIAÇÕES PREMIUM COM CARROSSEL */}
+        {rating && (
+          <motion.div
             whileHover={{ scale: 1.01 }}
-            whileTap={{ scale: 0.99 }}
+            className="w-full rounded-[2rem] border p-6 flex flex-col md:flex-row items-stretch gap-6 text-left transition-all shadow-lg relative overflow-hidden group cursor-pointer"
             onClick={() => setIsReviewsDrawerOpen(true)}
-            className="w-full rounded-[2rem] border p-6 flex flex-col md:flex-row items-stretch gap-6 text-left transition-all shadow-lg relative overflow-hidden group"
             style={{ 
               background: T.card, 
               borderColor: T.border,
@@ -711,21 +733,21 @@ export default function ProfessionalPublicProfile() {
           >
             {/* Botão Ver Todas elegante no canto */}
             <div 
-              className="absolute top-4 right-6 flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest transition-colors"
+              className="absolute top-4 right-6 flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest transition-colors z-20"
               style={{ color: T.accent }}
             >
               Ver todas
               <span className="text-lg leading-none transition-transform group-hover:translate-x-1">›</span>
             </div>
 
-            {/* Lado Esquerdo — Resumo */}
+            {/* Lado Esquerdo — Resumo (Fixo) */}
             <div className="flex flex-col justify-center items-center md:items-start md:pr-8 md:border-r border-dashed shrink-0" style={{ borderColor: `${T.accent}30` }}>
               <div className="flex items-center gap-1.5 mb-1 opacity-60">
                 <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
                 <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: T.textSec }}>Avaliações</span>
               </div>
               <div className="flex items-end gap-1 mb-1">
-                <span className="text-4xl font-black leading-none" style={{ color: T.text }}>{rating.avg.toFixed(1).replace('.', ',')}</span>
+                <span className="text-4xl font-black leading-none" style={{ color: T.text }}>{rating.count > 0 ? rating.avg.toFixed(1).replace('.', ',') : '0,0'}</span>
               </div>
               <div className="flex flex-col items-center md:items-start gap-1">
                 <StarRating rating={rating.avg} size={14} />
@@ -735,63 +757,94 @@ export default function ProfessionalPublicProfile() {
               </div>
             </div>
             
-            {/* Lado Direito — Avaliação em Destaque */}
-            <div className="flex-1 min-w-0 flex flex-col justify-center">
+            {/* Lado Direito — Avaliação em Destaque (Carrossel) */}
+            <div className="flex-1 min-w-0 flex flex-col justify-center relative">
               {reviews.length > 0 ? (
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2">
-                    {reviews[0].client_avatar_url ? (
-                      <img 
-                        src={reviews[0].client_avatar_url} 
-                        alt="" 
-                        className="w-8 h-8 rounded-full object-cover ring-2" 
-                        style={{ outline: `1px solid ${T.accent}30` }}
-                      />
-                    ) : (
-                      <div className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs" style={{ background: `${T.accent}15`, color: T.accent }}>
-                        {(reviews[0].client_display_name || 'C').charAt(0)}
-                      </div>
-                    )}
-                    <div className="min-w-0">
+                <div className="relative group/carousel">
+                  <AnimatePresence mode="wait">
+                    <motion.div 
+                      key={currentReviewIndex}
+                      initial={{ opacity: 0, x: 10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: -10 }}
+                      className="space-y-3 pr-8"
+                    >
                       <div className="flex items-center gap-2">
-                        <span className="text-sm font-bold truncate" style={{ color: T.text }}>
-                          {reviews[0].client_display_name || 'Cliente'}
-                        </span>
-                        <div className="flex gap-0.5">
-                          {[1,2,3,4,5].map(s => (
-                            <Star key={s} className={cn("w-2.5 h-2.5", s <= reviews[0].rating ? "fill-yellow-400 text-yellow-400" : "opacity-10")} />
-                          ))}
+                        {reviews[currentReviewIndex].client_avatar_url ? (
+                          <img 
+                            src={reviews[currentReviewIndex].client_avatar_url} 
+                            alt="" 
+                            className="w-8 h-8 rounded-full object-cover ring-2" 
+                            style={{ outline: `1px solid ${T.accent}30` }}
+                          />
+                        ) : (
+                          <div className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs" style={{ background: `${T.accent}15`, color: T.accent }}>
+                            {(reviews[currentReviewIndex].client_display_name || 'C').charAt(0)}
+                          </div>
+                        )}
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-bold truncate" style={{ color: T.text }}>
+                              {reviews[currentReviewIndex].client_display_name || 'Cliente'}
+                            </span>
+                            <div className="flex gap-0.5">
+                              {[1,2,3,4,5].map(s => (
+                                <Star key={s} className={cn("w-2.5 h-2.5", s <= reviews[currentReviewIndex].rating ? "fill-yellow-400 text-yellow-400" : "opacity-10")} />
+                              ))}
+                            </div>
+                          </div>
+                          <p className="text-[9px] opacity-40 font-semibold" style={{ color: T.textSec }}>
+                            {format(new Date(reviews[currentReviewIndex].created_at), 'dd MMM yyyy', { locale: ptBR })}
+                          </p>
                         </div>
                       </div>
-                      <p className="text-[9px] opacity-40 font-semibold" style={{ color: T.textSec }}>
-                        {format(new Date(reviews[0].created_at), 'dd MMM yyyy', { locale: ptBR })}
-                      </p>
-                    </div>
-                  </div>
-                  
-                  <div className="relative">
-                    <p className="text-sm leading-relaxed opacity-90 italic line-clamp-2 pl-4 border-l-2" style={{ color: T.text, borderColor: `${T.accent}40` }}>
-                      "{reviews[0].comment || 'Experiência excelente!'}"
-                    </p>
-                  </div>
+                      
+                      <div className="relative">
+                        <p className="text-sm leading-relaxed opacity-90 italic line-clamp-2 pl-4 border-l-2" style={{ color: T.text, borderColor: `${T.accent}40` }}>
+                          "{reviews[currentReviewIndex].comment || 'Experiência excelente!'}"
+                        </p>
+                      </div>
 
-                  {reviews[0].tags && reviews[0].tags.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5 mt-2">
-                      {reviews[0].tags.slice(0, 2).map((tag: string) => (
-                        <span key={tag} className="text-[8px] px-2 py-0.5 rounded-full font-bold uppercase tracking-tighter" style={{ background: `${T.accent}10`, color: T.accent, border: `1px solid ${T.accent}20` }}>
-                          {tag}
-                        </span>
-                      ))}
+                      {reviews[currentReviewIndex].tags && reviews[currentReviewIndex].tags.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5 mt-2">
+                          {reviews[currentReviewIndex].tags.slice(0, 2).map((tag: string) => (
+                            <span key={tag} className="text-[8px] px-2 py-0.5 rounded-full font-bold uppercase tracking-tighter" style={{ background: `${T.accent}10`, color: T.accent, border: `1px solid ${T.accent}20` }}>
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </motion.div>
+                  </AnimatePresence>
+
+                  {/* Setas de navegação */}
+                  {reviews.length > 1 && (
+                    <div className="absolute right-0 top-1/2 -translate-y-1/2 flex flex-col gap-2 z-30">
+                      <button
+                        onClick={prevReview}
+                        className="w-7 h-7 rounded-full flex items-center justify-center backdrop-blur-md bg-black/10 border border-black/5 text-current hover:bg-black/20 transition-all active:scale-90"
+                        style={{ color: T.text }}
+                      >
+                        <ChevronLeft className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={nextReview}
+                        className="w-7 h-7 rounded-full flex items-center justify-center backdrop-blur-md bg-black/10 border border-black/5 text-current hover:bg-black/20 transition-all active:scale-90"
+                        style={{ color: T.text }}
+                      >
+                        <ChevronRight className="w-4 h-4" />
+                      </button>
                     </div>
                   )}
                 </div>
               ) : (
-                <div className="flex items-center justify-center h-full opacity-40">
-                  <p className="text-sm italic" style={{ color: T.textSec }}>Nenhum comentário detalhado ainda</p>
+                <div className="flex flex-col items-center justify-center h-full space-y-2 opacity-60">
+                  <Star className="w-8 h-8 opacity-20" style={{ color: T.accent }} />
+                  <p className="text-sm font-medium italic" style={{ color: T.textSec }}>Ainda não há depoimentos para {firstName}</p>
                 </div>
               )}
             </div>
-          </motion.button>
+          </motion.div>
         )}
         {/* ÚLTIMO ATENDIMENTO */}
         <AnimatePresence>
@@ -1025,26 +1078,68 @@ export default function ProfessionalPublicProfile() {
           </DialogContent>
         </Dialog>
 
-        {/* FAIXA VERDE — CTA secundário */}
-        <section
-          className="rounded-2xl p-5 flex items-center gap-4 justify-between"
-          style={{ background: 'rgba(16, 185, 129, 0.12)', border: '1px solid rgba(16, 185, 129, 0.3)' }}
-        >
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="w-11 h-11 rounded-xl flex items-center justify-center bg-emerald-500/20 flex-shrink-0">
-              <Calendar className="w-5 h-5 text-emerald-500" />
+        {/* Localização */}
+        <section className="space-y-4">
+          <h2 className="text-lg font-bold flex items-center gap-2" style={{ color: T.text }}>
+            <MapPin className="w-5 h-5" style={{ color: T.accent }} />
+            Localização
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="p-5 rounded-2xl border" style={{ background: T.card, borderColor: T.border }}>
+              <div className="flex items-start gap-2 mb-3">
+                <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: T.accent }} />
+                <div>
+                  <p className="font-bold text-base" style={{ color: T.text }}>{company.name}</p>
+                  <p className="text-sm opacity-70 leading-relaxed mt-1" style={{ color: T.textSec }}>
+                    {[company.address, company.address_number].filter(Boolean).join(', ')}
+                    {company.district && <><br />{company.district}</>}
+                    {(company.city || company.state) && <><br />{[company.city, company.state].filter(Boolean).join(', ')}</>}
+                    {company.postal_code && <><br />CEP {company.postal_code}</>}
+                  </p>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-2 mt-4">
+                <Button
+                  variant="outline"
+                  asChild
+                  className="rounded-xl h-10 font-semibold border-2 text-xs"
+                  style={{ borderColor: T.accent, color: T.accent, background: 'transparent' }}
+                >
+                  <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(fullAddress)}`} target="_blank" rel="noopener noreferrer">
+                    <Navigation className="w-3.5 h-3.5 mr-1" />
+                    Como chegar
+                  </a>
+                </Button>
+                {companyWhatsapp && (
+                  <Button
+                    variant="outline"
+                    asChild
+                    className="rounded-xl h-10 font-semibold border-2 text-xs"
+                    style={{ borderColor: '#25D366', color: '#25D366', background: 'transparent' }}
+                  >
+                    <a href={buildWhatsAppUrl(companyWhatsapp)} target="_blank" rel="noopener noreferrer">
+                      <MessageCircle className="w-3.5 h-3.5 mr-1" />
+                      WhatsApp
+                    </a>
+                  </Button>
+                )}
+              </div>
             </div>
-            <div className="min-w-0">
-              <p className="text-sm font-bold" style={{ color: T.text }}>Agende seu horário com {firstName}</p>
-              <p className="text-xs opacity-70 truncate" style={{ color: T.textSec }}>Escolha o melhor horário e garanta seu atendimento!</p>
-            </div>
+            <a
+              href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(fullAddress)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="rounded-2xl border overflow-hidden block relative min-h-[200px]"
+              style={{ background: T.card, borderColor: T.border }}
+            >
+              <iframe
+                title="Mapa"
+                src={`https://www.google.com/maps?q=${encodeURIComponent(fullAddress)}&output=embed`}
+                className="w-full h-full absolute inset-0 border-0"
+                loading="lazy"
+              />
+            </a>
           </div>
-          <Button
-            onClick={() => navigate(`${bookingUrl}?jumpTo=datetime`)}
-            className="h-11 px-4 rounded-xl font-bold whitespace-nowrap bg-emerald-500 hover:bg-emerald-600 text-white flex-shrink-0"
-          >
-            Ver horários ›
-          </Button>
         </section>
 
         <div className="pt-6 pb-4 opacity-40 text-center">
