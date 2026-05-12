@@ -19,6 +19,7 @@ import { AmenitiesDisplay } from '@/components/AmenitiesDisplay';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription, DrawerFooter, DrawerClose } from "@/components/ui/drawer";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { toast } from 'sonner';
 import { IdentityModal } from '@/components/booking/IdentityModal';
 import { ReviewForm } from '@/components/public-profile/ReviewForm';
@@ -270,7 +271,7 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
         try {
           const [ratingsRes, reviewsRes] = await Promise.all([
             supabase.rpc('get_professional_ratings' as any, { p_company_id: companyFull.id }),
-            supabase.from('reviews').select('rating, comment, created_at, professional_id, appointment_id, review_type').eq('company_id', companyFull.id).order('created_at', { ascending: false }),
+            supabase.from('reviews').select('rating, comment, created_at, professional_id, appointment_id, review_type').eq('company_id', companyFull.id).is('professional_id', null).eq('review_type', 'company').order('created_at', { ascending: false }),
           ]);
 
           if (ratingsRes.data && Array.isArray(ratingsRes.data)) {
@@ -1086,15 +1087,15 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
 
       {/* Reviews Drawer */}
       <Drawer open={isReviewsDrawerOpen} onOpenChange={setIsReviewsDrawerOpen}>
-        <DrawerContent className="max-h-[85vh]">
-          <DrawerHeader className="flex flex-row items-center justify-between">
+        <DrawerContent className="max-h-[85vh] border-none" style={{ backgroundColor: T.card }}>
+          <DrawerHeader className="flex flex-row items-center justify-between border-b pb-4" style={{ borderColor: T.border }}>
             <div className="text-left">
-              <DrawerTitle>Avaliações</DrawerTitle>
-              <DrawerDescription>{allReviewsList.length} depoimentos de clientes</DrawerDescription>
+              <DrawerTitle style={{ color: T.text }}>Avaliações</DrawerTitle>
+              <DrawerDescription style={{ color: T.textSec }}>{allReviewsList.length} depoimentos de clientes</DrawerDescription>
             </div>
             <Button 
               size="sm" 
-              className="rounded-full" 
+              className="rounded-full font-bold px-6" 
               style={{ background: T.accent, color: '#000' }}
               onClick={() => {
                 setIsReviewsDrawerOpen(false);
@@ -1104,44 +1105,72 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
               Avaliar
             </Button>
           </DrawerHeader>
-          <div className="px-4 pb-8 overflow-y-auto space-y-4">
+          <div className="px-4 py-6 overflow-y-auto space-y-4">
             {allReviewsList.map((rev: any, i: number) => (
-              <div key={i} className="p-4 rounded-2xl border space-y-2 text-left" style={{ background: T.card, borderColor: T.border }}>
+              <motion.div 
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.05 }}
+                key={i} 
+                className="p-5 rounded-2xl border space-y-3 text-left shadow-sm" 
+                style={{ background: `${T.card}CC`, borderColor: T.border }}
+              >
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs" style={{ background: `${T.accent}20`, color: T.accent }}>
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm ring-2" style={{ background: `${T.accent}15`, outline: `2px solid ${T.accent}30`, color: T.accent }}>
                       {(rev.client_display_name || 'C').charAt(0)}
                     </div>
-                    <span className="font-bold text-sm" style={{ color: T.text }}>{rev.client_display_name || 'Cliente'}</span>
+                    <div>
+                      <span className="font-bold text-sm block" style={{ color: T.text }}>{rev.client_display_name || 'Cliente'}</span>
+                      <p className="text-[10px] opacity-40 uppercase tracking-wider font-semibold" style={{ color: T.textSec }}>{format(new Date(rev.created_at), 'dd MMM yyyy', { locale: ptBR })}</p>
+                    </div>
                   </div>
-                  <div className="flex gap-0.5">
-                    {[1,2,3,4,5].map(s => <Star key={s} className={cn("w-3 h-3", s <= rev.rating ? "fill-yellow-400 text-yellow-400" : "opacity-20")} />)}
+                  <div className="flex gap-0.5 bg-black/20 px-2 py-1 rounded-full">
+                    {[1,2,3,4,5].map(s => <Star key={s} className={cn("w-3 h-3", s <= rev.rating ? "fill-yellow-400 text-yellow-400" : "opacity-10")} />)}
                   </div>
                 </div>
-                <p className="text-sm italic opacity-80" style={{ color: T.text }}>"{rev.comment || 'Excelente!'}"</p>
-                <p className="text-[10px] opacity-40 text-right" style={{ color: T.textSec }}>{format(new Date(rev.created_at), 'dd/MM/yyyy')}</p>
-              </div>
+                <p className="text-sm leading-relaxed opacity-90" style={{ color: T.text }}>
+                  {rev.comment ? (rev.comment.startsWith('[') ? rev.comment.split(']').slice(1).join(']').trim() : rev.comment) : 'Excelente atendimento!'}
+                </p>
+                {rev.comment && rev.comment.startsWith('[') && (
+                  <div className="flex flex-wrap gap-1.5 pt-1">
+                    {rev.comment.match(/\[(.*?)\]/)?.[1].split(', ').map((tag: string) => (
+                      <span key={tag} className="text-[9px] px-2 py-0.5 rounded-full font-bold uppercase tracking-tighter" style={{ background: `${T.accent}15`, color: T.accent }}>{tag}</span>
+                    ))}
+                  </div>
+                )}
+              </motion.div>
             ))}
             {allReviewsList.length === 0 && (
-              <p className="text-center py-8 opacity-60" style={{ color: T.textSec }}>Nenhuma avaliação ainda.</p>
+              <div className="flex flex-col items-center justify-center py-12 space-y-3 opacity-40">
+                <Star className="w-12 h-12" style={{ color: T.textSec }} />
+                <p className="text-center text-sm" style={{ color: T.textSec }}>Nenhuma avaliação ainda.</p>
+              </div>
             )}
           </div>
         </DrawerContent>
       </Drawer>
 
-      {/* Add Review Drawer */}
-      <Drawer open={isAddReviewModalOpen} onOpenChange={setIsAddReviewModalOpen}>
-        <DrawerContent>
-          <div className="mx-auto w-full max-w-sm p-6">
-            <ReviewForm 
-              title={`Avaliar ${company?.name || 'Estabelecimento'}`}
-              onCancel={() => setIsAddReviewModalOpen(false)}
-              onSubmit={handleSubmitReview}
-              theme={T}
-            />
-          </div>
-        </DrawerContent>
-      </Drawer>
+      {/* Review Modal */}
+      <Dialog open={isAddReviewModalOpen} onOpenChange={setIsAddReviewModalOpen}>
+        <DialogContent 
+          className="p-0 border-none bg-transparent shadow-none max-w-[92%] sm:max-w-md"
+          style={{ 
+            backgroundColor: T.card,
+            borderRadius: '24px',
+            border: `1px solid ${T.border}`,
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
+          }}
+        >
+          <ReviewForm
+            title={company?.name || "Estabelecimento"}
+            image={company?.logo_url}
+            theme={T}
+            onCancel={() => setIsAddReviewModalOpen(false)}
+            onSubmit={handleSubmitReview}
+          />
+        </DialogContent>
+      </Dialog>
 
       <IdentityModal
         isOpen={showIdentityModal}
