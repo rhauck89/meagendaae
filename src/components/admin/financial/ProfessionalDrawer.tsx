@@ -97,7 +97,7 @@ export const ProfessionalDrawer = ({
         // Calculate financials for this specific appointment
         const fin = calculateFinancials(
           price,
-          1, // Using 1 for fixed commission per appointment, or we could use serviceNames.length
+          serviceNames.length || 1, // Number of services in this appointment
           professional.type,
           professional.commType,
           professional.value
