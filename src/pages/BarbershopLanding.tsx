@@ -74,7 +74,7 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
   const [showAllReviews, setShowAllReviews] = useState(false);
   const [allReviewsList, setAllReviewsList] = useState<any[]>([]);
   const [isWhitelabel, setIsWhitelabel] = useState(false);
-  const { isAuthenticated: isAuthAuthenticated, isAdmin } = useAuth();
+  const { isAuthenticated: isAuthAuthenticated, isAdmin, user } = useAuth();
   
   // Rule: Admin session is ignored for client identification on landing
   const isAuthenticated = isAuthAuthenticated && !isAdmin;
@@ -271,7 +271,7 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
         try {
           const [ratingsRes, reviewsRes] = await Promise.all([
             supabase.rpc('get_professional_ratings' as any, { p_company_id: companyFull.id }),
-            supabase.from('reviews').select('rating, comment, created_at, professional_id, appointment_id, review_type').eq('company_id', companyFull.id).is('professional_id', null).eq('review_type', 'company').order('created_at', { ascending: false }),
+            supabase.from('reviews').select('rating, comment, created_at, professional_id, appointment_id, review_type, reviewer_name, reviewer_avatar, tags').eq('company_id', companyFull.id).is('professional_id', null).eq('review_type', 'company').order('created_at', { ascending: false }),
           ]);
 
           if (ratingsRes.data && Array.isArray(ratingsRes.data)) {
@@ -304,7 +304,8 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
 
             const enrichedReviews = reviewsRes.data.map((r: any) => ({
               ...r,
-              client_display_name: r.appointment_id && clientNameMap[r.appointment_id] ? formatReviewerName(clientNameMap[r.appointment_id]) : null,
+              client_display_name: r.reviewer_name || (r.appointment_id && clientNameMap[r.appointment_id] ? formatReviewerName(clientNameMap[r.appointment_id]) : null),
+              client_avatar_url: r.reviewer_avatar || null,
             }));
 
             const companyReviews = enrichedReviews.filter((r: any) => r.review_type === 'company');
@@ -390,15 +391,24 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
     }
   };
 
-  const handleSubmitReview = async (rating: number, comment: string) => {
+  const handleSubmitReview = async (data: { 
+    rating: number; 
+    comment: string; 
+    tags: string[]; 
+    reviewer_name?: string;
+    reviewer_phone?: string;
+  }) => {
     if (!company?.id) return;
     setIsSubmittingReview(true);
     try {
       const { error } = await supabase.from('reviews').insert({
         company_id: company.id,
         professional_id: null,
-        rating,
-        comment,
+        rating: data.rating,
+        comment: data.comment,
+        tags: data.tags,
+        reviewer_name: data.reviewer_name,
+        reviewer_phone: data.reviewer_phone,
         review_type: 'company'
       });
 
@@ -859,9 +869,17 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
                   <div key={i} className="p-4 rounded-2xl border flex flex-col gap-3" style={{ background: T.card, borderColor: T.border }}>
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold text-white" style={{ background: color }}>
-                          {initial}
-                        </div>
+                        {rev.client_avatar_url ? (
+                          <img 
+                            src={rev.client_avatar_url} 
+                            alt={rev.client_display_name} 
+                            className="w-8 h-8 rounded-full object-cover" 
+                          />
+                        ) : (
+                          <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold text-white" style={{ background: color }}>
+                            {initial}
+                          </div>
+                        )}
                         <div>
                           <p className="text-sm font-bold" style={{ color: T.text }}>{rev.client_display_name || 'Cliente'}</p>
                           <div className="flex items-center gap-0.5">
@@ -1117,9 +1135,18 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm ring-2" style={{ background: `${T.accent}15`, outline: `2px solid ${T.accent}30`, color: T.accent }}>
-                      {(rev.client_display_name || 'C').charAt(0)}
-                    </div>
+                    {rev.client_avatar_url ? (
+                      <img 
+                        src={rev.client_avatar_url} 
+                        alt={rev.client_display_name} 
+                        className="w-10 h-10 rounded-full object-cover ring-2" 
+                        style={{ outline: `2px solid ${T.accent}30` }}
+                      />
+                    ) : (
+                      <div className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm ring-2" style={{ background: `${T.accent}15`, outline: `2px solid ${T.accent}30`, color: T.accent }}>
+                        {(rev.client_display_name || 'C').charAt(0)}
+                      </div>
+                    )}
                     <div>
                       <span className="font-bold text-sm block" style={{ color: T.text }}>{rev.client_display_name || 'Cliente'}</span>
                       <p className="text-[10px] opacity-40 uppercase tracking-wider font-semibold" style={{ color: T.textSec }}>{format(new Date(rev.created_at), 'dd MMM yyyy', { locale: ptBR })}</p>
@@ -1130,11 +1157,11 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
                   </div>
                 </div>
                 <p className="text-sm leading-relaxed opacity-90" style={{ color: T.text }}>
-                  {rev.comment ? (rev.comment.startsWith('[') ? rev.comment.split(']').slice(1).join(']').trim() : rev.comment) : 'Excelente atendimento!'}
+                  {rev.comment || 'Excelente atendimento!'}
                 </p>
-                {rev.comment && rev.comment.startsWith('[') && (
+                {rev.tags && rev.tags.length > 0 && (
                   <div className="flex flex-wrap gap-1.5 pt-1">
-                    {rev.comment.match(/\[(.*?)\]/)?.[1].split(', ').map((tag: string) => (
+                    {rev.tags.map((tag: string) => (
                       <span key={tag} className="text-[9px] px-2 py-0.5 rounded-full font-bold uppercase tracking-tighter" style={{ background: `${T.accent}15`, color: T.accent }}>{tag}</span>
                     ))}
                   </div>
@@ -1166,6 +1193,7 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
             title={company?.name || "Estabelecimento"}
             image={company?.logo_url}
             theme={T}
+            initialName={isAuthAuthenticated && !isAdmin ? user?.user_metadata?.full_name : ''}
             onCancel={() => setIsAddReviewModalOpen(false)}
             onSubmit={handleSubmitReview}
           />
