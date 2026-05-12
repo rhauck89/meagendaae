@@ -1129,6 +1129,20 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
         </DrawerContent>
       </Drawer>
 
+      {/* Add Review Drawer */}
+      <Drawer open={isAddReviewModalOpen} onOpenChange={setIsAddReviewModalOpen}>
+        <DrawerContent>
+          <div className="mx-auto w-full max-w-sm p-6">
+            <ReviewForm 
+              title={`Avaliar ${company?.name || 'Estabelecimento'}`}
+              onCancel={() => setIsAddReviewModalOpen(false)}
+              onSubmit={handleSubmitReview}
+              theme={T}
+            />
+          </div>
+        </DrawerContent>
+      </Drawer>
+
       <IdentityModal
         isOpen={showIdentityModal}
         onClose={() => setShowIdentityModal(false)}
