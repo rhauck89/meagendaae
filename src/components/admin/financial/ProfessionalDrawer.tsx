@@ -337,11 +337,10 @@ export const ProfessionalDrawer = ({
                   ))}
                 </div>
               </section>
-            </div>
-            </div>
           </div>
-        </ScrollArea>
-      </SheetContent>
-    </Sheet>
-  );
+        </div>
+      </ScrollArea>
+    </SheetContent>
+  </Sheet>
+);
 };
