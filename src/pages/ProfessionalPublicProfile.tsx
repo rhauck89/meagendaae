@@ -696,33 +696,99 @@ export default function ProfessionalPublicProfile() {
           </button>
         </div>
 
-        {/* BLOCO COMPACTO DE AVALIAÇÕES */}
+        {/* BLOCO COMPACTO DE AVALIAÇÕES PREMIUM */}
         {rating && rating.count > 0 && (
           <motion.button
             whileHover={{ scale: 1.01 }}
             whileTap={{ scale: 0.99 }}
             onClick={() => setIsReviewsDrawerOpen(true)}
-            className="w-full rounded-2xl border p-4 flex items-center gap-4 text-left transition-all"
-            style={{ background: T.card, borderColor: T.border }}
+            className="w-full rounded-[2rem] border p-6 flex flex-col md:flex-row items-stretch gap-6 text-left transition-all shadow-lg relative overflow-hidden group"
+            style={{ 
+              background: T.card, 
+              borderColor: T.border,
+              boxShadow: `0 10px 30px -10px ${T.accent}15`
+            }}
           >
-            <div className="flex flex-col items-center justify-center border-r pr-4" style={{ borderColor: T.border }}>
-              <span className="text-2xl font-black leading-tight" style={{ color: T.text }}>{rating.avg.toFixed(1).replace('.', ',')}</span>
-              <StarRating rating={rating.avg} size={10} />
+            {/* Botão Ver Todas elegante no canto */}
+            <div 
+              className="absolute top-4 right-6 flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest transition-colors"
+              style={{ color: T.accent }}
+            >
+              Ver todas
+              <span className="text-lg leading-none transition-transform group-hover:translate-x-1">›</span>
             </div>
-            
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-xs font-bold" style={{ color: T.text }}>{rating.count} avaliações</span>
-                <span className="text-[10px] font-bold uppercase tracking-widest flex items-center gap-1" style={{ color: T.accent }}>
-                  Ver todas <span className="text-lg leading-none">›</span>
+
+            {/* Lado Esquerdo — Resumo */}
+            <div className="flex flex-col justify-center items-center md:items-start md:pr-8 md:border-r border-dashed shrink-0" style={{ borderColor: `${T.accent}30` }}>
+              <div className="flex items-center gap-1.5 mb-1 opacity-60">
+                <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
+                <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: T.textSec }}>Avaliações</span>
+              </div>
+              <div className="flex items-end gap-1 mb-1">
+                <span className="text-4xl font-black leading-none" style={{ color: T.text }}>{rating.avg.toFixed(1).replace('.', ',')}</span>
+              </div>
+              <div className="flex flex-col items-center md:items-start gap-1">
+                <StarRating rating={rating.avg} size={14} />
+                <span className="text-[11px] font-bold opacity-50" style={{ color: T.textSec }}>
+                  {rating.count} {rating.count === 1 ? 'avaliação' : 'avaliações'}
                 </span>
               </div>
+            </div>
+            
+            {/* Lado Direito — Avaliação em Destaque */}
+            <div className="flex-1 min-w-0 flex flex-col justify-center">
               {reviews.length > 0 ? (
-                <p className="text-xs opacity-70 italic truncate pr-4" style={{ color: T.textSec }}>
-                  "{reviews[0].comment || 'Experiência excelente!'}"
-                </p>
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    {reviews[0].client_avatar_url ? (
+                      <img 
+                        src={reviews[0].client_avatar_url} 
+                        alt="" 
+                        className="w-8 h-8 rounded-full object-cover ring-2" 
+                        style={{ outline: `1px solid ${T.accent}30` }}
+                      />
+                    ) : (
+                      <div className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs" style={{ background: `${T.accent}15`, color: T.accent }}>
+                        {(reviews[0].client_display_name || 'C').charAt(0)}
+                      </div>
+                    )}
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-bold truncate" style={{ color: T.text }}>
+                          {reviews[0].client_display_name || 'Cliente'}
+                        </span>
+                        <div className="flex gap-0.5">
+                          {[1,2,3,4,5].map(s => (
+                            <Star key={s} className={cn("w-2.5 h-2.5", s <= reviews[0].rating ? "fill-yellow-400 text-yellow-400" : "opacity-10")} />
+                          ))}
+                        </div>
+                      </div>
+                      <p className="text-[9px] opacity-40 font-semibold" style={{ color: T.textSec }}>
+                        {format(new Date(reviews[0].created_at), 'dd MMM yyyy', { locale: ptBR })}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div className="relative">
+                    <p className="text-sm leading-relaxed opacity-90 italic line-clamp-2 pl-4 border-l-2" style={{ color: T.text, borderColor: `${T.accent}40` }}>
+                      "{reviews[0].comment || 'Experiência excelente!'}"
+                    </p>
+                  </div>
+
+                  {reviews[0].tags && reviews[0].tags.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 mt-2">
+                      {reviews[0].tags.slice(0, 2).map((tag: string) => (
+                        <span key={tag} className="text-[8px] px-2 py-0.5 rounded-full font-bold uppercase tracking-tighter" style={{ background: `${T.accent}10`, color: T.accent, border: `1px solid ${T.accent}20` }}>
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
               ) : (
-                <p className="text-xs opacity-40 italic" style={{ color: T.textSec }}>Nenhum comentário ainda</p>
+                <div className="flex items-center justify-center h-full opacity-40">
+                  <p className="text-sm italic" style={{ color: T.textSec }}>Nenhum comentário detalhado ainda</p>
+                </div>
               )}
             </div>
           </motion.button>
