@@ -27,6 +27,32 @@ type BusinessType = 'barbershop' | 'esthetic';
 
 const DEFAULT_TZ = 'America/Sao_Paulo';
 
+const formatReviewerName = (name: string): string => {
+  if (!name) return 'Cliente';
+  const parts = name.trim().split(/\s+/);
+  if (parts.length === 1) return parts[0];
+  return `${parts[0]} ${parts[parts.length - 1].charAt(0).toUpperCase()}.`;
+};
+
+const parseReviewContent = (comment: string, existingTags: string[] = []) => {
+  let cleanComment = (comment || '').trim();
+  const tags = [...(existingTags || [])];
+  
+  // Look for [Tag] at the start of the comment
+  const tagRegex = /^\[([^\]]+)\]\s*(.*)/;
+  const match = cleanComment.match(tagRegex);
+  
+  if (match) {
+    const extractedTag = match[1];
+    if (!tags.includes(extractedTag)) {
+      tags.push(extractedTag);
+    }
+    cleanComment = match[2].trim();
+  }
+  
+  return { comment: cleanComment || 'Experiência excelente!', tags };
+};
+
 const timeStringToMinutes = (v: string) => { const [h, m] = v.split(':').map(Number); return h * 60 + m; };
 const getAppointmentMinutesInTimezone = (v: string, tz: string) => {
   const p = new Intl.DateTimeFormat('en-GB', { timeZone: tz, hour: '2-digit', minute: '2-digit', hour12: false }).formatToParts(new Date(v));
@@ -60,6 +86,7 @@ export default function ProfessionalPublicProfile() {
   const isAuthenticated = isAuthAuthenticated && !isAdmin;
 
   const [isReviewsDrawerOpen, setIsReviewsDrawerOpen] = useState(false);
+  const [currentClient, setCurrentClient] = useState<any>(null);
   const [isAddReviewModalOpen, setIsAddReviewModalOpen] = useState(false);
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
   const [allReviewsList, setAllReviewsList] = useState<any[]>([]);
@@ -68,8 +95,50 @@ export default function ProfessionalPublicProfile() {
   const { scrollY } = useScroll();
   const y1 = useTransform(scrollY, [0, 500], [0, 200]);
 
+  // Detect logged-in user and WhatsApp session
   useEffect(() => {
-  }, []);
+    if (!company?.id) return;
+    
+    const restoreSession = async () => {
+      // 1. Try WhatsApp session
+      const localIdentityStr = localStorage.getItem(`whatsapp_session_${company.id}`);
+      if (localIdentityStr) {
+        try {
+          const session = JSON.parse(localIdentityStr);
+          const now = new Date();
+          const expiresAt = new Date(session.expiresAt);
+          
+          if (expiresAt > now) {
+            console.log('[PROFILE] Restored WhatsApp session:', session.fullName);
+            setCurrentClient({
+              name: session.fullName,
+              whatsapp: session.whatsapp,
+              email: session.email,
+              avatar_url: null
+            });
+            return;
+          } else {
+            localStorage.removeItem(`whatsapp_session_${company.id}`);
+          }
+        } catch (e) {
+          console.warn('[PROFILE] Error parsing WhatsApp session');
+        }
+      }
+      
+      // 2. Try Supabase Auth metadata if logged in
+      if (isAuthenticated && user) {
+        console.log('[PROFILE] Using Auth session:', user.user_metadata?.full_name);
+        setCurrentClient({
+          name: user.user_metadata?.full_name,
+          whatsapp: user.user_metadata?.whatsapp,
+          email: user.email,
+          avatar_url: user.user_metadata?.avatar_url
+        });
+      }
+    };
+    
+    restoreSession();
+  }, [company?.id, isAuthenticated, user]);
 
   useEffect(() => { if (slug && professionalSlug) load(); }, [slug, professionalSlug]);
 
@@ -231,32 +300,47 @@ export default function ProfessionalPublicProfile() {
                           clientNames[a.id] = `${first}${lastInitial}`;
                         }
                       });
-                      const enriched = allReviewsData.map((r: any) => ({
-                        ...r,
-                        client_display_name: r.reviewer_name || (r.appointment_id ? clientNames[r.appointment_id] || null : null),
-                        client_avatar_url: r.reviewer_avatar || null,
-                      }));
+                      const enriched = allReviewsData.map((r: any) => {
+                        const { comment, tags } = parseReviewContent(r.comment, r.tags);
+                        return {
+                          ...r,
+                          comment,
+                          tags,
+                          client_display_name: r.reviewer_name || (r.appointment_id ? clientNames[r.appointment_id] || null : null),
+                          client_avatar_url: r.reviewer_avatar || null,
+                        };
+                      });
                       setReviews(enriched.slice(0, 3));
                       setAllReviewsList(enriched);
                       setTotalReviews(enriched.length);
                     });
                   } else {
-                    const enriched = allReviewsData.map((r: any) => ({
-                      ...r,
-                      client_display_name: r.reviewer_name || ((appts || []).find(a => a.id === r.appointment_id)?.client_name || null),
-                      client_avatar_url: r.reviewer_avatar || null,
-                    }));
+                    const enriched = allReviewsData.map((r: any) => {
+                      const { comment, tags } = parseReviewContent(r.comment, r.tags);
+                      return {
+                        ...r,
+                        comment,
+                        tags,
+                        client_display_name: r.reviewer_name || ((appts || []).find(a => a.id === r.appointment_id)?.client_name || null),
+                        client_avatar_url: r.reviewer_avatar || null,
+                      };
+                    });
                     setReviews(enriched.slice(0, 3));
                     setAllReviewsList(enriched);
                     setTotalReviews(enriched.length);
                   }
                 });
             } else {
-              const enriched = allReviewsData.map((r: any) => ({
-                ...r,
-                client_display_name: r.reviewer_name || null,
-                client_avatar_url: r.reviewer_avatar || null,
-              }));
+              const enriched = allReviewsData.map((r: any) => {
+                const { comment, tags } = parseReviewContent(r.comment, r.tags);
+                return {
+                  ...r,
+                  comment,
+                  tags,
+                  client_display_name: r.reviewer_name || null,
+                  client_avatar_url: r.reviewer_avatar || null,
+                };
+              });
               setReviews(enriched.slice(0, 3));
               setAllReviewsList(enriched);
               setTotalReviews(enriched.length);
@@ -377,14 +461,19 @@ export default function ProfessionalPublicProfile() {
     if (!company?.id) return;
     setIsSubmittingReview(true);
     try {
+      const finalName = data.reviewer_name || currentClient?.name;
+      const finalPhone = data.reviewer_phone || currentClient?.whatsapp;
+      const finalAvatar = currentClient?.avatar_url || null;
+
       const { error } = await supabase.from('reviews').insert({
         company_id: company.id,
         professional_id: professional.id,
         rating: data.rating,
         comment: data.comment,
         tags: data.tags,
-        reviewer_name: data.reviewer_name,
-        reviewer_phone: data.reviewer_phone,
+        reviewer_name: finalName,
+        reviewer_phone: finalPhone,
+        reviewer_avatar: finalAvatar,
         review_type: 'professional'
       });
 
@@ -926,7 +1015,8 @@ export default function ProfessionalPublicProfile() {
             title={professional?.name || "Profissional"}
             image={avatarUrl}
             theme={T}
-            initialName={isAuthAuthenticated && !isAdmin ? user?.user_metadata?.full_name : ''}
+            initialName={currentClient?.name || ''}
+            initialPhone={currentClient?.whatsapp || ''}
             onCancel={() => setIsAddReviewModalOpen(false)}
             onSubmit={handleSubmitReview}
           />

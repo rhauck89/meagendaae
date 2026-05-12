@@ -33,9 +33,29 @@ interface BarbershopLandingProps {
 }
 
 const formatReviewerName = (name: string): string => {
+  if (!name) return 'Cliente';
   const parts = name.trim().split(/\s+/);
   if (parts.length === 1) return parts[0];
   return `${parts[0]} ${parts[parts.length - 1].charAt(0).toUpperCase()}.`;
+};
+
+const parseReviewContent = (comment: string, existingTags: string[] = []) => {
+  let cleanComment = (comment || '').trim();
+  const tags = [...(existingTags || [])];
+  
+  // Look for [Tag] at the start of the comment
+  const tagRegex = /^\[([^\]]+)\]\s*(.*)/;
+  const match = cleanComment.match(tagRegex);
+  
+  if (match) {
+    const extractedTag = match[1];
+    if (!tags.includes(extractedTag)) {
+      tags.push(extractedTag);
+    }
+    cleanComment = match[2].trim();
+  }
+  
+  return { comment: cleanComment || 'Experiência excelente!', tags };
 };
 
 const StarRating = ({ rating, size = 14 }: { rating: number; size?: number }) => (
@@ -80,6 +100,7 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
   const isAuthenticated = isAuthAuthenticated && !isAdmin;
   
   const [showIdentityModal, setShowIdentityModal] = useState(false);
+  const [currentClient, setCurrentClient] = useState<any>(null);
   const [lastBooking, setLastBooking] = useState<{
     serviceIds: string[]; serviceNames: string[]; serviceDurations: number[];
     professionalId: string; professionalName: string; professionalAvatar: string | null;
@@ -98,9 +119,50 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
   const { scrollY } = useScroll();
   const y1 = useTransform(scrollY, [0, 500], [0, 200]);
 
-  // Detect logged-in user
+  // Detect logged-in user and WhatsApp session
   useEffect(() => {
-  }, []);
+    if (!company?.id) return;
+    
+    const restoreSession = async () => {
+      // 1. Try WhatsApp session
+      const localIdentityStr = localStorage.getItem(`whatsapp_session_${company.id}`);
+      if (localIdentityStr) {
+        try {
+          const session = JSON.parse(localIdentityStr);
+          const now = new Date();
+          const expiresAt = new Date(session.expiresAt);
+          
+          if (expiresAt > now) {
+            console.log('[LANDING] Restored WhatsApp session:', session.fullName);
+            setCurrentClient({
+              name: session.fullName,
+              whatsapp: session.whatsapp,
+              email: session.email,
+              avatar_url: null
+            });
+            return;
+          } else {
+            localStorage.removeItem(`whatsapp_session_${company.id}`);
+          }
+        } catch (e) {
+          console.warn('[LANDING] Error parsing WhatsApp session');
+        }
+      }
+      
+      // 2. Try Supabase Auth metadata if logged in
+      if (isAuthenticated && user) {
+        console.log('[LANDING] Using Auth session:', user.user_metadata?.full_name);
+        setCurrentClient({
+          name: user.user_metadata?.full_name,
+          whatsapp: user.user_metadata?.whatsapp,
+          email: user.email,
+          avatar_url: user.user_metadata?.avatar_url
+        });
+      }
+    };
+    
+    restoreSession();
+  }, [company?.id, isAuthenticated, user]);
 
   // Load last booking for smart rebooking on landing
   useEffect(() => {
@@ -302,11 +364,16 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
               }
             }
 
-            const enrichedReviews = reviewsRes.data.map((r: any) => ({
-              ...r,
-              client_display_name: r.reviewer_name || (r.appointment_id && clientNameMap[r.appointment_id] ? formatReviewerName(clientNameMap[r.appointment_id]) : null),
-              client_avatar_url: r.reviewer_avatar || null,
-            }));
+            const enrichedReviews = reviewsRes.data.map((r: any) => {
+              const { comment, tags } = parseReviewContent(r.comment, r.tags);
+              return {
+                ...r,
+                comment,
+                tags,
+                client_display_name: r.reviewer_name || (r.appointment_id && clientNameMap[r.appointment_id] ? formatReviewerName(clientNameMap[r.appointment_id]) : null),
+                client_avatar_url: r.reviewer_avatar || null,
+              };
+            });
 
             const companyReviews = enrichedReviews.filter((r: any) => r.review_type === 'company');
             if (companyReviews.length > 0) {
@@ -401,14 +468,19 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
     if (!company?.id) return;
     setIsSubmittingReview(true);
     try {
+      const finalName = data.reviewer_name || currentClient?.name;
+      const finalPhone = data.reviewer_phone || currentClient?.whatsapp;
+      const finalAvatar = currentClient?.avatar_url || null;
+
       const { error } = await supabase.from('reviews').insert({
         company_id: company.id,
         professional_id: null,
         rating: data.rating,
         comment: data.comment,
         tags: data.tags,
-        reviewer_name: data.reviewer_name,
-        reviewer_phone: data.reviewer_phone,
+        reviewer_name: finalName,
+        reviewer_phone: finalPhone,
+        reviewer_avatar: finalAvatar,
         review_type: 'company'
       });
 
@@ -1193,7 +1265,8 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
             title={company?.name || "Estabelecimento"}
             image={company?.logo_url}
             theme={T}
-            initialName={isAuthAuthenticated && !isAdmin ? user?.user_metadata?.full_name : ''}
+            initialName={currentClient?.name || ''}
+            initialPhone={currentClient?.whatsapp || ''}
             onCancel={() => setIsAddReviewModalOpen(false)}
             onSubmit={handleSubmitReview}
           />
