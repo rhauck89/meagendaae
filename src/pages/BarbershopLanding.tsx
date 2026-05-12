@@ -24,6 +24,7 @@ import { toast } from 'sonner';
 import { IdentityModal } from '@/components/booking/IdentityModal';
 import { ReviewForm } from '@/components/public-profile/ReviewForm';
 import { BenefitsSection } from '@/components/public-profile/BenefitsSection';
+import { MembershipSection } from '@/components/public-profile/MembershipSection';
 import { useAuth } from '@/contexts/AuthContext';
 
 type BusinessType = 'barbershop' | 'esthetic';
@@ -759,6 +760,12 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
             </motion.section>
           );
         })()}
+
+        {/* Bloco de Assinatura */}
+        <MembershipSection companyId={company.id} />
+
+        {/* Benefícios e Vantagens */}
+        <BenefitsSection companyId={company.id} />
 
         {/* Team */}
         {professionals.length > 0 && (

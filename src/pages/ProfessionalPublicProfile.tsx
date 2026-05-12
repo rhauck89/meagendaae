@@ -23,6 +23,7 @@ import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { ReviewForm } from '@/components/public-profile/ReviewForm';
 import { BenefitsSection } from '@/components/public-profile/BenefitsSection';
+import { MembershipSection } from '@/components/public-profile/MembershipSection';
 import { Calendar as CalendarUI } from "@/components/ui/calendar";
 
 type BusinessType = 'barbershop' | 'esthetic';
@@ -695,8 +696,11 @@ export default function ProfessionalPublicProfile() {
           </button>
         </div>
 
+        {/* Bloco de Assinatura */}
+        <MembershipSection companyId={company.id} />
+
         {/* BENEFÍCIOS E VANTAGENS */}
-        <BenefitsSection companyId={company?.id} professionalId={professional?.id} />
+        <BenefitsSection companyId={company.id} professionalId={professional.id} />
 
         {/* BLOCO COMPACTO DE AVALIAÇÕES PREMIUM COM CARROSSEL */}
         {rating && (
