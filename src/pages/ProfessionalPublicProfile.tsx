@@ -613,7 +613,7 @@ export default function ProfessionalPublicProfile() {
                 <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
                 <h3 className="text-sm font-bold" style={{ color: T.text }}>Avaliações</h3>
               </div>
-              <button onClick={() => setShowAllReviews(true)} className="text-xs font-semibold" style={{ color: T.accent }}>Ver todas</button>
+              <button onClick={() => setIsReviewsDrawerOpen(true)} className="text-xs font-semibold" style={{ color: T.accent }}>Ver todas</button>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-[200px,1fr,1fr] gap-5 items-center">
