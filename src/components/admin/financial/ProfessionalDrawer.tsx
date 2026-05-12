@@ -119,54 +119,73 @@ export const ProfessionalDrawer = ({
           .lte('paid_at', endOfDay(appliedEndDate).toISOString())
       ]);
 
-      const { data: appointments, error } = appointmentsResponse;
+      const { data: appointments, error: appError } = appointmentsResponse;
       const { data: subscriptionCommissions, error: commError } = commissionsResponse;
 
-      if (status !== 'all') {
-        query = query.eq('status', status as any);
-      }
-
-      const { data: appointments, error } = await query.order('start_time', { ascending: false });
-
-      if (error) throw error;
+      if (appError) throw appError;
+      if (commError) throw commError;
 
       // Top Services
       const servicesMap: Record<string, { count: number; revenue: number }> = {};
       const clientsMap: Record<string, { count: number; revenue: number }> = {};
 
-      appointments?.forEach((a: any) => {
-        const serviceNames = a.appointment_services?.map((as: any) => as.service?.name).filter(Boolean) || [];
-        const displayServiceName = serviceNames.join(', ') || 'Serviço s/ nome';
-        const clientName = (Array.isArray(a.client) ? a.client[0]?.name : a.client?.name) || a.client_name || 'Cliente s/ nome';
-        const price = getAppointmentRevenue(a);
+      const mappedAppointments = (appointments || [])
+        .filter(a => status === 'all' || a.status === status)
+        .map((a: any) => {
+          const serviceNames = a.appointment_services?.map((as: any) => as.service?.name).filter(Boolean) || [];
+          const displayServiceName = serviceNames.join(', ') || 'Serviço s/ nome';
+          const clientName = (Array.isArray(a.client) ? a.client[0]?.name : a.client?.name) || a.client_name || 'Cliente s/ nome';
+          const price = getAppointmentRevenue(a);
 
-        // Calculate financials for this specific appointment
-        const fin = calculateFinancials(
-          price,
-          serviceNames.length || 1, // Number of services in this appointment
-          professional.type,
-          professional.commType,
-          professional.value
-        );
+          // Calculate financials for this specific appointment
+          const fin = calculateFinancials(
+            price,
+            serviceNames.length || 1,
+            professional.type,
+            professional.commType,
+            professional.value,
+            a.is_subscription_covered
+          );
 
-        // Contabilizar cada serviço individualmente no ranking
-        serviceNames.forEach((sName: string) => {
-          if (!servicesMap[sName]) servicesMap[sName] = { count: 0, revenue: 0 };
-          servicesMap[sName].count += 1;
-          servicesMap[sName].revenue += price / (serviceNames.length || 1);
+          // Only count towards rankings if not covered by subscription (or maybe count services anyway?)
+          // User said: "Os serviços utilizados dentro da assinatura NÃO devem gerar nova comissão individual... mas podem aparecer como utilização"
+          // I will keep them in the services map but with their actual commission (which will be 0 if covered)
+          serviceNames.forEach((sName: string) => {
+            if (!servicesMap[sName]) servicesMap[sName] = { count: 0, revenue: 0 };
+            servicesMap[sName].count += 1;
+            servicesMap[sName].revenue += price / (serviceNames.length || 1);
+          });
+
+          if (!clientsMap[clientName]) clientsMap[clientName] = { count: 0, revenue: 0 };
+          clientsMap[clientName].count += 1;
+          clientsMap[clientName].revenue += price;
+          
+          return {
+            ...a,
+            displayServiceName,
+            displayClientName: clientName,
+            professionalValue: fin.professionalValue,
+            companyValue: fin.companyValue,
+            revenue: price,
+            origin: 'Serviço'
+          };
         });
 
-        if (!clientsMap[clientName]) clientsMap[clientName] = { count: 0, revenue: 0 };
-        clientsMap[clientName].count += 1;
-        clientsMap[clientName].revenue += price;
-        
-        // Adicionamos os dados calculados para o histórico
-        a.displayServiceName = displayServiceName;
-        a.displayClientName = clientName;
-        a.professionalValue = fin.professionalValue;
-        a.companyValue = fin.companyValue;
-        a.revenue = price;
-      });
+      const mappedSubscriptions = (subscriptionCommissions || []).map((sc: any) => ({
+        id: sc.id,
+        displayClientName: sc.client?.name || 'Assinante',
+        displayServiceName: sc.description || 'Assinatura',
+        start_time: sc.paid_at,
+        revenue: Number(sc.gross_amount),
+        professionalValue: Number(sc.commission_amount),
+        companyValue: Number(sc.company_net_amount),
+        origin: 'Assinatura',
+        status: 'paid'
+      }));
+
+      const combinedHistory = [...mappedAppointments, ...mappedSubscriptions].sort((a, b) => 
+        new Date(b.start_time).getTime() - new Date(a.start_time).getTime()
+      );
 
       setDetails({
         topServices: Object.entries(servicesMap)
