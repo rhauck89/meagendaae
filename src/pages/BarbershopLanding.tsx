@@ -3,7 +3,7 @@ import { useEffect, useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
-import { Star, MessageCircle, MapPin, Calendar, Clock, Scissors, Sparkles, Users, Instagram, Facebook, Globe, ExternalLink, RotateCcw, X, Share2, ChevronRight, Map, ArrowLeft, Heart, Wifi, Car, Coffee, Snowflake, CreditCard, Home, Crown, BadgeCheck, Navigation } from 'lucide-react';
+import { Star, MessageCircle, MapPin, Calendar, Clock, Scissors, Sparkles, Users, Instagram, Facebook, Globe, ExternalLink, RotateCcw, X, Share2, ChevronRight, Map, Wifi, Car, Coffee, Snowflake, CreditCard, Home, Crown, BadgeCheck, Navigation } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { LocationBlock } from '@/components/LocationBlock';
 import { SEOHead, buildLocalBusinessJsonLd } from '@/components/SEOHead';
