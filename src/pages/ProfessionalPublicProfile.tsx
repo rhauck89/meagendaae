@@ -406,14 +406,15 @@ export default function ProfessionalPublicProfile() {
     const slots = result.slots;
     setAvailableSlotsForDate(slots);
 
-    // Also update the summary "nextAvailable" info for the label
+    // Update the summary "nextAvailable" info for the label
     let label: string;
     if (isToday(selectedDate)) {
-      label = '🔥 Hoje';
+      label = `Hoje • ${format(selectedDate, 'dd/MM')}`;
     } else if (isTomorrow(selectedDate)) {
-      label = '📅 Amanhã';
+      label = `Amanhã • ${format(selectedDate, 'dd/MM')}`;
     } else {
-      label = `📅 ${format(selectedDate, "EEEE • dd/MM", { locale: ptBR })}`;
+      const formattedDate = format(selectedDate, "EEEE • dd/MM", { locale: ptBR });
+      label = formattedDate.charAt(0).toUpperCase() + formattedDate.slice(1);
     }
     setNextAvailable({ date: selectedDate, slots, label });
     setSlotsLoading(false);
@@ -851,7 +852,7 @@ export default function ProfessionalPublicProfile() {
                   className="flex-1 px-3 py-2.5 rounded-lg border flex items-center justify-between text-sm hover:opacity-80 transition-opacity"
                   style={{ borderColor: T.border, color: T.text, background: T.bg }}
                 >
-                  <span className="capitalize">{nextAvailable.label.replace(/[^\w\s,]/g, '').trim() || format(selectedDate, "dd 'de' MMMM", { locale: ptBR })}</span>
+                  <span className="font-semibold">{nextAvailable.label || format(selectedDate, "dd 'de' MMMM", { locale: ptBR })}</span>
                   <span className="opacity-50">▾</span>
                 </button>
                 <button 
@@ -896,26 +897,91 @@ export default function ProfessionalPublicProfile() {
 
         {/* Date Picker Dialog */}
         <Dialog open={isDatePickerOpen} onOpenChange={setIsDatePickerOpen}>
-          <DialogContent className="p-0 border-none bg-transparent shadow-none max-w-sm">
-            <div className="p-4 rounded-[2rem] border shadow-2xl" style={{ backgroundColor: T.card, borderColor: T.border }}>
-              <div className="mb-4 text-center">
-                <h3 className="font-bold" style={{ color: T.text }}>Selecionar Data</h3>
+          <DialogContent className="p-0 border-none bg-transparent shadow-none max-w-[92%] sm:max-w-sm">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="p-6 rounded-[2.5rem] border shadow-2xl backdrop-blur-xl relative overflow-hidden" 
+              style={{ 
+                backgroundColor: `${T.card}F2`, 
+                borderColor: `${T.border}40`,
+                boxShadow: `0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 20px ${T.accent}10`
+              }}
+            >
+              {/* Decorative elements */}
+              <div className="absolute top-0 right-0 w-32 h-32 bg-accent/5 blur-[60px] rounded-full -mr-16 -mt-16" style={{ backgroundColor: `${T.accent}10` }} />
+              <div className="absolute bottom-0 left-0 w-32 h-32 bg-accent/5 blur-[60px] rounded-full -ml-16 -mb-16" style={{ backgroundColor: `${T.accent}10` }} />
+
+              <div className="mb-6 text-center relative z-10">
+                <h3 className="text-lg font-black tracking-tight" style={{ color: T.text }}>Escolha uma Data</h3>
+                <p className="text-xs opacity-60 mt-1" style={{ color: T.textSec }}>Selecione o melhor dia para você</p>
               </div>
-              <CalendarUI
-                mode="single"
-                selected={selectedDate}
-                onSelect={(date) => {
-                  if (date) {
-                    setSelectedDate(date);
-                    setIsDatePickerOpen(false);
-                  }
-                }}
-                disabled={{ before: startOfDay(new Date()) }}
-                initialFocus
-                className="rounded-2xl border-none mx-auto"
-                style={{ backgroundColor: T.card }}
-              />
-            </div>
+
+              <div className="relative z-10">
+                <CalendarUI
+                  mode="single"
+                  selected={selectedDate}
+                  onSelect={(date) => {
+                    if (date) {
+                      setSelectedDate(date);
+                      setIsDatePickerOpen(false);
+                    }
+                  }}
+                  disabled={{ before: startOfDay(new Date()) }}
+                  initialFocus
+                  locale={ptBR}
+                  className="rounded-2xl border-none mx-auto p-0"
+                  classNames={{
+                    months: "w-full",
+                    month: "w-full space-y-4",
+                    caption: "flex justify-center pt-1 relative items-center mb-4",
+                    caption_label: "text-sm font-bold",
+                    nav: "space-x-1 flex items-center",
+                    nav_button: "h-8 w-8 bg-transparent p-0 opacity-70 hover:opacity-100 transition-opacity",
+                    nav_button_previous: "absolute left-1",
+                    nav_button_next: "absolute right-1",
+                    table: "w-full border-collapse space-y-1",
+                    head_row: "flex justify-between",
+                    head_cell: "text-muted-foreground rounded-md w-9 font-bold text-[0.7rem] uppercase tracking-wider opacity-50",
+                    row: "flex w-full mt-2 justify-between",
+                    cell: "h-10 w-10 text-center text-sm p-0 relative focus-within:relative focus-within:z-20",
+                    day: cn(
+                      "h-10 w-10 p-0 font-semibold transition-all duration-200 rounded-xl hover:scale-110 active:scale-90 flex items-center justify-center",
+                      "hover:bg-accent/10"
+                    ),
+                    day_selected: "scale-110 shadow-lg",
+                    day_today: "border-2",
+                    day_outside: "opacity-20 pointer-events-none",
+                    day_disabled: "opacity-20 pointer-events-none",
+                    ...({} as any)
+                  }}
+                  modifiersStyles={{
+                    selected: { 
+                      backgroundColor: T.accent, 
+                      color: '#1a1a1a',
+                      fontWeight: '900',
+                      boxShadow: `0 8px 20px ${T.accent}40`,
+                      borderRadius: '12px'
+                    },
+                    today: {
+                      borderColor: T.accent,
+                      color: T.accent,
+                      fontWeight: 'bold',
+                      borderRadius: '12px'
+                    }
+                  }}
+                  style={{ backgroundColor: 'transparent' }}
+                />
+              </div>
+
+              <Button 
+                onClick={() => setIsDatePickerOpen(false)}
+                className="w-full mt-8 h-12 rounded-2xl font-bold transition-transform active:scale-95"
+                style={{ background: T.accent, color: '#1a1a1a' }}
+              >
+                Confirmar Data
+              </Button>
+            </motion.div>
           </DialogContent>
         </Dialog>
 
