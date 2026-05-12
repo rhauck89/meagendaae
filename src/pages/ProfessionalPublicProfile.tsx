@@ -23,6 +23,7 @@ import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { ReviewForm } from '@/components/public-profile/ReviewForm';
 import { BenefitsSection } from '@/components/public-profile/BenefitsSection';
+import { MembershipSection } from '@/components/public-profile/MembershipSection';
 import { Calendar as CalendarUI } from "@/components/ui/calendar";
 
 type BusinessType = 'barbershop' | 'esthetic';
