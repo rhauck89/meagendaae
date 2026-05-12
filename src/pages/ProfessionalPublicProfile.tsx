@@ -934,7 +934,7 @@ export default function ProfessionalPublicProfile() {
             </div>
           </div>
           <Button
-            onClick={() => navigate(bookingUrl)}
+            onClick={() => navigate(`${bookingUrl}?jumpTo=datetime`)}
             className="h-11 px-4 rounded-xl font-bold whitespace-nowrap bg-emerald-500 hover:bg-emerald-600 text-white flex-shrink-0"
           >
             Ver horários ›
