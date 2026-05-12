@@ -573,6 +573,8 @@ export default function ProfessionalPublicProfile() {
 
   const firstName = professional.name.split(' ')[0];
   const goldGradient = `linear-gradient(135deg, ${T.accent} 0%, #F4C752 50%, ${T.accent} 100%)`;
+  const fullAddress = [company?.address, company?.address_number, company?.district, company?.city, company?.state].filter(Boolean).join(', ');
+  const companyWhatsapp = company?.whatsapp ? formatWhatsApp(company.whatsapp) : (company?.phone ? formatWhatsApp(company.phone) : null);
 
   return (
     <div className="min-h-screen overflow-x-hidden pb-28" style={{ background: T.bg }}>
