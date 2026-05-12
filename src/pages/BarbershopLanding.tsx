@@ -1136,7 +1136,7 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
           style={{ backgroundColor: T.card }}
         >
           <DialogHeader 
-            className="border-b pb-4 px-6 pt-6 shrink-0 text-left" 
+            className="border-b pb-4 px-6 pt-12 shrink-0 text-left relative" 
             style={{ borderColor: T.border, backgroundColor: T.card }}
           >
             <DialogTitle className="text-xl font-bold" style={{ color: T.text }}>Nossa Equipe</DialogTitle>
