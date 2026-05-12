@@ -3221,7 +3221,15 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                   </div>
                 </div>
                 <Button
-                  onClick={() => setStep(hasBenefitsActive ? 'benefits' : 'confirm')}
+                  onClick={() => {
+                    if (selectedServices.length === 0) {
+                      setStep('services');
+                    } else if (!selectedProfessional) {
+                      setStep('professional');
+                    } else {
+                      setStep(hasBenefitsActive ? 'benefits' : 'confirm');
+                    }
+                  }}
                   className="w-full rounded-full py-8 font-black text-lg shadow-2xl transition-all hover:scale-[1.02] active:scale-[0.98] group"
                   style={{ background: `linear-gradient(135deg, ${T.accent}, #F4C752)`, color: '#000' }}
                 >
