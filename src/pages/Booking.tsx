@@ -955,7 +955,19 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       const isAdmin = profile && ['admin', 'professional', 'company', 'super_admin'].includes(profile.role);
       if (isAuthenticated && !isAdmin) {
         console.log('[BOOKING_FLOW] Authenticated client session found. Unlocking booking.');
-        setStep(professionalSlug ? 'services' : 'professional');
+        const jumpTo = searchParams.get('jumpTo');
+        if (jumpTo === 'datetime') {
+          setStep('datetime');
+        } else {
+          const hasProfessional = !!selectedProfessional || !!professionalSlug || searchParams.get('professional');
+          const hasServices = selectedServices.length > 0 || searchParams.get('services');
+          const hasDateTime = (!!selectedDate && !!selectedTime) || (searchParams.get('date') && searchParams.get('time'));
+
+          if (!hasProfessional) setStep('professional');
+          else if (!hasServices) setStep('services');
+          else if (!hasDateTime) setStep('datetime');
+          else setStep('confirm');
+        }
         return;
       }
 
