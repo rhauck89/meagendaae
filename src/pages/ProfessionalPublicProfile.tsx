@@ -655,20 +655,6 @@ export default function ProfessionalPublicProfile() {
       </section>
 
       <main className="max-w-3xl mx-auto px-4 mt-8 space-y-6">
-        {/* BADGES — 4 colunas horizontais */}
-        <section className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          {[
-            { icon: Scissors, label: `${profile?.experience_years} anos de experiência` },
-            { icon: Trophy, label: 'Especialista' },
-            { icon: MessageCircle, label: 'Atendimento personalizado' },
-            { icon: Crown, label: 'Top Profissional' },
-          ].map((b, i) => (
-            <div key={i} className="px-3 py-3 rounded-2xl border flex items-center gap-2 justify-center" style={{ background: T.card, borderColor: T.border }}>
-              <b.icon className="w-4 h-4 flex-shrink-0" style={{ color: T.accent }} />
-              <span className="text-xs font-semibold leading-tight" style={{ color: T.text }}>{b.label}</span>
-            </div>
-          ))}
-        </section>
 
         {/* CTA PRINCIPAL DOURADO */}
         <button
