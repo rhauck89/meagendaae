@@ -132,6 +132,12 @@ export default function ProfessionalPublicProfile() {
     }
   };
 
+  useEffect(() => {
+    if (reviews.length > 0 && currentReviewIndex >= reviews.length) {
+      setCurrentReviewIndex(0);
+    }
+  }, [reviews.length]);
+
   const { amenities: companyAmenities } = useCompanyAmenities(company?.id);
   const { scrollY } = useScroll();
   const y1 = useTransform(scrollY, [0, 500], [0, 200]);
