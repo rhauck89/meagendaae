@@ -490,7 +490,8 @@ export default function ProfessionalPublicProfile() {
       setIsAddReviewModalOpen(false);
       load(); 
     } catch (err: any) {
-...
+      console.error('Error submitting review:', err);
+      toast.error("Erro ao enviar avaliação: " + (err.message || 'Erro desconhecido'));
     } finally {
       setIsSubmittingReview(false);
     }
