@@ -1187,7 +1187,7 @@ export default function ProfessionalPublicProfile() {
             </div>
             <Button 
               size="sm" 
-              className="rounded-full font-bold px-6 shadow-lg shadow-black/10 transition-transform active:scale-95 border-0 ring-0 outline-none" 
+              className="rounded-full font-bold px-6 shadow-lg shadow-black/10 transition-transform active:scale-95 border-none focus:ring-0 focus-visible:ring-0 outline-none" 
               style={{ background: T.accent, color: '#000' }}
               onClick={() => {
                 setIsReviewsDrawerOpen(false);
