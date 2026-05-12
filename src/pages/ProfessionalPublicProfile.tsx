@@ -738,7 +738,99 @@ export default function ProfessionalPublicProfile() {
               <p className="text-sm font-bold" style={{ color: T.text }}>Agende seu horário com {firstName}</p>
               <p className="text-xs opacity-70 truncate" style={{ color: T.textSec }}>Escolha o melhor horário e garanta seu atendimento!</p>
             </div>
+      </div>
+
+      {/* Bottom Navigation Mobile */}
+      <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden pb-safe" style={{ background: T.bg, borderTop: `1px solid ${T.border}` }}>
+        <div className="flex items-center justify-around h-16">
+          <button 
+            onClick={() => navigate(`/${businessType === 'esthetic' ? 'estetica' : 'barbearia'}/${slug}`)}
+            className="flex flex-col items-center gap-0.5 py-2 text-xs font-medium opacity-60 hover:opacity-100 transition-opacity" 
+            style={{ color: T.textSec }}
+          >
+            <Home className="w-5 h-5" />
+            <span>Início</span>
+          </button>
+          
+          <button 
+            onClick={() => navigate(bookingUrl)}
+            className="flex flex-col items-center gap-0.5 -mt-8"
+          >
+            <div className="w-14 h-14 rounded-full flex items-center justify-center shadow-xl mb-1 transition-transform active:scale-95" style={{ background: goldGradient }}>
+              <Calendar className="w-7 h-7" style={{ color: '#1a1a1a' }} />
+            </div>
+            <span className="text-[10px] font-bold" style={{ color: T.accent }}>Agendar</span>
+          </button>
+
+          <button 
+            onClick={() => setIsReviewsDrawerOpen(true)}
+            className="flex flex-col items-center gap-0.5 py-2 text-xs font-medium opacity-60 hover:opacity-100 transition-opacity" 
+            style={{ color: T.textSec }}
+          >
+            <Star className="w-5 h-5" />
+            <span>Avaliações</span>
+          </button>
+        </div>
+      </nav>
+
+      {/* Reviews Drawer */}
+      <Drawer open={isReviewsDrawerOpen} onOpenChange={setIsReviewsDrawerOpen}>
+        <DrawerContent className="max-h-[85vh]">
+          <DrawerHeader className="flex flex-row items-center justify-between">
+            <div className="text-left">
+              <DrawerTitle>Avaliações</DrawerTitle>
+              <DrawerDescription>{allReviewsList.length} depoimentos de clientes</DrawerDescription>
+            </div>
+            <Button 
+              size="sm" 
+              className="rounded-full" 
+              style={{ background: T.accent, color: '#000' }}
+              onClick={() => {
+                setIsReviewsDrawerOpen(false);
+                setIsAddReviewModalOpen(true);
+              }}
+            >
+              Avaliar
+            </Button>
+          </DrawerHeader>
+          <div className="px-4 pb-8 overflow-y-auto space-y-4">
+            {allReviewsList.map((rev: any, i: number) => (
+              <div key={i} className="p-4 rounded-2xl border space-y-2 text-left" style={{ background: T.card, borderColor: T.border }}>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs" style={{ background: `${T.accent}20`, color: T.accent }}>
+                      {(rev.client_display_name || 'C').charAt(0)}
+                    </div>
+                    <span className="font-bold text-sm" style={{ color: T.text }}>{rev.client_display_name || 'Cliente'}</span>
+                  </div>
+                  <div className="flex gap-0.5">
+                    {[1,2,3,4,5].map(s => <Star key={s} className={cn("w-3 h-3", s <= rev.rating ? "fill-yellow-400 text-yellow-400" : "opacity-20")} />)}
+                  </div>
+                </div>
+                <p className="text-sm italic opacity-80" style={{ color: T.text }}>"{rev.comment || 'Excelente!'}"</p>
+                <p className="text-[10px] opacity-40 text-right" style={{ color: T.textSec }}>{format(new Date(rev.created_at), 'dd/MM/yyyy')}</p>
+              </div>
+            ))}
+            {allReviewsList.length === 0 && (
+              <p className="text-center py-8 opacity-60" style={{ color: T.textSec }}>Nenhuma avaliação ainda.</p>
+            )}
           </div>
+        </DrawerContent>
+      </Drawer>
+
+      {/* Add Review Drawer */}
+      <Drawer open={isAddReviewModalOpen} onOpenChange={setIsAddReviewModalOpen}>
+        <DrawerContent>
+          <div className="mx-auto w-full max-w-sm p-6">
+            <ReviewForm 
+              title={`Avaliar ${professional?.name || 'Profissional'}`}
+              onCancel={() => setIsAddReviewModalOpen(false)}
+              onSubmit={handleSubmitReview}
+              theme={T}
+            />
+          </div>
+        </DrawerContent>
+      </Drawer>
           <Button
             onClick={() => navigate(bookingUrl)}
             className="h-11 px-4 rounded-xl font-bold whitespace-nowrap bg-emerald-500 hover:bg-emerald-600 text-white flex-shrink-0"
