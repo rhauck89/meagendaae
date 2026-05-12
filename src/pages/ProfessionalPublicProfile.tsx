@@ -300,11 +300,16 @@ export default function ProfessionalPublicProfile() {
                           clientNames[a.id] = `${first}${lastInitial}`;
                         }
                       });
-                      const enriched = allReviewsData.map((r: any) => ({
-                        ...r,
-                        client_display_name: r.reviewer_name || (r.appointment_id ? clientNames[r.appointment_id] || null : null),
-                        client_avatar_url: r.reviewer_avatar || null,
-                      }));
+                      const enriched = allReviewsData.map((r: any) => {
+                        const { comment, tags } = parseReviewContent(r.comment, r.tags);
+                        return {
+                          ...r,
+                          comment,
+                          tags,
+                          client_display_name: r.reviewer_name || (r.appointment_id ? clientNames[r.appointment_id] || null : null),
+                          client_avatar_url: r.reviewer_avatar || null,
+                        };
+                      });
                       setReviews(enriched.slice(0, 3));
                       setAllReviewsList(enriched);
                       setTotalReviews(enriched.length);
