@@ -5522,6 +5522,10 @@ export type Database = {
           professional_id: string | null
           rating: number
           review_type: string | null
+          reviewer_avatar: string | null
+          reviewer_name: string | null
+          reviewer_phone: string | null
+          tags: string[] | null
         }
         Insert: {
           appointment_id?: string | null
@@ -5535,6 +5539,10 @@ export type Database = {
           professional_id?: string | null
           rating: number
           review_type?: string | null
+          reviewer_avatar?: string | null
+          reviewer_name?: string | null
+          reviewer_phone?: string | null
+          tags?: string[] | null
         }
         Update: {
           appointment_id?: string | null
@@ -5548,6 +5556,10 @@ export type Database = {
           professional_id?: string | null
           rating?: number
           review_type?: string | null
+          reviewer_avatar?: string | null
+          reviewer_name?: string | null
+          reviewer_phone?: string | null
+          tags?: string[] | null
         }
         Relationships: [
           {
