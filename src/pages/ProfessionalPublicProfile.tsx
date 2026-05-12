@@ -695,6 +695,9 @@ export default function ProfessionalPublicProfile() {
           </button>
         </div>
 
+        {/* BENEFÍCIOS E VANTAGENS */}
+        <BenefitsSection companyId={company?.id} professionalId={professional?.id} />
+
         {/* BLOCO COMPACTO DE AVALIAÇÕES PREMIUM COM CARROSSEL */}
         {rating && (
           <motion.div
