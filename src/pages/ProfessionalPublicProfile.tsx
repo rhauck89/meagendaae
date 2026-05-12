@@ -406,14 +406,14 @@ export default function ProfessionalPublicProfile() {
     const slots = result.slots;
     setAvailableSlotsForDate(slots);
 
-    // Update the summary \"nextAvailable\" info for the label
+    // Update the summary "nextAvailable" info for the label
     let label: string;
     if (isToday(selectedDate)) {
-      label = `Hoje • ${format(selectedDate, \"dd/MM\")}`;
+      label = `Hoje • ${format(selectedDate, 'dd/MM')}`;
     } else if (isTomorrow(selectedDate)) {
-      label = `Amanhã • ${format(selectedDate, \"dd/MM\")}`;
+      label = `Amanhã • ${format(selectedDate, 'dd/MM')}`;
     } else {
-      label = format(selectedDate, \"EEEE • dd/MM\", { locale: ptBR });
+      label = format(selectedDate, "EEEE • dd/MM", { locale: ptBR });
     }
     setNextAvailable({ date: selectedDate, slots, label });
     setSlotsLoading(false);
