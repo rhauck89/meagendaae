@@ -14,8 +14,8 @@ import { useFinancialPrivacy } from '@/contexts/FinancialPrivacyContext';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { TrendingUp, Users, Scissors, History, DollarSign } from 'lucide-react';
-import { getAppointmentRevenue } from '@/lib/financial-engine';
+import { TrendingUp, Users, History, DollarSign, Wallet } from 'lucide-react';
+import { getAppointmentRevenue, calculateFinancials, commissionLabel, collaboratorTypeLabel, remunerationLabel } from '@/lib/financial-engine';
 
 interface ProfessionalDrawerProps {
   professional: any;
@@ -53,7 +53,7 @@ export const ProfessionalDrawer = ({
   const fetchProfessionalDetails = async () => {
     setLoading(true);
     try {
-      const { data: appointments, error } = await supabase
+      let query = supabase
         .from('appointments')
         .select(`
           id,
@@ -73,10 +73,14 @@ export const ProfessionalDrawer = ({
         `)
         .eq('professional_id', professional.id)
         .eq('company_id', companyId)
-        .eq('status', (status === 'all' ? 'completed' : status) as any)
         .gte('start_time', startDate.toISOString())
-        .lte('start_time', endDate.toISOString())
-        .order('start_time', { ascending: false });
+        .lte('start_time', endDate.toISOString());
+
+      if (status !== 'all') {
+        query = query.eq('status', status as any);
+      }
+
+      const { data: appointments, error } = await query.order('start_time', { ascending: false });
 
       if (error) throw error;
 
@@ -90,14 +94,19 @@ export const ProfessionalDrawer = ({
         const clientName = (Array.isArray(a.client) ? a.client[0]?.name : a.client?.name) || a.client_name || 'Cliente s/ nome';
         const price = getAppointmentRevenue(a);
 
-        // Contabilizar cada serviço individualmente no ranking se houver múltiplos
+        // Calculate financials for this specific appointment
+        const fin = calculateFinancials(
+          price,
+          serviceNames.length || 1, // Number of services in this appointment
+          professional.type,
+          professional.commType,
+          professional.value
+        );
+
+        // Contabilizar cada serviço individualmente no ranking
         serviceNames.forEach((sName: string) => {
           if (!servicesMap[sName]) servicesMap[sName] = { count: 0, revenue: 0 };
           servicesMap[sName].count += 1;
-          // Dividimos o faturamento proporcionalmente se houver múltiplos serviços? 
-          // Geralmente para ranking de faturamento por serviço, se o preço é do agendamento total,
-          // atribuímos o total ou dividimos. Aqui vamos atribuir o total para o "serviço principal" 
-          // ou dividir por igual para simplificar se não houver preço por item.
           servicesMap[sName].revenue += price / (serviceNames.length || 1);
         });
 
@@ -105,9 +114,12 @@ export const ProfessionalDrawer = ({
         clientsMap[clientName].count += 1;
         clientsMap[clientName].revenue += price;
         
-        // Adicionamos o nome formatado para o histórico
+        // Adicionamos os dados calculados para o histórico
         a.displayServiceName = displayServiceName;
         a.displayClientName = clientName;
+        a.professionalValue = fin.professionalValue;
+        a.companyValue = fin.companyValue;
+        a.revenue = price;
       });
 
       setDetails({
@@ -139,39 +151,151 @@ export const ProfessionalDrawer = ({
               <div className="flex items-center justify-between">
                 <div>
                   <SheetTitle className="text-2xl font-display font-bold">{professional.name}</SheetTitle>
-                  <p className="text-sm text-muted-foreground capitalize">
-                    {professional.type} • {professional.count} serviços realizados
+                  <p className="text-sm text-muted-foreground">
+                    {collaboratorTypeLabel(professional.type)} • {professional.count} serviços realizados
                   </p>
                 </div>
-                <Badge variant="secondary" className="px-3 py-1">
-                  ID: {professional.id.slice(0, 8)}
+                <Badge variant="outline" className="px-3 py-1 font-semibold text-primary border-primary/20 bg-primary/5">
+                  {remunerationLabel(professional.type, professional.commType, professional.value)}
                 </Badge>
               </div>
             </SheetHeader>
 
-            <div className="grid grid-cols-2 gap-4 mb-8">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-8">
               <Card className="bg-primary/5 border-none shadow-none">
-                <CardContent className="p-4">
-                  <p className="text-xs text-muted-foreground mb-1 uppercase tracking-wider font-semibold">Faturado</p>
-                  <p className="text-xl font-display font-bold text-primary">{maskValue(professional.revenue)}</p>
+                <CardContent className="p-3">
+                  <p className="text-[10px] text-muted-foreground mb-1 uppercase tracking-wider font-bold">Faturado</p>
+                  <p className="text-lg font-display font-bold text-primary">{maskValue(professional.revenue)}</p>
                 </CardContent>
               </Card>
               <Card className="bg-warning/5 border-none shadow-none">
-                <CardContent className="p-4">
-                  <p className="text-xs text-muted-foreground mb-1 uppercase tracking-wider font-semibold">Sua Comissão</p>
-                  <p className="text-xl font-display font-bold text-warning">{maskValue(professional.professionalValue)}</p>
+                <CardContent className="p-3">
+                  <p className="text-[10px] text-muted-foreground mb-1 uppercase tracking-wider font-bold">Comissão Total</p>
+                  <p className="text-lg font-display font-bold text-warning">{maskValue(professional.professionalValue)}</p>
+                </CardContent>
+              </Card>
+              <Card className="bg-green-500/5 border-none shadow-none">
+                <CardContent className="p-3">
+                  <p className="text-[10px] text-muted-foreground mb-1 uppercase tracking-wider font-bold">Net Empresa</p>
+                  <p className="text-lg font-display font-bold text-green-600">{maskValue(professional.companyValue)}</p>
                 </CardContent>
               </Card>
             </div>
 
             <div className="space-y-8">
-              {/* Analytics */}
+              {/* Detalhamento dos Atendimentos */}
+              <section>
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <History className="h-5 w-5 text-primary" />
+                    <h3 className="font-display font-bold text-lg">Detalhamento</h3>
+                  </div>
+                  <Badge variant="secondary" className="text-[10px] uppercase font-bold">
+                    {status === 'all' ? 'Todos' : status === 'completed' ? 'Concluídos' : status}
+                  </Badge>
+                </div>
+                
+                <div className="rounded-md border overflow-hidden hidden md:block">
+                  <Table>
+                    <TableHeader className="bg-muted/50">
+                      <TableRow>
+                        <TableHead className="text-[10px] uppercase font-bold">Cliente</TableHead>
+                        <TableHead className="text-[10px] uppercase font-bold">Serviço</TableHead>
+                        <TableHead className="text-[10px] uppercase font-bold">Data</TableHead>
+                        <TableHead className="text-[10px] uppercase font-bold text-right">Valor</TableHead>
+                        <TableHead className="text-[10px] uppercase font-bold text-center">Com.</TableHead>
+                        <TableHead className="text-[10px] uppercase font-bold text-right">Com. R$</TableHead>
+                        <TableHead className="text-[10px] uppercase font-bold text-right">Empresa</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {details.history.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={7} className="text-center text-xs py-8 text-muted-foreground">
+                            Nenhum registro encontrado no período
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        details.history.map((h: any) => (
+                          <TableRow key={h.id} className="hover:bg-muted/30">
+                            <TableCell className="text-[11px] font-medium py-2">
+                              {h.displayClientName}
+                            </TableCell>
+                            <TableCell className="text-[11px] py-2">
+                              <span className="truncate max-w-[100px] block" title={h.displayServiceName}>
+                                {h.displayServiceName}
+                              </span>
+                            </TableCell>
+                            <TableCell className="text-[10px] py-2 whitespace-nowrap">
+                              {format(new Date(h.start_time), 'dd/MM/yy HH:mm')}
+                            </TableCell>
+                            <TableCell className="text-[11px] text-right py-2">
+                              {maskValue(h.revenue)}
+                            </TableCell>
+                            <TableCell className="text-[10px] text-center py-2 text-muted-foreground">
+                              {commissionLabel(professional.commType, professional.value)}
+                            </TableCell>
+                            <TableCell className="text-[11px] text-right py-2 font-medium text-warning">
+                              {maskValue(h.professionalValue)}
+                            </TableCell>
+                            <TableCell className="text-[11px] text-right py-2 font-medium text-green-600">
+                              {maskValue(h.companyValue)}
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+
+                {/* Mobile View - Cards */}
+                <div className="md:hidden space-y-3">
+                  {details.history.length === 0 ? (
+                    <div className="text-center py-8 text-sm text-muted-foreground border rounded-lg">
+                      Nenhum registro encontrado
+                    </div>
+                  ) : (
+                    details.history.map((h: any) => (
+                      <div key={h.id} className="p-3 border rounded-lg bg-card space-y-2">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <p className="text-xs font-bold text-primary uppercase tracking-tight">{h.displayClientName}</p>
+                            <p className="text-[11px] text-muted-foreground">{h.displayServiceName}</p>
+                          </div>
+                          <p className="text-[10px] font-medium bg-muted px-1.5 py-0.5 rounded">
+                            {format(new Date(h.start_time), 'dd/MM/yy HH:mm')}
+                          </p>
+                        </div>
+                        <Separator className="opacity-50" />
+                        <div className="grid grid-cols-3 gap-2 text-center">
+                          <div>
+                            <p className="text-[9px] uppercase text-muted-foreground">Valor</p>
+                            <p className="text-[11px] font-bold">{maskValue(h.revenue)}</p>
+                          </div>
+                          <div>
+                            <p className="text-[9px] uppercase text-muted-foreground">Comissão</p>
+                            <p className="text-[11px] font-bold text-warning">{maskValue(h.professionalValue)}</p>
+                          </div>
+                          <div>
+                            <p className="text-[9px] uppercase text-muted-foreground">Empresa</p>
+                            <p className="text-[11px] font-bold text-green-600">{maskValue(h.companyValue)}</p>
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </section>
+
+              <Separator />
+
+              {/* Ranking de Serviços */}
               <section>
                 <div className="flex items-center gap-2 mb-4">
                   <TrendingUp className="h-5 w-5 text-primary" />
                   <h3 className="font-display font-bold text-lg">Ranking de Serviços</h3>
                 </div>
-                <div className="space-y-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {details.topServices.map((s: any, i: number) => (
                     <div key={i} className="flex items-center justify-between p-3 rounded-lg border bg-card/50">
                       <div className="flex items-center gap-3">
@@ -179,36 +303,11 @@ export const ProfessionalDrawer = ({
                           #{i + 1}
                         </div>
                         <div>
-                          <p className="font-medium text-sm">{s.name}</p>
-                          <p className="text-xs text-muted-foreground">{s.count} vezes</p>
+                          <p className="font-medium text-xs truncate max-w-[120px]">{s.name}</p>
+                          <p className="text-[10px] text-muted-foreground">{s.count} vezes</p>
                         </div>
                       </div>
-                      <p className="font-semibold text-sm">{maskValue(s.revenue)}</p>
-                    </div>
-                  ))}
-                </div>
-              </section>
-
-              <Separator />
-
-              <section>
-                <div className="flex items-center gap-2 mb-4">
-                  <Users className="h-5 w-5 text-primary" />
-                  <h3 className="font-display font-bold text-lg">Top Clientes</h3>
-                </div>
-                <div className="space-y-3">
-                  {details.topClients.map((c: any, i: number) => (
-                    <div key={i} className="flex items-center justify-between p-3 rounded-lg border bg-card/50">
-                      <div className="flex items-center gap-3">
-                        <div className="flex items-center justify-center h-8 w-8 rounded-full bg-secondary/10 text-secondary-foreground font-bold text-xs">
-                          {c.name.charAt(0)}
-                        </div>
-                        <div>
-                          <p className="font-medium text-sm">{c.name}</p>
-                          <p className="text-xs text-muted-foreground">{c.count} atendimentos</p>
-                        </div>
-                      </div>
-                      <p className="font-semibold text-sm">{maskValue(c.revenue)}</p>
+                      <p className="font-bold text-xs">{maskValue(s.revenue)}</p>
                     </div>
                   ))}
                 </div>
@@ -218,68 +317,30 @@ export const ProfessionalDrawer = ({
 
               <section className="pb-10">
                 <div className="flex items-center gap-2 mb-4">
-                  <History className="h-5 w-5 text-primary" />
-                  <h3 className="font-display font-bold text-lg">Histórico do Período</h3>
+                  <Users className="h-5 w-5 text-primary" />
+                  <h3 className="font-display font-bold text-lg">Top Clientes</h3>
                 </div>
-                <div className="rounded-md border overflow-hidden">
-                  <Table>
-                    <TableHeader className="bg-muted/50">
-                      <TableRow>
-                        <TableHead className="text-xs">Data</TableHead>
-                        <TableHead className="text-xs">Serviço</TableHead>
-                        <TableHead className="text-right text-xs">Valor</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {details.history.length === 0 ? (
-                        <TableRow>
-                          <TableCell colSpan={3} className="text-center text-xs py-8 text-muted-foreground">
-                            Nenhum registro
-                          </TableCell>
-                        </TableRow>
-                      ) : (
-                        details.history.map((h: any) => {
-                          const original = Number(h.original_price ?? h.total_price ?? 0);
-                          const final = getAppointmentRevenue(h);
-                          const discount = Number(h.promotion_discount || 0) + Number(h.cashback_used || 0) + Number(h.manual_discount || 0);
-                          
-                          return (
-                            <TableRow key={h.id}>
-                              <TableCell className="text-xs">
-                                {format(new Date(h.start_time), 'dd/MM HH:mm')}
-                              </TableCell>
-                              <TableCell className="text-xs font-medium">
-                                <div className="flex flex-col">
-                                  <span className="truncate max-w-[120px]" title={h.displayServiceName}>{h.displayServiceName}</span>
-                                  {discount > 0 && (
-                                    <span className="text-[10px] text-muted-foreground line-through">
-                                      {maskValue(original)}
-                                    </span>
-                                  )}
-                                </div>
-                              </TableCell>
-                              <TableCell className="text-right text-xs font-semibold">
-                                <div className="flex flex-col items-end">
-                                  <span>{maskValue(final)}</span>
-                                  {discount > 0 && (
-                                    <span className="text-[9px] text-destructive font-bold">
-                                      -{maskValue(discount)}
-                                    </span>
-                                  )}
-                                </div>
-                              </TableCell>
-                            </TableRow>
-                          );
-                        })
-                      )}
-                    </TableBody>
-                  </Table>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {details.topClients.map((c: any, i: number) => (
+                    <div key={i} className="flex items-center justify-between p-3 rounded-lg border bg-card/50">
+                      <div className="flex items-center gap-3">
+                        <div className="flex items-center justify-center h-8 w-8 rounded-full bg-secondary/10 text-secondary-foreground font-bold text-xs">
+                          {c.name.charAt(0)}
+                        </div>
+                        <div>
+                          <p className="font-medium text-xs">{c.name}</p>
+                          <p className="text-[10px] text-muted-foreground">{c.count} atendimentos</p>
+                        </div>
+                      </div>
+                      <p className="font-bold text-xs">{maskValue(c.revenue)}</p>
+                    </div>
+                  ))}
                 </div>
               </section>
-            </div>
           </div>
-        </ScrollArea>
-      </SheetContent>
-    </Sheet>
-  );
+        </div>
+      </ScrollArea>
+    </SheetContent>
+  </Sheet>
+);
 };
