@@ -23,6 +23,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { toast } from 'sonner';
 import { IdentityModal } from '@/components/booking/IdentityModal';
 import { ReviewForm } from '@/components/public-profile/ReviewForm';
+import { BenefitsSection } from '@/components/public-profile/BenefitsSection';
 import { useAuth } from '@/contexts/AuthContext';
 
 type BusinessType = 'barbershop' | 'esthetic';
