@@ -151,27 +151,33 @@ export const ProfessionalDrawer = ({
               <div className="flex items-center justify-between">
                 <div>
                   <SheetTitle className="text-2xl font-display font-bold">{professional.name}</SheetTitle>
-                  <p className="text-sm text-muted-foreground capitalize">
-                    {professional.type} • {professional.count} serviços realizados
+                  <p className="text-sm text-muted-foreground">
+                    {collaboratorTypeLabel(professional.type)} • {professional.count} serviços realizados
                   </p>
                 </div>
-                <Badge variant="secondary" className="px-3 py-1">
-                  ID: {professional.id.slice(0, 8)}
+                <Badge variant="outline" className="px-3 py-1 font-semibold text-primary border-primary/20 bg-primary/5">
+                  {remunerationLabel(professional.type, professional.commType, professional.value)}
                 </Badge>
               </div>
             </SheetHeader>
 
-            <div className="grid grid-cols-2 gap-4 mb-8">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-8">
               <Card className="bg-primary/5 border-none shadow-none">
-                <CardContent className="p-4">
-                  <p className="text-xs text-muted-foreground mb-1 uppercase tracking-wider font-semibold">Faturado</p>
-                  <p className="text-xl font-display font-bold text-primary">{maskValue(professional.revenue)}</p>
+                <CardContent className="p-3">
+                  <p className="text-[10px] text-muted-foreground mb-1 uppercase tracking-wider font-bold">Faturado</p>
+                  <p className="text-lg font-display font-bold text-primary">{maskValue(professional.revenue)}</p>
                 </CardContent>
               </Card>
               <Card className="bg-warning/5 border-none shadow-none">
-                <CardContent className="p-4">
-                  <p className="text-xs text-muted-foreground mb-1 uppercase tracking-wider font-semibold">Sua Comissão</p>
-                  <p className="text-xl font-display font-bold text-warning">{maskValue(professional.professionalValue)}</p>
+                <CardContent className="p-3">
+                  <p className="text-[10px] text-muted-foreground mb-1 uppercase tracking-wider font-bold">Comissão Total</p>
+                  <p className="text-lg font-display font-bold text-warning">{maskValue(professional.professionalValue)}</p>
+                </CardContent>
+              </Card>
+              <Card className="bg-green-500/5 border-none shadow-none">
+                <CardContent className="p-3">
+                  <p className="text-[10px] text-muted-foreground mb-1 uppercase tracking-wider font-bold">Net Empresa</p>
+                  <p className="text-lg font-display font-bold text-green-600">{maskValue(professional.companyValue)}</p>
                 </CardContent>
               </Card>
             </div>
