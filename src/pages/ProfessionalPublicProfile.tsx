@@ -833,11 +833,11 @@ export default function ProfessionalPublicProfile() {
                 transition={{ delay: i * 0.05 }}
                 key={i} 
                 className="p-5 rounded-2xl border space-y-3 text-left shadow-sm" 
-                style={{ background: T.cardSoft, borderColor: T.border }}
+                style={{ background: `${T.card}CC`, borderColor: T.border }}
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm ring-2" style={{ background: `${T.accent}15`, ringColor: `${T.accent}30`, color: T.accent }}>
+                    <div className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm ring-2" style={{ background: `${T.accent}15`, outline: `2px solid ${T.accent}30`, color: T.accent }}>
                       {(rev.client_display_name || 'C').charAt(0)}
                     </div>
                     <div>
