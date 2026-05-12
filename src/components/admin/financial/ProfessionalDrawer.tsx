@@ -195,57 +195,61 @@ export const ProfessionalDrawer = ({
                   </Badge>
                 </div>
                 
-                <div className="rounded-md border overflow-hidden hidden md:block">
-                  <Table>
-                    <TableHeader className="bg-muted/50">
-                      <TableRow>
-                        <TableHead className="text-[10px] uppercase font-bold">Cliente</TableHead>
-                        <TableHead className="text-[10px] uppercase font-bold">Serviço</TableHead>
-                        <TableHead className="text-[10px] uppercase font-bold">Data</TableHead>
-                        <TableHead className="text-[10px] uppercase font-bold text-right">Valor</TableHead>
-                        <TableHead className="text-[10px] uppercase font-bold text-center">Com.</TableHead>
-                        <TableHead className="text-[10px] uppercase font-bold text-right">Com. R$</TableHead>
-                        <TableHead className="text-[10px] uppercase font-bold text-right">Empresa</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {details.history.length === 0 ? (
+                <div className="rounded-md border overflow-hidden hidden md:block w-full">
+                  <div className="overflow-x-auto">
+                    <Table className="w-full">
+                      <TableHeader className="bg-muted/50">
                         <TableRow>
-                          <TableCell colSpan={7} className="text-center text-xs py-8 text-muted-foreground">
-                            Nenhum registro encontrado no período
-                          </TableCell>
+                          <TableHead className="text-[10px] uppercase font-bold px-4 py-3">Cliente</TableHead>
+                          <TableHead className="text-[10px] uppercase font-bold px-4 py-3">Serviço</TableHead>
+                          <TableHead className="text-[10px] uppercase font-bold px-4 py-3">Data</TableHead>
+                          <TableHead className="text-[10px] uppercase font-bold text-right px-4 py-3">Valor</TableHead>
+                          <TableHead className="text-[10px] uppercase font-bold text-center px-4 py-3">Com.</TableHead>
+                          <TableHead className="text-[10px] uppercase font-bold text-right px-4 py-3">Com. R$</TableHead>
+                          <TableHead className="text-[10px] uppercase font-bold text-right px-4 py-3">Empresa</TableHead>
                         </TableRow>
-                      ) : (
-                        details.history.map((h: any) => (
-                          <TableRow key={h.id} className="hover:bg-muted/30">
-                            <TableCell className="text-[11px] font-medium py-2">
-                              {h.displayClientName}
-                            </TableCell>
-                            <TableCell className="text-[11px] py-2">
-                              <span className="truncate max-w-[100px] block" title={h.displayServiceName}>
-                                {h.displayServiceName}
-                              </span>
-                            </TableCell>
-                            <TableCell className="text-[10px] py-2 whitespace-nowrap">
-                              {format(new Date(h.start_time), 'dd/MM/yy HH:mm')}
-                            </TableCell>
-                            <TableCell className="text-[11px] text-right py-2">
-                              {maskValue(h.revenue)}
-                            </TableCell>
-                            <TableCell className="text-[10px] text-center py-2 text-muted-foreground">
-                              {commissionLabel(professional.commType, professional.value)}
-                            </TableCell>
-                            <TableCell className="text-[11px] text-right py-2 font-medium text-warning">
-                              {maskValue(h.professionalValue)}
-                            </TableCell>
-                            <TableCell className="text-[11px] text-right py-2 font-medium text-green-600">
-                              {maskValue(h.companyValue)}
+                      </TableHeader>
+                      <TableBody>
+                        {details.history.length === 0 ? (
+                          <TableRow>
+                            <TableCell colSpan={7} className="text-center text-xs py-12 text-muted-foreground">
+                              Nenhum registro encontrado no período
                             </TableCell>
                           </TableRow>
-                        ))
-                      )}
-                    </TableBody>
-                  </Table>
+                        ) : (
+                          details.history.map((h: any) => (
+                            <TableRow key={h.id} className="hover:bg-muted/30">
+                              <TableCell className="text-[12px] font-medium py-4 px-4">
+                                <span className="block max-w-[140px] leading-tight">
+                                  {h.displayClientName}
+                                </span>
+                              </TableCell>
+                              <TableCell className="text-[12px] py-4 px-4">
+                                <span className="block max-w-[180px] leading-tight" title={h.displayServiceName}>
+                                  {h.displayServiceName}
+                                </span>
+                              </TableCell>
+                              <TableCell className="text-[11px] py-4 px-4 whitespace-nowrap text-muted-foreground">
+                                {format(new Date(h.start_time), 'dd/MM/yy HH:mm')}
+                              </TableCell>
+                              <TableCell className="text-[12px] text-right py-4 px-4 font-medium">
+                                {maskValue(h.revenue)}
+                              </TableCell>
+                              <TableCell className="text-[11px] text-center py-4 px-4 text-muted-foreground whitespace-nowrap">
+                                {commissionLabel(professional.commType, professional.value)}
+                              </TableCell>
+                              <TableCell className="text-[12px] text-right py-4 px-4 font-bold text-warning">
+                                {maskValue(h.professionalValue)}
+                              </TableCell>
+                              <TableCell className="text-[12px] text-right py-4 px-4 font-bold text-green-600">
+                                {maskValue(h.companyValue)}
+                              </TableCell>
+                            </TableRow>
+                          ))
+                        )}
+                      </TableBody>
+                    </Table>
+                  </div>
                 </div>
 
                 {/* Mobile View - Cards */}
