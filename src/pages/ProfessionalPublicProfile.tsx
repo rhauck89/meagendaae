@@ -651,9 +651,17 @@ export default function ProfessionalPublicProfile() {
                 <div key={i} className="text-sm">
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-2">
-                      <div className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold" style={{ background: `${T.accent}25`, color: T.accent }}>
-                        {rev.client_display_name?.charAt(0) || 'C'}
-                      </div>
+                      {rev.client_avatar_url ? (
+                        <img 
+                          src={rev.client_avatar_url} 
+                          alt={rev.client_display_name} 
+                          className="w-7 h-7 rounded-full object-cover" 
+                        />
+                      ) : (
+                        <div className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold" style={{ background: `${T.accent}25`, color: T.accent }}>
+                          {rev.client_display_name?.charAt(0) || 'C'}
+                        </div>
+                      )}
                       <span className="text-xs font-bold" style={{ color: T.text }}>{rev.client_display_name || 'Cliente'}</span>
                     </div>
                     <span className="text-[10px] opacity-50" style={{ color: T.textSec }}>{format(new Date(rev.created_at), 'dd/MM/yyyy')}</span>
@@ -664,8 +672,15 @@ export default function ProfessionalPublicProfile() {
                     ))}
                   </div>
                   <p className="text-xs italic leading-relaxed opacity-80" style={{ color: T.text }}>
-                    "{rev.comment || 'Profissional impecável! Atendimento top e corte sempre perfeito.'}"
+                    "{rev.comment || 'Experiência excelente!'}"
                   </p>
+                  {rev.tags && rev.tags.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 pt-1">
+                      {rev.tags.map((tag: string) => (
+                        <span key={tag} className="text-[9px] px-2 py-0.5 rounded-full font-bold uppercase tracking-tighter" style={{ background: `${T.accent}15`, color: T.accent }}>{tag}</span>
+                      ))}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
