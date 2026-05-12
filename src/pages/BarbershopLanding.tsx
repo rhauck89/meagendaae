@@ -1136,7 +1136,7 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
           style={{ backgroundColor: T.card }}
         >
           <DialogHeader 
-            className="border-b pb-4 px-6 pt-6 shrink-0 text-left" 
+            className="border-b pb-4 px-6 pt-14 shrink-0 text-left relative" 
             style={{ borderColor: T.border, backgroundColor: T.card }}
           >
             <DialogTitle className="text-xl font-bold" style={{ color: T.text }}>Nossa Equipe</DialogTitle>
@@ -1208,7 +1208,7 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
           style={{ backgroundColor: T.card }}
         >
           <DialogHeader 
-            className="flex flex-row items-center justify-between border-b pb-4 px-6 pt-6 shrink-0" 
+            className="flex flex-row items-center justify-between border-b pb-4 px-6 pt-14 shrink-0 relative" 
             style={{ borderColor: T.border, backgroundColor: T.card }}
           >
             <div className="text-left space-y-1">

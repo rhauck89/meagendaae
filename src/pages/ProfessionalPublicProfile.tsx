@@ -1170,7 +1170,7 @@ export default function ProfessionalPublicProfile() {
           style={{ backgroundColor: T.card }}
         >
           <DialogHeader 
-            className="flex flex-row items-center justify-between border-b pb-4 px-6 pt-6 shrink-0" 
+            className="flex flex-row items-center justify-between border-b pb-4 px-6 pt-14 shrink-0 relative" 
             style={{ borderColor: T.border, backgroundColor: T.card }}
           >
             <div className="text-left space-y-1">
