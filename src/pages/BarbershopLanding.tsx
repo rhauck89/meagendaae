@@ -100,6 +100,7 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
   const isAuthenticated = isAuthAuthenticated && !isAdmin;
   
   const [showIdentityModal, setShowIdentityModal] = useState(false);
+  const [currentClient, setCurrentClient] = useState<any>(null);
   const [lastBooking, setLastBooking] = useState<{
     serviceIds: string[]; serviceNames: string[]; serviceDurations: number[];
     professionalId: string; professionalName: string; professionalAvatar: string | null;
