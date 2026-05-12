@@ -74,7 +74,7 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
   const [showAllReviews, setShowAllReviews] = useState(false);
   const [allReviewsList, setAllReviewsList] = useState<any[]>([]);
   const [isWhitelabel, setIsWhitelabel] = useState(false);
-  const { isAuthenticated: isAuthAuthenticated, isAdmin } = useAuth();
+  const { isAuthenticated: isAuthAuthenticated, isAdmin, user } = useAuth();
   
   // Rule: Admin session is ignored for client identification on landing
   const isAuthenticated = isAuthAuthenticated && !isAdmin;

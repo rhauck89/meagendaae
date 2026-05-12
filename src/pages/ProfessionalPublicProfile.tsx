@@ -56,7 +56,7 @@ export default function ProfessionalPublicProfile() {
   const [companySettings, setCompanySettings] = useState<any>(null);
   const [activeCashback, setActiveCashback] = useState<string | null>(null);
   const [lastBooking, setLastBooking] = useState<any>(null);
-  const { isAuthenticated: isAuthAuthenticated, isAdmin } = useAuth();
+  const { isAuthenticated: isAuthAuthenticated, isAdmin, user } = useAuth();
   const isAuthenticated = isAuthAuthenticated && !isAdmin;
 
   const [isReviewsDrawerOpen, setIsReviewsDrawerOpen] = useState(false);
