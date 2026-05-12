@@ -58,6 +58,11 @@ export default function ProfessionalPublicProfile() {
   const { isAuthenticated: isAuthAuthenticated, isAdmin } = useAuth();
   const isAuthenticated = isAuthAuthenticated && !isAdmin;
 
+  const [isReviewsDrawerOpen, setIsReviewsDrawerOpen] = useState(false);
+  const [isAddReviewModalOpen, setIsAddReviewModalOpen] = useState(false);
+  const [isSubmittingReview, setIsSubmittingReview] = useState(false);
+  const [allReviewsList, setAllReviewsList] = useState<any[]>([]);
+
   const { amenities: companyAmenities } = useCompanyAmenities(company?.id);
   const { scrollY } = useScroll();
   const y1 = useTransform(scrollY, [0, 500], [0, 200]);
