@@ -14,8 +14,8 @@ import { useFinancialPrivacy } from '@/contexts/FinancialPrivacyContext';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { TrendingUp, Users, Scissors, History, DollarSign } from 'lucide-react';
-import { getAppointmentRevenue } from '@/lib/financial-engine';
+import { TrendingUp, Users, History, DollarSign, Wallet } from 'lucide-react';
+import { getAppointmentRevenue, calculateFinancials, commissionLabel, collaboratorTypeLabel, remunerationLabel } from '@/lib/financial-engine';
 
 interface ProfessionalDrawerProps {
   professional: any;
