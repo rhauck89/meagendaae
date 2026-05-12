@@ -77,28 +77,50 @@ export const ProfessionalDrawer = ({
   const fetchProfessionalDetails = async () => {
     setLoading(true);
     try {
-      let query = supabase
-        .from('appointments')
-        .select(`
-          id,
-          total_price,
-          original_price,
-          promotion_discount,
-          cashback_used,
-          manual_discount,
-          final_price,
-          start_time,
-          status,
-          client_name,
-          client:clients!appointments_client_id_fkey(name),
-          appointment_services(
-            service:services(name)
-          )
-        `)
-        .eq('professional_id', professional.id)
-        .eq('company_id', companyId)
-        .gte('start_time', startOfDay(appliedStartDate).toISOString())
-        .lte('start_time', endOfDay(appliedEndDate).toISOString());
+      const [appointmentsResponse, commissionsResponse] = await Promise.all([
+        supabase
+          .from('appointments')
+          .select(`
+            id,
+            total_price,
+            original_price,
+            promotion_discount,
+            cashback_used,
+            manual_discount,
+            final_price,
+            start_time,
+            status,
+            client_name,
+            is_subscription_covered,
+            client:clients!appointments_client_id_fkey(name),
+            appointment_services(
+              service:services(name)
+            )
+          `)
+          .eq('professional_id', professional.id)
+          .eq('company_id', companyId)
+          .gte('start_time', startOfDay(appliedStartDate).toISOString())
+          .lte('start_time', endOfDay(appliedEndDate).toISOString()),
+        supabase
+          .from('professional_commissions')
+          .select(`
+            id,
+            description,
+            gross_amount,
+            commission_amount,
+            company_net_amount,
+            paid_at,
+            source_type,
+            client:clients!professional_commissions_client_id_fkey(name)
+          `)
+          .eq('professional_id', professional.id)
+          .eq('company_id', companyId)
+          .gte('paid_at', startOfDay(appliedStartDate).toISOString())
+          .lte('paid_at', endOfDay(appliedEndDate).toISOString())
+      ]);
+
+      const { data: appointments, error } = appointmentsResponse;
+      const { data: subscriptionCommissions, error: commError } = commissionsResponse;
 
       if (status !== 'all') {
         query = query.eq('status', status as any);
