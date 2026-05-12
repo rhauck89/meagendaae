@@ -315,11 +315,16 @@ export default function ProfessionalPublicProfile() {
                       setTotalReviews(enriched.length);
                     });
                   } else {
-                    const enriched = allReviewsData.map((r: any) => ({
-                      ...r,
-                      client_display_name: r.reviewer_name || ((appts || []).find(a => a.id === r.appointment_id)?.client_name || null),
-                      client_avatar_url: r.reviewer_avatar || null,
-                    }));
+                    const enriched = allReviewsData.map((r: any) => {
+                      const { comment, tags } = parseReviewContent(r.comment, r.tags);
+                      return {
+                        ...r,
+                        comment,
+                        tags,
+                        client_display_name: r.reviewer_name || ((appts || []).find(a => a.id === r.appointment_id)?.client_name || null),
+                        client_avatar_url: r.reviewer_avatar || null,
+                      };
+                    });
                     setReviews(enriched.slice(0, 3));
                     setAllReviewsList(enriched);
                     setTotalReviews(enriched.length);
