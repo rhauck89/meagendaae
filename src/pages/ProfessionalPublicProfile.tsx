@@ -22,6 +22,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { ReviewForm } from '@/components/public-profile/ReviewForm';
+import { Calendar as CalendarUI } from "@/components/ui/calendar";
 
 type BusinessType = 'barbershop' | 'esthetic';
 
@@ -90,6 +91,10 @@ export default function ProfessionalPublicProfile() {
   const [isAddReviewModalOpen, setIsAddReviewModalOpen] = useState(false);
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
   const [allReviewsList, setAllReviewsList] = useState<any[]>([]);
+  
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [availableSlotsForDate, setAvailableSlotsForDate] = useState<string[]>([]);
+  const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
 
   const { amenities: companyAmenities } = useCompanyAmenities(company?.id);
   const { scrollY } = useScroll();
@@ -383,42 +388,52 @@ export default function ProfessionalPublicProfile() {
     ]);
 
     const tz = (settingsRes.data as any)?.timezone || DEFAULT_TZ;
-
     const avgDur = services.length > 0 ? Math.round(services.reduce((s, sv) => s + (sv.duration_minutes || 30), 0) / services.length) : 30;
 
     const now = new Date();
-    for (let i = 0; i < 14; i++) {
-      const day = addDays(startOfDay(new Date()), i);
-      const dateStr = format(day, 'yyyy-MM-dd');
-      const result = await getAvailableSlots({
-        source: 'public',
-        companyId: comp.id,
-        professionalId: prof.id,
-        date: day,
-        totalDuration: avgDur,
-        filterPastForToday: false,
-      });
+    // Use the selected date instead of searching for the next available day for the initial view
+    // but keep searching for the "nextAvailable" label/summary if needed elsewhere.
+    
+    const result = await getAvailableSlots({
+      source: 'public',
+      companyId: comp.id,
+      professionalId: prof.id,
+      date: selectedDate,
+      totalDuration: avgDur,
+      filterPastForToday: true,
+    });
 
-      const apts = ((result.existingAppointments as ExistingAppointment[]) || []).map(a => ({ start_time: a.start_time, end_time: a.end_time }));
-      let slots = result.slots;
-      if (isToday(day)) { const ct = format(now, 'HH:mm'); slots = slots.filter(s => s > ct); }
+    const slots = result.slots;
+    setAvailableSlotsForDate(slots);
 
-      if (slots.length > 0) {
-        let label: string;
-        if (isToday(day)) {
-          label = '🔥 Hoje';
-        } else if (isTomorrow(day)) {
-          label = '📅 Amanhã';
-        } else {
-          label = `📅 ${format(day, "EEEE • dd/MM", { locale: ptBR })}`;
-        }
-        setNextAvailable({ date: day, slots, label });
-        setSlotsLoading(false);
-        return;
-      }
+    // Also update the summary "nextAvailable" info for the label
+    let label: string;
+    if (isToday(selectedDate)) {
+      label = '🔥 Hoje';
+    } else if (isTomorrow(selectedDate)) {
+      label = '📅 Amanhã';
+    } else {
+      label = `📅 ${format(selectedDate, "EEEE • dd/MM", { locale: ptBR })}`;
     }
-    setNextAvailable(null);
+    setNextAvailable({ date: selectedDate, slots, label });
     setSlotsLoading(false);
+  };
+
+  useEffect(() => {
+    if (company?.id && professional?.id) {
+      fetchNextSlots(company, professional);
+    }
+  }, [selectedDate, company?.id, professional?.id]);
+
+  const handleNextDay = () => {
+    setSelectedDate(prev => addDays(prev, 1));
+  };
+
+  const handlePrevDay = () => {
+    const prevDay = addDays(selectedDate, -1);
+    if (prevDay >= startOfDay(new Date())) {
+      setSelectedDate(prevDay);
+    }
   };
 
   const profileUrl = slug && professionalSlug
@@ -794,7 +809,12 @@ export default function ProfessionalPublicProfile() {
               </div>
               <div className="space-y-1">
                 {services.slice(0, 5).map(svc => (
-                  <div key={svc.id} className="flex items-center justify-between py-2.5 border-b last:border-b-0" style={{ borderColor: `${T.border}80` }}>
+                  <button
+                    key={svc.id}
+                    onClick={() => navigate(`${bookingUrl}?services=${svc.id}`)}
+                    className="w-full flex items-center justify-between py-2.5 border-b last:border-b-0 text-left transition-colors hover:bg-black/5 active:scale-[0.98]" 
+                    style={{ borderColor: `${T.border}80` }}
+                  >
                     <div className="flex items-center gap-2 min-w-0">
                       <Scissors className="w-3.5 h-3.5 flex-shrink-0 opacity-60" style={{ color: T.textSec }} />
                       <span className="text-sm font-medium truncate" style={{ color: T.text }}>{svc.name}</span>
@@ -803,12 +823,12 @@ export default function ProfessionalPublicProfile() {
                       <span className="text-xs opacity-60" style={{ color: T.textSec }}>{svc.duration_minutes} min</span>
                       <span className="text-sm font-bold" style={{ color: T.accent }}>R$ {Number(svc.price).toFixed(2)}</span>
                     </div>
-                  </div>
+                  </button>
                 ))}
               </div>
               <button
                 onClick={() => navigate(bookingUrl)}
-                className="w-full mt-4 py-2.5 rounded-xl border text-xs font-semibold"
+                className="w-full mt-4 py-2.5 rounded-xl border text-xs font-semibold hover:bg-black/5 transition-colors"
                 style={{ borderColor: T.border, color: T.text, background: 'transparent' }}
               >
                 Ver todos os serviços
@@ -826,33 +846,78 @@ export default function ProfessionalPublicProfile() {
 
               {/* Seletor de data */}
               <div className="flex items-center gap-2 mb-4">
-                <div
-                  className="flex-1 px-3 py-2.5 rounded-lg border flex items-center justify-between text-sm"
+                <button
+                  onClick={() => setIsDatePickerOpen(true)}
+                  className="flex-1 px-3 py-2.5 rounded-lg border flex items-center justify-between text-sm hover:opacity-80 transition-opacity"
                   style={{ borderColor: T.border, color: T.text, background: T.bg }}
                 >
-                  <span className="capitalize">{nextAvailable.label.replace(/[^\w\s,]/g, '').trim() || format(nextAvailable.date, "dd 'de' MMMM", { locale: ptBR })}</span>
+                  <span className="capitalize">{nextAvailable.label.replace(/[^\w\s,]/g, '').trim() || format(selectedDate, "dd 'de' MMMM", { locale: ptBR })}</span>
                   <span className="opacity-50">▾</span>
-                </div>
-                <button className="w-9 h-9 rounded-lg border flex items-center justify-center" style={{ borderColor: T.border, color: T.textSec }}>‹</button>
-                <button className="w-9 h-9 rounded-lg border flex items-center justify-center" style={{ borderColor: T.border, color: T.textSec }}>›</button>
+                </button>
+                <button 
+                  onClick={handlePrevDay}
+                  disabled={isToday(selectedDate)}
+                  className="w-9 h-9 rounded-lg border flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed hover:bg-black/5" 
+                  style={{ borderColor: T.border, color: T.textSec }}
+                >
+                  ‹
+                </button>
+                <button 
+                  onClick={handleNextDay}
+                  className="w-9 h-9 rounded-lg border flex items-center justify-center hover:bg-black/5" 
+                  style={{ borderColor: T.border, color: T.textSec }}
+                >
+                  ›
+                </button>
               </div>
 
               {/* Grade de horários */}
               <div className="grid grid-cols-3 gap-2">
-                {nextAvailable.slots.slice(0, 9).map(time => (
-                  <button
-                    key={time}
-                    onClick={() => navigate(`${bookingUrl}?date=${format(nextAvailable.date, 'yyyy-MM-dd')}&time=${time}`)}
-                    className="py-2.5 rounded-lg text-sm font-bold border transition-all hover:scale-105"
-                    style={{ background: 'transparent', borderColor: `${T.accent}40`, color: T.accent }}
-                  >
-                    {time}
-                  </button>
-                ))}
+                {availableSlotsForDate.length > 0 ? (
+                  availableSlotsForDate.slice(0, 9).map(time => (
+                    <button
+                      key={time}
+                      onClick={() => navigate(`${bookingUrl}?date=${format(selectedDate, 'yyyy-MM-dd')}&time=${time}`)}
+                      className="py-2.5 rounded-lg text-sm font-bold border transition-all hover:scale-105 active:scale-95"
+                      style={{ background: 'transparent', borderColor: `${T.accent}40`, color: T.accent }}
+                    >
+                      {time}
+                    </button>
+                  ))
+                ) : (
+                  <div className="col-span-3 py-4 text-center text-xs opacity-50" style={{ color: T.textSec }}>
+                    {slotsLoading ? 'Carregando...' : 'Nenhum horário disponível para esta data.'}
+                  </div>
+                )}
               </div>
             </div>
           )}
         </section>
+
+        {/* Date Picker Dialog */}
+        <Dialog open={isDatePickerOpen} onOpenChange={setIsDatePickerOpen}>
+          <DialogContent className="p-0 border-none bg-transparent shadow-none max-w-sm">
+            <div className="p-4 rounded-[2rem] border shadow-2xl" style={{ backgroundColor: T.card, borderColor: T.border }}>
+              <div className="mb-4 text-center">
+                <h3 className="font-bold" style={{ color: T.text }}>Selecionar Data</h3>
+              </div>
+              <CalendarUI
+                mode="single"
+                selected={selectedDate}
+                onSelect={(date) => {
+                  if (date) {
+                    setSelectedDate(date);
+                    setIsDatePickerOpen(false);
+                  }
+                }}
+                disabled={{ before: startOfDay(new Date()) }}
+                initialFocus
+                className="rounded-2xl border-none mx-auto"
+                style={{ backgroundColor: T.card }}
+              />
+            </div>
+          </DialogContent>
+        </Dialog>
 
         {/* FAIXA VERDE — CTA secundário */}
         <section
@@ -869,7 +934,7 @@ export default function ProfessionalPublicProfile() {
             </div>
           </div>
           <Button
-            onClick={() => navigate(bookingUrl)}
+            onClick={() => navigate(`${bookingUrl}?jumpTo=datetime`)}
             className="h-11 px-4 rounded-xl font-bold whitespace-nowrap bg-emerald-500 hover:bg-emerald-600 text-white flex-shrink-0"
           >
             Ver horários ›

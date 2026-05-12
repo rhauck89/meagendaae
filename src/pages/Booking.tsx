@@ -931,7 +931,19 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
             setHasValidClient(true);
             setClientDataWasAutoFilled(true);
             setShowIdentityModal(false);
-            setStep(professionalSlug ? 'services' : 'professional');
+            const jumpTo = searchParams.get('jumpTo');
+            if (jumpTo === 'datetime') {
+              setStep('datetime');
+            } else {
+              const hasProfessional = !!selectedProfessional || !!professionalSlug || searchParams.get('professional');
+              const hasServices = selectedServices.length > 0 || searchParams.get('services');
+              const hasDateTime = (!!selectedDate && !!selectedTime) || (searchParams.get('date') && searchParams.get('time'));
+
+              if (!hasProfessional) setStep('professional');
+              else if (!hasServices) setStep('services');
+              else if (!hasDateTime) setStep('datetime');
+              else setStep('confirm');
+            }
             return;
           }
           localStorage.removeItem(`whatsapp_session_${company.id}`);
@@ -943,7 +955,19 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       const isAdmin = profile && ['admin', 'professional', 'company', 'super_admin'].includes(profile.role);
       if (isAuthenticated && !isAdmin) {
         console.log('[BOOKING_FLOW] Authenticated client session found. Unlocking booking.');
-        setStep(professionalSlug ? 'services' : 'professional');
+        const jumpTo = searchParams.get('jumpTo');
+        if (jumpTo === 'datetime') {
+          setStep('datetime');
+        } else {
+          const hasProfessional = !!selectedProfessional || !!professionalSlug || searchParams.get('professional');
+          const hasServices = selectedServices.length > 0 || searchParams.get('services');
+          const hasDateTime = (!!selectedDate && !!selectedTime) || (searchParams.get('date') && searchParams.get('time'));
+
+          if (!hasProfessional) setStep('professional');
+          else if (!hasServices) setStep('services');
+          else if (!hasDateTime) setStep('datetime');
+          else setStep('confirm');
+        }
         return;
       }
 
@@ -1437,11 +1461,19 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       setSelectedServices(sIds);
       // If we have services pre-selected, we might want to skip the services step
       // if the user also pre-selected a professional or if there's only one.
-      if (professionalSlug || searchParams.get('professional')) {
+      const hasDateTime = (!!selectedDate && !!selectedTime) || (searchParams.get('date') && searchParams.get('time'));
+      if (hasDateTime) {
+        setStep('confirm');
+      } else if (professionalSlug || searchParams.get('professional')) {
         setStep('datetime');
       } else {
         setStep('professional');
       }
+    }
+
+    const jumpTo = searchParams.get('jumpTo');
+    if (jumpTo === 'datetime') {
+      setStep('datetime');
     }
 
     if (promoIdRef.current) {
@@ -3022,8 +3054,10 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                   </div>
                   <Button
                     onClick={() => {
-                      if (!selectedProfessional && !skipProfessionalStep) {
+                      if (!selectedProfessional) {
                         setStep('professional');
+                      } else if (selectedDate && selectedTime) {
+                        setStep(hasBenefitsActive ? 'benefits' : 'confirm');
                       } else {
                         setStep('datetime');
                       }
@@ -3072,7 +3106,14 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                       fetchProfessionalHours(p.id); 
                       fetchRecentBookings(p.id); 
                       updateServicesForProfessional(p.id);
-                      setStep(selectedServices.length > 0 ? 'datetime' : 'services'); 
+                      
+                      if (selectedServices.length === 0) {
+                        setStep('services');
+                      } else if (selectedDate && selectedTime) {
+                        setStep(hasBenefitsActive ? 'benefits' : 'confirm');
+                      } else {
+                        setStep('datetime'); 
+                      }
                     }}
                     className="p-6 rounded-[2.5rem] cursor-pointer transition-all duration-300 relative group overflow-hidden"
                     style={{
@@ -3180,7 +3221,15 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                   </div>
                 </div>
                 <Button
-                  onClick={() => setStep(hasBenefitsActive ? 'benefits' : 'confirm')}
+                  onClick={() => {
+                    if (selectedServices.length === 0) {
+                      setStep('services');
+                    } else if (!selectedProfessional) {
+                      setStep('professional');
+                    } else {
+                      setStep(hasBenefitsActive ? 'benefits' : 'confirm');
+                    }
+                  }}
                   className="w-full rounded-full py-8 font-black text-lg shadow-2xl transition-all hover:scale-[1.02] active:scale-[0.98] group"
                   style={{ background: `linear-gradient(135deg, ${T.accent}, #F4C752)`, color: '#000' }}
                 >
@@ -3410,7 +3459,13 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                             key={slot}
                             onClick={() => { 
                               setSelectedTime(slot); 
-                              setStep(hasBenefitsActive ? 'benefits' : 'confirm');
+                              if (selectedServices.length === 0) {
+                                setStep('services');
+                              } else if (!selectedProfessional) {
+                                setStep('professional');
+                              } else {
+                                setStep(hasBenefitsActive ? 'benefits' : 'confirm');
+                              }
                             }}
                             className="py-5 rounded-3xl text-sm font-black transition-all duration-300 border-2 relative overflow-hidden"
                             style={{ 
