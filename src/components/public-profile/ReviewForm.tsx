@@ -113,30 +113,37 @@ export function ReviewForm({ onCancel, onSubmit, theme: T, title, subtitle, imag
         {/* Star Rating Section */}
         <div className="flex flex-col items-center space-y-2 py-2">
           <div className="flex justify-center gap-1.5">
-            {[1, 2, 3, 4, 5].map((s) => (
-              <motion.button
-                key={s}
-                whileHover={{ scale: 1.15 }}
-                whileTap={{ scale: 0.9 }}
-                onMouseEnter={() => setHoverRating(s)}
-                onMouseLeave={() => setHoverRating(0)}
-                onClick={() => handleRate(s)}
-                className="relative group p-1"
-              >
-                <Star
-                  className={cn(
-                    "w-10 h-10 transition-all duration-300",
-                    s <= (hoverRating || rating) 
-                      ? "drop-shadow-[0_0_8px_rgba(250,204,21,0.5)]" 
-                      : ""
-                  )}
-                  style={{ 
-                    color: s <= (hoverRating || rating) ? T.accent : `${T.text}20`,
-                    fill: s <= (hoverRating || rating) ? T.accent : 'transparent'
-                  }}
-                />
-              </motion.button>
-            ))}
+            {[1, 2, 3, 4, 5].map((s) => {
+              const isActive = s <= (hoverRating || rating);
+              const currentRating = hoverRating || rating;
+              
+              // Progressive glow values
+              const intensities = [0, 0.3, 0.45, 0.6, 0.8, 1.0];
+              const sizes = [0, 8, 12, 16, 20, 28];
+              
+              return (
+                <motion.button
+                  key={s}
+                  whileHover={{ scale: 1.15 }}
+                  whileTap={{ scale: 0.9 }}
+                  onMouseEnter={() => setHoverRating(s)}
+                  onMouseLeave={() => setHoverRating(0)}
+                  onClick={() => handleRate(s)}
+                  className="relative group p-1"
+                >
+                  <Star
+                    className="w-10 h-10 transition-all duration-300"
+                    style={{ 
+                      color: isActive ? '#FACC15' : `${T.text}20`,
+                      fill: isActive ? '#FACC15' : 'transparent',
+                      filter: isActive
+                        ? `drop-shadow(0 0 ${sizes[currentRating]}px rgba(250, 204, 21, ${intensities[currentRating]}))`
+                        : 'none'
+                    }}
+                  />
+                </motion.button>
+              );
+            })}
           </div>
           <AnimatePresence mode="wait">
             {(hoverRating || rating) > 0 && (
@@ -145,7 +152,7 @@ export function ReviewForm({ onCancel, onSubmit, theme: T, title, subtitle, imag
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 5 }}
                 className="text-xs font-bold uppercase tracking-widest"
-                style={{ color: T.accent }}
+                style={{ color: '#FACC15' }}
               >
                 {["Muito Ruim", "Poderia Melhorar", "Bom", "Muito Bom", "Excelente!"][(hoverRating || rating) - 1]}
               </motion.span>
@@ -187,14 +194,25 @@ export function ReviewForm({ onCancel, onSubmit, theme: T, title, subtitle, imag
             value={comment}
             onChange={(e) => setComment(e.target.value)}
             placeholder="Conte um pouco sobre sua experiência (opcional)..."
-            className="w-full min-h-[100px] p-4 rounded-2xl border text-sm resize-none focus:ring-2 outline-none transition-all placeholder:opacity-40 shadow-inner"
+            className="w-full min-h-[120px] p-4 rounded-2xl border text-sm resize-none outline-none transition-all shadow-inner custom-textarea"
             style={{ 
-              background: `${T.cardSoft}80`, 
-              borderColor: `${T.text}10`, 
+              background: T.card, 
+              borderColor: `${T.border}80`, 
               color: T.text,
-              '--tw-ring-color': T.accent
             } as any}
           />
+          <style>
+            {`
+              .custom-textarea::placeholder {
+                color: ${T.textSec}99 !important;
+                opacity: 0.7;
+              }
+              .custom-textarea:focus {
+                border-color: ${T.accent} !important;
+                box-shadow: 0 0 0 4px ${T.accent}33 !important;
+              }
+            `}
+          </style>
         </div>
 
         {/* Actions Section */}
