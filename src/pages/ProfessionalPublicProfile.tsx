@@ -742,69 +742,6 @@ export default function ProfessionalPublicProfile() {
           )}
         </AnimatePresence>
 
-        {/* AVALIAÇÕES — Nota gigante + 2 depoimentos */}
-        {reviews.length > 0 && (
-          <section className="rounded-2xl border p-5" style={{ background: T.card, borderColor: T.border }}>
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                <h3 className="text-sm font-bold" style={{ color: T.text }}>Avaliações</h3>
-              </div>
-              <button onClick={() => setIsReviewsDrawerOpen(true)} className="text-xs font-semibold" style={{ color: T.accent }}>Ver todas</button>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-[200px,1fr,1fr] gap-5 items-center">
-              {/* Nota gigante */}
-              <div className="text-center md:border-r pr-0 md:pr-4" style={{ borderColor: T.border }}>
-                <p className="text-5xl font-black" style={{ color: T.text }}>{rating?.avg?.toFixed(1) || '5.0'}</p>
-                <div className="flex items-center justify-center gap-0.5 mt-1">
-                  {[1, 2, 3, 4, 5].map(s => (
-                    <Star key={s} className={cn("w-4 h-4", s <= Math.round(rating?.avg || 5) ? "fill-yellow-400 text-yellow-400" : "text-gray-600")} />
-                  ))}
-                </div>
-                <p className="text-xs mt-2 opacity-60" style={{ color: T.textSec }}>{totalReviews} avaliações</p>
-              </div>
-
-              {/* Depoimentos */}
-              {reviews.slice(0, 2).map((rev, i) => (
-                <div key={i} className="text-sm">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      {rev.client_avatar_url ? (
-                        <img 
-                          src={rev.client_avatar_url} 
-                          alt={rev.client_display_name} 
-                          className="w-7 h-7 rounded-full object-cover" 
-                        />
-                      ) : (
-                        <div className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold" style={{ background: `${T.accent}25`, color: T.accent }}>
-                          {rev.client_display_name?.charAt(0) || 'C'}
-                        </div>
-                      )}
-                      <span className="text-xs font-bold" style={{ color: T.text }}>{rev.client_display_name || 'Cliente'}</span>
-                    </div>
-                    <span className="text-[10px] opacity-50" style={{ color: T.textSec }}>{format(new Date(rev.created_at), 'dd/MM/yyyy')}</span>
-                  </div>
-                  <div className="flex items-center gap-0.5 mb-1.5">
-                    {[1, 2, 3, 4, 5].map(s => (
-                      <Star key={s} className={cn("w-3 h-3", s <= rev.rating ? "fill-yellow-400 text-yellow-400" : "text-gray-600")} />
-                    ))}
-                  </div>
-                  <p className="text-xs italic leading-relaxed opacity-80" style={{ color: T.text }}>
-                    "{rev.comment || 'Experiência excelente!'}"
-                  </p>
-                  {rev.tags && rev.tags.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5 pt-1">
-                      {rev.tags.map((tag: string) => (
-                        <span key={tag} className="text-[9px] px-2 py-0.5 rounded-full font-bold uppercase tracking-tighter" style={{ background: `${T.accent}15`, color: T.accent }}>{tag}</span>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
 
         {/* SERVIÇOS + AGENDA — duas colunas */}
         <section className="grid grid-cols-1 md:grid-cols-2 gap-4">
