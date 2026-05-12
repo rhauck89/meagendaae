@@ -17,8 +17,10 @@ import { PlatformBranding } from '@/components/PlatformBranding';
 import { getCompanyBranding, buildThemeFromBranding, useApplyBranding } from '@/hooks/useCompanyBranding';
 import { useCompanyAmenities } from '@/hooks/useCompanyAmenities';
 import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion';
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription } from "@/components/ui/drawer";
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
+import { ReviewForm } from '@/components/public-profile/ReviewForm';
 
 type BusinessType = 'barbershop' | 'esthetic';
 
