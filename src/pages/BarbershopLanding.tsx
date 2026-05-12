@@ -19,7 +19,7 @@ import { AmenitiesDisplay } from '@/components/AmenitiesDisplay';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription, DrawerFooter, DrawerClose } from "@/components/ui/drawer";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogBody } from "@/components/ui/dialog";
 import { toast } from 'sonner';
 import { IdentityModal } from '@/components/booking/IdentityModal';
 import { ReviewForm } from '@/components/public-profile/ReviewForm';
@@ -1182,17 +1182,31 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
         </DrawerContent>
       </Drawer>
 
-      {/* Reviews Drawer */}
-      <Drawer open={isReviewsDrawerOpen} onOpenChange={setIsReviewsDrawerOpen}>
-        <DrawerContent className="max-h-[85vh] border-none" style={{ backgroundColor: T.card }}>
-          <DrawerHeader className="flex flex-row items-center justify-between border-b pb-4" style={{ borderColor: T.border }}>
-            <div className="text-left">
-              <DrawerTitle style={{ color: T.text }}>Avaliações</DrawerTitle>
-              <DrawerDescription style={{ color: T.textSec }}>{allReviewsList.length} depoimentos de clientes</DrawerDescription>
+      {/* Reviews Modal */}
+      <Dialog open={isReviewsDrawerOpen} onOpenChange={setIsReviewsDrawerOpen}>
+        <DialogContent 
+          className="fixed inset-auto left-[50%] top-[50%] -translate-x-1/2 -translate-y-1/2 w-[92%] sm:w-full sm:max-w-[720px] h-auto max-h-[85vh] sm:max-h-[90vh] border-none p-0 overflow-hidden flex flex-col rounded-[2rem] shadow-2xl" 
+          style={{ backgroundColor: T.card }}
+        >
+          <DialogHeader 
+            className="flex flex-row items-center justify-between border-b pb-4 px-6 pt-6 shrink-0" 
+            style={{ borderColor: T.border, backgroundColor: T.card }}
+          >
+            <div className="text-left space-y-1">
+              <DialogTitle className="text-xl font-bold" style={{ color: T.text }}>Avaliações</DialogTitle>
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1 bg-yellow-400/10 px-2 py-0.5 rounded-md">
+                   <Star className="w-3.5 h-3.5 fill-yellow-400 text-yellow-400" />
+                   <span className="text-sm font-bold text-yellow-500">{companyStats?.avgRating.toFixed(1) || '0.0'}</span>
+                </div>
+                <DialogDescription className="font-medium" style={{ color: T.textSec }}>
+                  {allReviewsList.length} {allReviewsList.length === 1 ? 'depoimento' : 'depoimentos'}
+                </DialogDescription>
+              </div>
             </div>
             <Button 
               size="sm" 
-              className="rounded-full font-bold px-6" 
+              className="rounded-full font-bold px-6 shadow-lg shadow-black/10 transition-transform active:scale-95" 
               style={{ background: T.accent, color: '#000' }}
               onClick={() => {
                 setIsReviewsDrawerOpen(false);
@@ -1201,8 +1215,9 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
             >
               Avaliar
             </Button>
-          </DrawerHeader>
-          <div className="px-4 py-6 overflow-y-auto space-y-4">
+          </DialogHeader>
+          
+          <DialogBody className="space-y-4 px-6 py-6 overflow-y-auto" style={{ backgroundColor: `${T.card}` }}>
             {allReviewsList.map((rev: any, i: number) => (
               <motion.div 
                 initial={{ opacity: 0, y: 10 }}
@@ -1236,7 +1251,7 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
                   </div>
                 </div>
                 <p className="text-sm leading-relaxed opacity-90" style={{ color: T.text }}>
-                  {rev.comment || 'Excelente atendimento!'}
+                  {rev.comment || 'Experiência excelente!'}
                 </p>
                 {rev.tags && rev.tags.length > 0 && (
                   <div className="flex flex-wrap gap-1.5 pt-1">
@@ -1253,9 +1268,9 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
                 <p className="text-center text-sm" style={{ color: T.textSec }}>Nenhuma avaliação ainda.</p>
               </div>
             )}
-          </div>
-        </DrawerContent>
-      </Drawer>
+          </DialogBody>
+        </DialogContent>
+      </Dialog>
 
       {/* Review Modal */}
       <Dialog open={isAddReviewModalOpen} onOpenChange={setIsAddReviewModalOpen}>
