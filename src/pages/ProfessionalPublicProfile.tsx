@@ -62,6 +62,26 @@ const getAppointmentMinutesInTimezone = (v: string, tz: string) => {
 const filterOverlapping = (slots: string[], apts: ExistingAppointment[], dur: number, buf: number, tz: string) =>
   slots.filter(s => { const ss = timeStringToMinutes(s), se = ss + dur; return !apts.some(a => { const as2 = getAppointmentMinutesInTimezone(a.start_time, tz), ae = getAppointmentMinutesInTimezone(a.end_time, tz) + buf; return as2 < se && ae > ss; }); });
 
+const StarRating = ({ rating, size = 14 }: { rating: number; size?: number }) => (
+  <div className="flex items-center gap-0.5">
+    {[1, 2, 3, 4, 5].map((s) => {
+      const fill = rating >= s ? 1 : rating >= s - 0.5 ? 0.5 : 0;
+      return (
+        <svg key={s} width={size} height={size} viewBox="0 0 24 24" fill="none">
+          <defs>
+            <linearGradient id={`prof-star-${s}-${size}`}>
+              <stop offset={`${fill * 100}%`} stopColor="#FDBA2D" />
+              <stop offset={`${fill * 100}%`} stopColor="#374151" />
+            </linearGradient>
+          </defs>
+          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" fill={`url(#land-star-${s}-${size})`} />
+        </svg>
+      );
+    })}
+  </div>
+);
+
+
 export default function ProfessionalPublicProfile() {
   const { slug, professionalSlug } = useParams<{ slug: string; professionalSlug: string }>();
   const navigate = useNavigate();
