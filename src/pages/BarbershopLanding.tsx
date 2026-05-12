@@ -869,9 +869,17 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
                   <div key={i} className="p-4 rounded-2xl border flex flex-col gap-3" style={{ background: T.card, borderColor: T.border }}>
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold text-white" style={{ background: color }}>
-                          {initial}
-                        </div>
+                        {rev.client_avatar_url ? (
+                          <img 
+                            src={rev.client_avatar_url} 
+                            alt={rev.client_display_name} 
+                            className="w-8 h-8 rounded-full object-cover" 
+                          />
+                        ) : (
+                          <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold text-white" style={{ background: color }}>
+                            {initial}
+                          </div>
+                        )}
                         <div>
                           <p className="text-sm font-bold" style={{ color: T.text }}>{rev.client_display_name || 'Cliente'}</p>
                           <div className="flex items-center gap-0.5">
