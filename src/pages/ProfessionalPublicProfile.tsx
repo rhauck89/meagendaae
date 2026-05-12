@@ -201,13 +201,12 @@ export default function ProfessionalPublicProfile() {
       // Reviews (non-blocking)
       supabase
         .from('reviews')
-        .select('rating, comment, created_at, appointment_id, review_type')
+        .select('rating, comment, created_at, appointment_id, review_type, professional_id')
         .eq('professional_id', prof.id)
         .eq('review_type', 'professional')
         .order('created_at', { ascending: false })
         .then(({ data: allReviewsData }) => {
           if (allReviewsData) {
-            // Enrich with client display name logic...
             const apptIds = allReviewsData.map((r: any) => r.appointment_id).filter(Boolean);
             if (apptIds.length > 0) {
               supabase
@@ -234,13 +233,23 @@ export default function ProfessionalPublicProfile() {
                         ...r,
                         client_display_name: r.appointment_id ? clientNames[r.appointment_id] || null : null,
                       }));
-                      setReviews(enriched);
+                      setReviews(enriched.slice(0, 3));
+                      setAllReviewsList(enriched);
                       setTotalReviews(enriched.length);
                     });
+                  } else {
+                    const enriched = allReviewsData.map((r: any) => ({
+                      ...r,
+                      client_display_name: (appts || []).find(a => a.id === r.appointment_id)?.client_name || null
+                    }));
+                    setReviews(enriched.slice(0, 3));
+                    setAllReviewsList(enriched);
+                    setTotalReviews(enriched.length);
                   }
                 });
             } else {
-              setReviews(allReviewsData);
+              setReviews(allReviewsData.slice(0, 3));
+              setAllReviewsList(allReviewsData);
               setTotalReviews(allReviewsData.length);
             }
           }
