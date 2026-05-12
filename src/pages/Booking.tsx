@@ -3054,8 +3054,10 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                   </div>
                   <Button
                     onClick={() => {
-                      if (!selectedProfessional && !skipProfessionalStep) {
+                      if (!selectedProfessional) {
                         setStep('professional');
+                      } else if (selectedDate && selectedTime) {
+                        setStep(hasBenefitsActive ? 'benefits' : 'confirm');
                       } else {
                         setStep('datetime');
                       }
