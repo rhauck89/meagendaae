@@ -1175,7 +1175,7 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
             title={company?.name || "Estabelecimento"}
             image={company?.logo_url}
             theme={T}
-            initialName={profile?.full_name}
+            initialName={isAuthAuthenticated && !isAdmin ? user?.user_metadata?.full_name : ''}
             onCancel={() => setIsAddReviewModalOpen(false)}
             onSubmit={handleSubmitReview}
           />
