@@ -28,7 +28,7 @@ type BusinessType = 'barbershop' | 'esthetic';
 const DEFAULT_TZ = 'America/Sao_Paulo';
 
 const formatReviewerName = (name: string): string => {
-  if (!name) return 'Cliente';
+  if (!name || name.toLowerCase() === 'cliente') return 'Cliente';
   const parts = name.trim().split(/\s+/);
   if (parts.length === 1) return parts[0];
   return `${parts[0]} ${parts[parts.length - 1].charAt(0).toUpperCase()}.`;
@@ -458,11 +458,18 @@ export default function ProfessionalPublicProfile() {
     reviewer_name?: string;
     reviewer_phone?: string;
   }) => {
-    if (!company?.id) return;
+    if (!company?.id || !professional?.id) return;
+
+    const reviewerName = data.reviewer_name || currentClient?.name || null;
+    
+    if (!reviewerName) {
+      toast.error("Por favor, identifique-se para enviar a avaliação.");
+      return;
+    }
+
     setIsSubmittingReview(true);
     try {
-      const finalName = data.reviewer_name || currentClient?.name;
-      const finalPhone = data.reviewer_phone || currentClient?.whatsapp;
+      const finalPhone = data.reviewer_phone || currentClient?.whatsapp || null;
       const finalAvatar = currentClient?.avatar_url || null;
 
       const { error } = await supabase.from('reviews').insert({
@@ -471,7 +478,7 @@ export default function ProfessionalPublicProfile() {
         rating: data.rating,
         comment: data.comment,
         tags: data.tags,
-        reviewer_name: finalName,
+        reviewer_name: reviewerName,
         reviewer_phone: finalPhone,
         reviewer_avatar: finalAvatar,
         review_type: 'professional'
@@ -481,7 +488,7 @@ export default function ProfessionalPublicProfile() {
 
       toast.success("Avaliação enviada com sucesso!");
       setIsAddReviewModalOpen(false);
-      load(); // Reload data to show the new review
+      load(); 
     } catch (err: any) {
       console.error('Error submitting review:', err);
       toast.error("Erro ao enviar avaliação: " + (err.message || 'Erro desconhecido'));
