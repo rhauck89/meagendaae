@@ -463,14 +463,19 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
     if (!company?.id) return;
     setIsSubmittingReview(true);
     try {
+      const finalName = data.reviewer_name || currentClient?.name;
+      const finalPhone = data.reviewer_phone || currentClient?.whatsapp;
+      const finalAvatar = currentClient?.avatar_url || null;
+
       const { error } = await supabase.from('reviews').insert({
         company_id: company.id,
         professional_id: null,
         rating: data.rating,
         comment: data.comment,
         tags: data.tags,
-        reviewer_name: data.reviewer_name,
-        reviewer_phone: data.reviewer_phone,
+        reviewer_name: finalName,
+        reviewer_phone: finalPhone,
+        reviewer_avatar: finalAvatar,
         review_type: 'company'
       });
 
