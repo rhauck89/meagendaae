@@ -393,29 +393,22 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
     if (!company?.id) return;
     setIsSubmittingReview(true);
     try {
-      // Find a professional to tie this review to
-      const profId = professionals[0]?.id;
-      if (!profId) {
-        toast.error("Nenhum profissional disponível para registrar a avaliação.");
-        return;
-      }
-
       const { error } = await supabase.from('reviews').insert({
         company_id: company.id,
-        professional_id: profId,
-        rating: rating,
-        comment: comment.trim() || null,
+        professional_id: null,
+        rating,
+        comment,
         review_type: 'company'
       });
 
       if (error) throw error;
+
       toast.success("Avaliação enviada com sucesso!");
       setIsAddReviewModalOpen(false);
-      // Refresh reviews
-      load(); 
+      load(); // Reload data to show the new review
     } catch (err: any) {
-      toast.error(err.message || "Erro ao enviar avaliação");
-      throw err;
+      console.error('Error submitting review:', err);
+      toast.error("Erro ao enviar avaliação: " + (err.message || 'Erro desconhecido'));
     } finally {
       setIsSubmittingReview(false);
     }
@@ -840,7 +833,7 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
               </h2>
               {allReviewsList.length > 3 && (
                 <button
-                  onClick={() => navigate(`/${bookingBasePath}/${slug}/avaliacoes`)}
+                  onClick={() => setIsReviewsDrawerOpen(true)}
                   className="text-sm font-medium hover:underline"
                   style={{ color: T.accent }}
                 >
@@ -1132,6 +1125,20 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
             {allReviewsList.length === 0 && (
               <p className="text-center py-8 opacity-60" style={{ color: T.textSec }}>Nenhuma avaliação ainda.</p>
             )}
+          </div>
+        </DrawerContent>
+      </Drawer>
+
+      {/* Add Review Drawer */}
+      <Drawer open={isAddReviewModalOpen} onOpenChange={setIsAddReviewModalOpen}>
+        <DrawerContent>
+          <div className="mx-auto w-full max-w-sm p-6">
+            <ReviewForm 
+              title={`Avaliar ${company?.name || 'Estabelecimento'}`}
+              onCancel={() => setIsAddReviewModalOpen(false)}
+              onSubmit={handleSubmitReview}
+              theme={T}
+            />
           </div>
         </DrawerContent>
       </Drawer>

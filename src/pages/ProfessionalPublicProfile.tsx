@@ -3,7 +3,7 @@ import { useEffect, useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
-import { Star, MessageCircle, MapPin, Share2, Check, Calendar, Clock, Instagram, Sparkles, Scissors, BadgeCheck, Trophy, Flame, Crown, Users, ArrowLeft, Heart, ShieldCheck, Zap, Repeat } from 'lucide-react';
+import { Star, MessageCircle, MapPin, Share2, Check, Calendar, Clock, Instagram, Sparkles, Scissors, BadgeCheck, Trophy, Flame, Crown, Users, ArrowLeft, Heart, ShieldCheck, Zap, Repeat, Home } from 'lucide-react';
 import { LocationBlock } from '@/components/LocationBlock';
 import { SEOHead } from '@/components/SEOHead';
 import { format, addDays, startOfDay, isToday, isTomorrow, differenceInYears, parseISO } from 'date-fns';
@@ -17,8 +17,10 @@ import { PlatformBranding } from '@/components/PlatformBranding';
 import { getCompanyBranding, buildThemeFromBranding, useApplyBranding } from '@/hooks/useCompanyBranding';
 import { useCompanyAmenities } from '@/hooks/useCompanyAmenities';
 import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion';
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription } from "@/components/ui/drawer";
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
+import { ReviewForm } from '@/components/public-profile/ReviewForm';
 
 type BusinessType = 'barbershop' | 'esthetic';
 
@@ -55,6 +57,11 @@ export default function ProfessionalPublicProfile() {
   const [lastBooking, setLastBooking] = useState<any>(null);
   const { isAuthenticated: isAuthAuthenticated, isAdmin } = useAuth();
   const isAuthenticated = isAuthAuthenticated && !isAdmin;
+
+  const [isReviewsDrawerOpen, setIsReviewsDrawerOpen] = useState(false);
+  const [isAddReviewModalOpen, setIsAddReviewModalOpen] = useState(false);
+  const [isSubmittingReview, setIsSubmittingReview] = useState(false);
+  const [allReviewsList, setAllReviewsList] = useState<any[]>([]);
 
   const { amenities: companyAmenities } = useCompanyAmenities(company?.id);
   const { scrollY } = useScroll();
@@ -194,13 +201,12 @@ export default function ProfessionalPublicProfile() {
       // Reviews (non-blocking)
       supabase
         .from('reviews')
-        .select('rating, comment, created_at, appointment_id, review_type')
+        .select('rating, comment, created_at, appointment_id, review_type, professional_id')
         .eq('professional_id', prof.id)
         .eq('review_type', 'professional')
         .order('created_at', { ascending: false })
         .then(({ data: allReviewsData }) => {
           if (allReviewsData) {
-            // Enrich with client display name logic...
             const apptIds = allReviewsData.map((r: any) => r.appointment_id).filter(Boolean);
             if (apptIds.length > 0) {
               supabase
@@ -227,13 +233,23 @@ export default function ProfessionalPublicProfile() {
                         ...r,
                         client_display_name: r.appointment_id ? clientNames[r.appointment_id] || null : null,
                       }));
-                      setReviews(enriched);
+                      setReviews(enriched.slice(0, 3));
+                      setAllReviewsList(enriched);
                       setTotalReviews(enriched.length);
                     });
+                  } else {
+                    const enriched = allReviewsData.map((r: any) => ({
+                      ...r,
+                      client_display_name: (appts || []).find(a => a.id === r.appointment_id)?.client_name || null
+                    }));
+                    setReviews(enriched.slice(0, 3));
+                    setAllReviewsList(enriched);
+                    setTotalReviews(enriched.length);
                   }
                 });
             } else {
-              setReviews(allReviewsData);
+              setReviews(allReviewsData.slice(0, 3));
+              setAllReviewsList(allReviewsData);
               setTotalReviews(allReviewsData.length);
             }
           }
@@ -341,6 +357,31 @@ export default function ProfessionalPublicProfile() {
   const whatsappDigits = whatsappNumber ? formatWhatsApp(whatsappNumber) : null;
 
   const displayedReviews = showAllReviews ? reviews : reviews.slice(0, 3);
+
+  const handleSubmitReview = async (rating: number, comment: string) => {
+    if (!company?.id || !professional?.id) return;
+    setIsSubmittingReview(true);
+    try {
+      const { error } = await supabase.from('reviews').insert({
+        company_id: company.id,
+        professional_id: professional.id,
+        rating,
+        comment,
+        review_type: 'professional'
+      });
+
+      if (error) throw error;
+
+      toast.success("Avaliação enviada com sucesso!");
+      setIsAddReviewModalOpen(false);
+      load(); // Reload data to show the new review
+    } catch (err: any) {
+      console.error('Error submitting review:', err);
+      toast.error("Erro ao enviar avaliação: " + (err.message || 'Erro desconhecido'));
+    } finally {
+      setIsSubmittingReview(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -572,7 +613,7 @@ export default function ProfessionalPublicProfile() {
                 <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
                 <h3 className="text-sm font-bold" style={{ color: T.text }}>Avaliações</h3>
               </div>
-              <button onClick={() => setShowAllReviews(true)} className="text-xs font-semibold" style={{ color: T.accent }}>Ver todas</button>
+              <button onClick={() => setIsReviewsDrawerOpen(true)} className="text-xs font-semibold" style={{ color: T.accent }}>Ver todas</button>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-[200px,1fr,1fr] gap-5 items-center">
@@ -729,26 +770,97 @@ export default function ProfessionalPublicProfile() {
         </div>
       </main>
 
-      {/* Floating CTA mobile */}
-      <div className="fixed bottom-0 left-0 right-0 p-3 z-50 pointer-events-none md:hidden" style={{ background: `linear-gradient(to top, ${T.bg}, transparent)` }}>
-        <div className="max-w-md mx-auto flex gap-2 pointer-events-auto">
-          <Button
-            onClick={() => navigate(bookingUrl)}
-            className="flex-1 h-13 rounded-xl text-sm font-black shadow-2xl"
-            style={{ background: goldGradient, color: '#1a1a1a', boxShadow: `0 10px 30px -8px ${T.accent}90` }}
+      {/* Bottom Navigation Mobile */}
+      <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden pb-safe" style={{ background: T.bg, borderTop: `1px solid ${T.border}` }}>
+        <div className="flex items-center justify-around h-16">
+          <button 
+            onClick={() => navigate(`/${businessType === 'esthetic' ? 'estetica' : 'barbearia'}/${slug}`)}
+            className="flex flex-col items-center gap-0.5 py-2 text-xs font-medium opacity-60 hover:opacity-100 transition-opacity" 
+            style={{ color: T.textSec }}
           >
-            AGENDAR COM {firstName.toUpperCase()}
-          </Button>
-          {whatsappDigits && (
-            <a
-              href={buildWhatsAppUrl(whatsappDigits, `Olá ${professional.name}!`)}
-              className="w-13 h-13 px-3 rounded-xl flex items-center justify-center bg-emerald-500 text-white shadow-xl"
-            >
-              <MessageCircle className="w-5 h-5" />
-            </a>
-          )}
+            <Home className="w-5 h-5" />
+            <span>Início</span>
+          </button>
+          
+          <button 
+            onClick={() => navigate(bookingUrl)}
+            className="flex flex-col items-center gap-0.5 -mt-8"
+          >
+            <div className="w-14 h-14 rounded-full flex items-center justify-center shadow-xl mb-1 transition-transform active:scale-95" style={{ background: goldGradient }}>
+              <Calendar className="w-7 h-7" style={{ color: '#1a1a1a' }} />
+            </div>
+            <span className="text-[10px] font-bold" style={{ color: T.accent }}>Agendar</span>
+          </button>
+
+          <button 
+            onClick={() => setIsReviewsDrawerOpen(true)}
+            className="flex flex-col items-center gap-0.5 py-2 text-xs font-medium opacity-60 hover:opacity-100 transition-opacity" 
+            style={{ color: T.textSec }}
+          >
+            <Star className="w-5 h-5" />
+            <span>Avaliações</span>
+          </button>
         </div>
-      </div>
+      </nav>
+
+      {/* Reviews Drawer */}
+      <Drawer open={isReviewsDrawerOpen} onOpenChange={setIsReviewsDrawerOpen}>
+        <DrawerContent className="max-h-[85vh]">
+          <DrawerHeader className="flex flex-row items-center justify-between">
+            <div className="text-left">
+              <DrawerTitle>Avaliações</DrawerTitle>
+              <DrawerDescription>{allReviewsList.length} depoimentos de clientes</DrawerDescription>
+            </div>
+            <Button 
+              size="sm" 
+              className="rounded-full" 
+              style={{ background: T.accent, color: '#000' }}
+              onClick={() => {
+                setIsReviewsDrawerOpen(false);
+                setIsAddReviewModalOpen(true);
+              }}
+            >
+              Avaliar
+            </Button>
+          </DrawerHeader>
+          <div className="px-4 pb-8 overflow-y-auto space-y-4">
+            {allReviewsList.map((rev: any, i: number) => (
+              <div key={i} className="p-4 rounded-2xl border space-y-2 text-left" style={{ background: T.card, borderColor: T.border }}>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs" style={{ background: `${T.accent}20`, color: T.accent }}>
+                      {(rev.client_display_name || 'C').charAt(0)}
+                    </div>
+                    <span className="font-bold text-sm" style={{ color: T.text }}>{rev.client_display_name || 'Cliente'}</span>
+                  </div>
+                  <div className="flex gap-0.5">
+                    {[1,2,3,4,5].map(s => <Star key={s} className={cn("w-3 h-3", s <= rev.rating ? "fill-yellow-400 text-yellow-400" : "opacity-20")} />)}
+                  </div>
+                </div>
+                <p className="text-sm italic opacity-80" style={{ color: T.text }}>"{rev.comment || 'Excelente!'}"</p>
+                <p className="text-[10px] opacity-40 text-right" style={{ color: T.textSec }}>{format(new Date(rev.created_at), 'dd/MM/yyyy')}</p>
+              </div>
+            ))}
+            {allReviewsList.length === 0 && (
+              <p className="text-center py-8 opacity-60" style={{ color: T.textSec }}>Nenhuma avaliação ainda.</p>
+            )}
+          </div>
+        </DrawerContent>
+      </Drawer>
+
+      {/* Add Review Drawer */}
+      <Drawer open={isAddReviewModalOpen} onOpenChange={setIsAddReviewModalOpen}>
+        <DrawerContent>
+          <div className="mx-auto w-full max-w-sm p-6">
+            <ReviewForm 
+              title={`Avaliar ${professional?.name || 'Profissional'}`}
+              onCancel={() => setIsAddReviewModalOpen(false)}
+              onSubmit={handleSubmitReview}
+              theme={T}
+            />
+          </div>
+        </DrawerContent>
+      </Drawer>
     </div>
   );
 }
