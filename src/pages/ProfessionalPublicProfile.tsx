@@ -202,7 +202,7 @@ export default function ProfessionalPublicProfile() {
       // Reviews (non-blocking)
       supabase
         .from('reviews')
-        .select('rating, comment, created_at, appointment_id, review_type, professional_id')
+        .select('rating, comment, created_at, appointment_id, review_type, professional_id, reviewer_name, reviewer_avatar, tags')
         .eq('company_id', comp.id)
         .eq('professional_id', prof.id)
         .eq('review_type', 'professional')
@@ -233,7 +233,8 @@ export default function ProfessionalPublicProfile() {
                       });
                       const enriched = allReviewsData.map((r: any) => ({
                         ...r,
-                        client_display_name: r.appointment_id ? clientNames[r.appointment_id] || null : null,
+                        client_display_name: r.reviewer_name || (r.appointment_id ? clientNames[r.appointment_id] || null : null),
+                        client_avatar_url: r.reviewer_avatar || null,
                       }));
                       setReviews(enriched.slice(0, 3));
                       setAllReviewsList(enriched);
@@ -242,7 +243,8 @@ export default function ProfessionalPublicProfile() {
                   } else {
                     const enriched = allReviewsData.map((r: any) => ({
                       ...r,
-                      client_display_name: (appts || []).find(a => a.id === r.appointment_id)?.client_name || null
+                      client_display_name: r.reviewer_name || ((appts || []).find(a => a.id === r.appointment_id)?.client_name || null),
+                      client_avatar_url: r.reviewer_avatar || null,
                     }));
                     setReviews(enriched.slice(0, 3));
                     setAllReviewsList(enriched);
@@ -250,9 +252,14 @@ export default function ProfessionalPublicProfile() {
                   }
                 });
             } else {
-              setReviews(allReviewsData.slice(0, 3));
-              setAllReviewsList(allReviewsData);
-              setTotalReviews(allReviewsData.length);
+              const enriched = allReviewsData.map((r: any) => ({
+                ...r,
+                client_display_name: r.reviewer_name || null,
+                client_avatar_url: r.reviewer_avatar || null,
+              }));
+              setReviews(enriched.slice(0, 3));
+              setAllReviewsList(enriched);
+              setTotalReviews(enriched.length);
             }
           }
         });
@@ -846,9 +853,18 @@ export default function ProfessionalPublicProfile() {
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm ring-2" style={{ background: `${T.accent}15`, outline: `2px solid ${T.accent}30`, color: T.accent }}>
-                      {(rev.client_display_name || 'C').charAt(0)}
-                    </div>
+                    {rev.client_avatar_url ? (
+                      <img 
+                        src={rev.client_avatar_url} 
+                        alt={rev.client_display_name} 
+                        className="w-10 h-10 rounded-full object-cover ring-2" 
+                        style={{ outline: `2px solid ${T.accent}30` }}
+                      />
+                    ) : (
+                      <div className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm ring-2" style={{ background: `${T.accent}15`, outline: `2px solid ${T.accent}30`, color: T.accent }}>
+                        {(rev.client_display_name || 'C').charAt(0)}
+                      </div>
+                    )}
                     <div>
                       <span className="font-bold text-sm block" style={{ color: T.text }}>{rev.client_display_name || 'Cliente'}</span>
                       <p className="text-[10px] opacity-40 uppercase tracking-wider font-semibold" style={{ color: T.textSec }}>{format(new Date(rev.created_at), 'dd MMM yyyy', { locale: ptBR })}</p>
@@ -859,11 +875,11 @@ export default function ProfessionalPublicProfile() {
                   </div>
                 </div>
                 <p className="text-sm leading-relaxed opacity-90" style={{ color: T.text }}>
-                  {rev.comment ? (rev.comment.startsWith('[') ? rev.comment.split(']').slice(1).join(']').trim() : rev.comment) : 'Excelente atendimento!'}
+                  {rev.comment || 'Excelente atendimento!'}
                 </p>
-                {rev.comment && rev.comment.startsWith('[') && (
+                {rev.tags && rev.tags.length > 0 && (
                   <div className="flex flex-wrap gap-1.5 pt-1">
-                    {rev.comment.match(/\[(.*?)\]/)?.[1].split(', ').map((tag: string) => (
+                    {rev.tags.map((tag: string) => (
                       <span key={tag} className="text-[9px] px-2 py-0.5 rounded-full font-bold uppercase tracking-tighter" style={{ background: `${T.accent}15`, color: T.accent }}>{tag}</span>
                     ))}
                   </div>
