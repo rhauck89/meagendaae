@@ -862,26 +862,7 @@ export default function ProfessionalPublicProfile() {
         </div>
       </main>
 
-      {/* Floating CTA mobile */}
-      <div className="fixed bottom-0 left-0 right-0 p-3 z-50 pointer-events-none md:hidden" style={{ background: `linear-gradient(to top, ${T.bg}, transparent)` }}>
-        <div className="max-w-md mx-auto flex gap-2 pointer-events-auto">
-          <Button
-            onClick={() => navigate(bookingUrl)}
-            className="flex-1 h-13 rounded-xl text-sm font-black shadow-2xl"
-            style={{ background: goldGradient, color: '#1a1a1a', boxShadow: `0 10px 30px -8px ${T.accent}90` }}
-          >
-            AGENDAR COM {firstName.toUpperCase()}
-          </Button>
-          {whatsappDigits && (
-            <a
-              href={buildWhatsAppUrl(whatsappDigits, `Olá ${professional.name}!`)}
-              className="w-13 h-13 px-3 rounded-xl flex items-center justify-center bg-emerald-500 text-white shadow-xl"
-            >
-              <MessageCircle className="w-5 h-5" />
-            </a>
-          )}
-        </div>
-      </div>
+      {/* O antigo Floating CTA mobile foi removido para usar o novo Bottom Navigation abaixo */}
     </div>
   );
 }
