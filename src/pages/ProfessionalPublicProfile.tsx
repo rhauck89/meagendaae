@@ -852,7 +852,7 @@ export default function ProfessionalPublicProfile() {
                   className="flex-1 px-3 py-2.5 rounded-lg border flex items-center justify-between text-sm hover:opacity-80 transition-opacity"
                   style={{ borderColor: T.border, color: T.text, background: T.bg }}
                 >
-                  <span className="first-letter:uppercase lowercase">{nextAvailable.label || format(selectedDate, "dd 'de' MMMM", { locale: ptBR })}</span>
+                  <span className="font-semibold">{nextAvailable.label || format(selectedDate, "dd 'de' MMMM", { locale: ptBR })}</span>
                   <span className="opacity-50">▾</span>
                 </button>
                 <button 
