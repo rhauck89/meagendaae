@@ -361,7 +361,7 @@ export default function ProfessionalPublicProfile() {
   const displayedReviews = showAllReviews ? reviews : reviews.slice(0, 3);
 
   const handleSubmitReview = async (rating: number, comment: string) => {
-    if (!company?.id || !professional?.id) return;
+    if (!company?.id) return;
     setIsSubmittingReview(true);
     try {
       const { error } = await supabase.from('reviews').insert({

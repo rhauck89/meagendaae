@@ -5519,7 +5519,7 @@ export type Database = {
           company_id: string
           created_at: string
           id: string
-          professional_id: string
+          professional_id: string | null
           rating: number
           review_type: string | null
         }
@@ -5532,7 +5532,7 @@ export type Database = {
           company_id: string
           created_at?: string
           id?: string
-          professional_id: string
+          professional_id?: string | null
           rating: number
           review_type?: string | null
         }
@@ -5545,7 +5545,7 @@ export type Database = {
           company_id?: string
           created_at?: string
           id?: string
-          professional_id?: string
+          professional_id?: string | null
           rating?: number
           review_type?: string | null
         }
