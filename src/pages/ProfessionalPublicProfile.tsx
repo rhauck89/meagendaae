@@ -116,6 +116,21 @@ export default function ProfessionalPublicProfile() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [availableSlotsForDate, setAvailableSlotsForDate] = useState<string[]>([]);
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
+  const [currentReviewIndex, setCurrentReviewIndex] = useState(0);
+
+  const nextReview = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (reviews.length > 1) {
+      setCurrentReviewIndex((prev) => (prev + 1) % reviews.length);
+    }
+  };
+
+  const prevReview = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (reviews.length > 1) {
+      setCurrentReviewIndex((prev) => (prev - 1 + reviews.length) % reviews.length);
+    }
+  };
 
   const { amenities: companyAmenities } = useCompanyAmenities(company?.id);
   const { scrollY } = useScroll();
