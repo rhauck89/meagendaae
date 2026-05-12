@@ -119,9 +119,50 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
   const { scrollY } = useScroll();
   const y1 = useTransform(scrollY, [0, 500], [0, 200]);
 
-  // Detect logged-in user
+  // Detect logged-in user and WhatsApp session
   useEffect(() => {
-  }, []);
+    if (!company?.id) return;
+    
+    const restoreSession = async () => {
+      // 1. Try WhatsApp session
+      const localIdentityStr = localStorage.getItem(`whatsapp_session_${company.id}`);
+      if (localIdentityStr) {
+        try {
+          const session = JSON.parse(localIdentityStr);
+          const now = new Date();
+          const expiresAt = new Date(session.expiresAt);
+          
+          if (expiresAt > now) {
+            console.log('[LANDING] Restored WhatsApp session:', session.fullName);
+            setCurrentClient({
+              name: session.fullName,
+              whatsapp: session.whatsapp,
+              email: session.email,
+              avatar_url: null
+            });
+            return;
+          } else {
+            localStorage.removeItem(`whatsapp_session_${company.id}`);
+          }
+        } catch (e) {
+          console.warn('[LANDING] Error parsing WhatsApp session');
+        }
+      }
+      
+      // 2. Try Supabase Auth metadata if logged in
+      if (isAuthenticated && user) {
+        console.log('[LANDING] Using Auth session:', user.user_metadata?.full_name);
+        setCurrentClient({
+          name: user.user_metadata?.full_name,
+          whatsapp: user.user_metadata?.whatsapp,
+          email: user.email,
+          avatar_url: user.user_metadata?.avatar_url
+        });
+      }
+    };
+    
+    restoreSession();
+  }, [company?.id, isAuthenticated, user]);
 
   // Load last booking for smart rebooking on landing
   useEffect(() => {
