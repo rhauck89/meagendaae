@@ -713,8 +713,6 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
           </Button>
         </div>
 
-        {/* BENEFÍCIOS E VANTAGENS */}
-        <BenefitsSection companyId={company?.id} />
 
         {/* Smart Rebooking */}
         {isAuthenticated && lastBooking && !rebookDismissed && (() => {
