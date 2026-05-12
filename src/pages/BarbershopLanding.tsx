@@ -833,7 +833,7 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
               </h2>
               {allReviewsList.length > 3 && (
                 <button
-                  onClick={() => navigate(`/${bookingBasePath}/${slug}/avaliacoes`)}
+                  onClick={() => setIsReviewsDrawerOpen(true)}
                   className="text-sm font-medium hover:underline"
                   style={{ color: T.accent }}
                 >
