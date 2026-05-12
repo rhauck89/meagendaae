@@ -72,39 +72,72 @@ const FinanceCommissions = () => {
         collaboratorInfo = coll;
       }
 
-      let query = supabase
-        .from('appointments')
-        .select(`
-          id, 
-          professional_id, 
-          final_price, 
-          total_price, 
-          status, 
-          start_time,
-          client_name,
-          client:clients!appointments_client_id_fkey(name),
-          appointment_services(
-            service:services(name)
-          )
-        `)
-        .eq('company_id', companyId!)
-        .gte('start_time', start.toISOString())
-        .lte('start_time', end.toISOString());
+      const [appointmentsRes, commissionsRes] = await Promise.all([
+        supabase
+          .from('appointments')
+          .select(`
+            id, 
+            professional_id, 
+            final_price, 
+            total_price, 
+            status, 
+            start_time,
+            client_name,
+            is_subscription_covered,
+            client:clients!appointments_client_id_fkey(name),
+            appointment_services(
+              service:services(name)
+            )
+          `)
+          .eq('company_id', companyId!)
+          .gte('start_time', start.toISOString())
+          .lte('start_time', end.toISOString()),
+        supabase
+          .from('professional_commissions')
+          .select(`
+            id,
+            professional_id,
+            gross_amount,
+            commission_amount,
+            company_net_amount,
+            paid_at,
+            description,
+            source_type,
+            client:clients!professional_commissions_client_id_fkey(name)
+          `)
+          .eq('company_id', companyId!)
+          .gte('paid_at', start.toISOString())
+          .lte('paid_at', end.toISOString())
+      ]);
 
-      if (filterStatus !== 'all') {
-        query = query.eq('status', filterStatus as any);
-      }
+      const { data: appointmentsRaw, error: appError } = appointmentsRes;
+      const { data: commissionsRaw, error: commError } = commissionsRes;
 
-      if (!showAdminView && profileId) {
-        query = query.eq('professional_id', profileId);
-      }
-
-      const { data: appointments, error: appError } = await query;
       if (appError) throw appError;
+      if (commError) throw commError;
+
+      // Filter appointments by status if needed
+      const appointments = (appointmentsRaw || []).filter(a => {
+        if (filterStatus === 'all') return true;
+        return a.status === filterStatus;
+      });
+
+      // Filter by professional if in professional mode
+      const filteredAppointments = !showAdminView && profileId 
+        ? appointments.filter(a => a.professional_id === profileId)
+        : appointments;
+      
+      const filteredCommissions = !showAdminView && profileId
+        ? (commissionsRaw || []).filter(c => c.professional_id === profileId)
+        : (commissionsRaw || []);
 
       // Se for Admin, mantém a lógica de agrupamento por profissional
       if (showAdminView) {
-        const professionalIds = Array.from(new Set((appointments || []).map((a: any) => a.professional_id).filter(Boolean)));
+        const professionalIds = Array.from(new Set([
+          ...filteredAppointments.map((a: any) => a.professional_id),
+          ...filteredCommissions.map((c: any) => c.professional_id)
+        ].filter(Boolean)));
+
         const profileMap: Record<string, string> = {};
         if (professionalIds.length > 0) {
           const { data: profiles, error: profilesError } = await supabase
@@ -132,33 +165,52 @@ const FinanceCommissions = () => {
           };
         });
 
-        const grouped: Record<string, { name: string; revenue: number; count: number }> = {};
-        appointments?.forEach(a => {
+        const grouped: Record<string, { name: string; revenue: number; count: number; professionalValue: number; companyValue: number }> = {};
+        
+        filteredAppointments.forEach(a => {
           const pid = a.professional_id;
           if (!pid) return;
-          if (!grouped[pid]) grouped[pid] = { name: profileMap[pid] || 'Sem nome', revenue: 0, count: 0 };
-          grouped[pid].revenue += getAppointmentRevenue(a);
+          if (!grouped[pid]) grouped[pid] = { name: profileMap[pid] || 'Sem nome', revenue: 0, count: 0, professionalValue: 0, companyValue: 0 };
+          
+          const revenue = getAppointmentRevenue(a);
+          const collab = collabMap[pid] || { type: 'commissioned', commType: 'none', value: 0 };
+          const fin = calculateFinancials(revenue, 1, collab.type, collab.commType, collab.value, a.is_subscription_covered);
+          
+          grouped[pid].revenue += revenue;
           grouped[pid].count += 1;
+          grouped[pid].professionalValue += fin.professionalValue;
+          grouped[pid].companyValue += fin.companyValue;
+        });
+
+        filteredCommissions.forEach(c => {
+          const pid = c.professional_id;
+          if (!pid) return;
+          if (!grouped[pid]) grouped[pid] = { name: profileMap[pid] || 'Sem nome', revenue: 0, count: 0, professionalValue: 0, companyValue: 0 };
+          
+          grouped[pid].revenue += Number(c.gross_amount);
+          grouped[pid].professionalValue += Number(c.commission_amount);
+          grouped[pid].companyValue += Number(c.company_net_amount);
         });
 
         const result = Object.entries(grouped).map(([id, g]) => {
           const collab = collabMap[id] || { type: 'commissioned', commType: 'none', value: 0 };
-          const fin = calculateFinancials(g.revenue, g.count, collab.type, collab.commType, collab.value);
-          return { id, ...g, ...collab, professionalValue: fin.professionalValue, companyValue: fin.companyValue };
+          return { id, ...g, ...collab };
         });
 
         setRows(result);
       } else {
         // Se for Profissional, cria a lista detalhada
         const collab = collaboratorInfo || { collaborator_type: 'commissioned', commission_type: 'none', commission_value: 0 };
-        const detailed = (appointments || []).map(a => {
+        
+        const detailedApp = filteredAppointments.map(a => {
           const revenue = getAppointmentRevenue(a);
           const fin = calculateFinancials(
             revenue, 
             1, 
             collab.collaborator_type, 
             collab.commission_type, 
-            collab.commission_value ?? collab.commission_percent ?? 0
+            collab.commission_value ?? collab.commission_percent ?? 0,
+            a.is_subscription_covered
           );
           
           const serviceNames = a.appointment_services?.map((as: any) => as.service?.name).filter(Boolean).join(', ') || 'Sem serviço';
@@ -175,9 +227,29 @@ const FinanceCommissions = () => {
             collaboratorType: collab.collaborator_type,
             professionalValue: fin.professionalValue,
             companyValue: fin.companyValue,
-            status: a.status
+            status: a.status,
+            origin: a.is_subscription_covered ? 'Assinatura (Uso)' : 'Serviço'
           };
         });
+
+        const detailedComm = filteredCommissions.map(c => ({
+          id: c.id,
+          date: c.paid_at,
+          clientName: (Array.isArray(c.client) ? c.client[0]?.name : c.client?.name) || 'Assinante',
+          serviceName: c.description || 'Assinatura',
+          revenue: Number(c.gross_amount),
+          commType: 'percentage',
+          commValue: 70, // This could be dynamic from DB
+          collaboratorType: collab.collaborator_type,
+          professionalValue: Number(c.commission_amount),
+          companyValue: Number(c.company_net_amount),
+          status: 'paid',
+          origin: 'Assinatura'
+        }));
+
+        const detailed = [...detailedApp, ...detailedComm].sort((a, b) => 
+          new Date(b.date).getTime() - new Date(a.date).getTime()
+        );
 
         setDetailedRows(detailed);
         
@@ -188,10 +260,10 @@ const FinanceCommissions = () => {
         
         setSummary({
           totalBilled,
-          totalAppointments: detailed.length,
+          totalAppointments: detailedApp.length,
           totalCommission,
           companyNet,
-          avgTicket: detailed.length > 0 ? totalBilled / detailed.length : 0
+          avgTicket: detailedApp.length > 0 ? detailedApp.reduce((acc, r) => acc + r.revenue, 0) / detailedApp.length : 0
         });
       }
     } catch (error) {
@@ -292,7 +364,7 @@ const FinanceCommissions = () => {
         r.companyValue.toFixed(2)
       ]);
     } else {
-      headers = ['Data', 'Cliente', 'Serviço', 'Valor', 'Comissão %', 'Vlr Comissão', 'Vlr Prof.', 'Vlr Empresa', 'Status'];
+      headers = ['Data', 'Cliente', 'Serviço', 'Valor', 'Comissão %', 'Vlr Comissão', 'Vlr Prof.', 'Vlr Empresa', 'Status', 'Origem'];
       data = filteredAndSortedRows.map(r => [
         format(new Date(r.date), 'dd/MM/yyyy HH:mm'),
         r.clientName,
@@ -302,7 +374,8 @@ const FinanceCommissions = () => {
         (r.revenue - r.companyValue).toFixed(2),
         r.professionalValue.toFixed(2),
         r.companyValue.toFixed(2),
-        r.status
+        r.status,
+        r.origin
       ]);
     }
 
@@ -441,10 +514,15 @@ const FinanceCommissions = () => {
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar mode="single" selected={startDate} onSelect={d => d && setStartDate(d)} className="p-3" />
+                  <Calendar
+                    mode="single"
+                    selected={startDate}
+                    onSelect={(d) => d && setStartDate(d)}
+                    initialFocus
+                  />
                 </PopoverContent>
               </Popover>
-              <span className="text-muted-foreground">até</span>
+              <span className="text-muted-foreground">—</span>
               <Popover>
                 <PopoverTrigger asChild>
                   <Button variant="outline" size="sm" className="w-full justify-start h-9">
@@ -453,38 +531,29 @@ const FinanceCommissions = () => {
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar mode="single" selected={endDate} onSelect={d => d && setEndDate(d)} disabled={d => d < startDate} className="p-3" />
+                  <Calendar
+                    mode="single"
+                    selected={endDate}
+                    onSelect={(d) => d && setEndDate(d)}
+                    initialFocus
+                  />
                 </PopoverContent>
               </Popover>
+              <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0" onClick={() => { setStartDate(startOfMonth(new Date())); setEndDate(new Date()); }}>
+                <RotateCcw className="h-4 w-4" />
+              </Button>
             </div>
-
-            {/* Limpar */}
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="h-9"
-              onClick={() => {
-                setStartDate(startOfMonth(new Date()));
-                setEndDate(new Date());
-                setSearchTerm('');
-                setFilterType('all');
-                setSelectedProfessional('all');
-              }}
-            >
-              <RotateCcw className="h-4 w-4 mr-2" /> Limpar
-            </Button>
           </div>
         </CardContent>
       </Card>
 
-      {/* Desktop table */}
-      <Card className="hidden md:block border-none shadow-sm overflow-hidden">
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader className="bg-muted/50">
-              {showAdminView ? (
+      <Card className="border-none shadow-sm overflow-hidden">
+        <div className="overflow-x-auto">
+          {showAdminView ? (
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableHead className="w-[200px] cursor-pointer" onClick={() => requestSort('name')}>
+                  <TableHead className="cursor-pointer" onClick={() => requestSort('name')}>
                     <div className="flex items-center gap-1">Profissional <ArrowUpDown className="h-3 w-3" /></div>
                   </TableHead>
                   <TableHead className="text-center">Tipo</TableHead>
@@ -494,192 +563,99 @@ const FinanceCommissions = () => {
                   <TableHead className="text-right cursor-pointer" onClick={() => requestSort('revenue')}>
                     <div className="flex items-center justify-end gap-1">Faturado <ArrowUpDown className="h-3 w-3" /></div>
                   </TableHead>
-                  <TableHead className="text-center">Comissão</TableHead>
+                  <TableHead className="text-right">Comissão</TableHead>
                   <TableHead className="text-right cursor-pointer" onClick={() => requestSort('professionalValue')}>
-                    <div className="flex items-center justify-end gap-1">Comissão (R$) <ArrowUpDown className="h-3 w-3" /></div>
+                    <div className="flex items-center justify-end gap-1">Vlr Prof. <ArrowUpDown className="h-3 w-3" /></div>
                   </TableHead>
-                  <TableHead className="text-right">Empresa (Net)</TableHead>
+                  <TableHead className="text-right cursor-pointer" onClick={() => requestSort('companyValue')}>
+                    <div className="flex items-center justify-end gap-1">Vlr Empresa <ArrowUpDown className="h-3 w-3" /></div>
+                  </TableHead>
                 </TableRow>
-              ) : (
+              </TableHeader>
+              <TableBody>
+                {loading ? (
+                  <TableRow><TableCell colSpan={7} className="text-center py-10">Carregando...</TableCell></TableRow>
+                ) : filteredAndSortedRows.length === 0 ? (
+                  <TableRow><TableCell colSpan={7} className="text-center py-10 text-muted-foreground">Nenhum profissional encontrado no período</TableCell></TableRow>
+                ) : (
+                  filteredAndSortedRows.map((r) => (
+                    <TableRow key={r.id} className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => openProfessionalDetail(r)}>
+                      <TableCell className="font-medium">{r.name}</TableCell>
+                      <TableCell className="text-center"><Badge variant="outline">{collaboratorTypeLabel(r.type)}</Badge></TableCell>
+                      <TableCell className="text-center">{r.count}</TableCell>
+                      <TableCell className="text-right font-semibold">{maskValue(r.revenue)}</TableCell>
+                      <TableCell className="text-right text-muted-foreground">{commissionLabel(r.commType, r.value)}</TableCell>
+                      <TableCell className="text-right font-bold text-warning">{maskValue(r.professionalValue)}</TableCell>
+                      <TableCell className="text-right font-bold text-green-600">{maskValue(r.companyValue)}</TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          ) : (
+            <Table>
+              <TableHeader>
                 <TableRow>
                   <TableHead className="cursor-pointer" onClick={() => requestSort('date')}>
                     <div className="flex items-center gap-1">Data <ArrowUpDown className="h-3 w-3" /></div>
                   </TableHead>
-                  <TableHead className="cursor-pointer" onClick={() => requestSort('clientName')}>
-                    <div className="flex items-center gap-1">Cliente <ArrowUpDown className="h-3 w-3" /></div>
-                  </TableHead>
-                  <TableHead>Serviço</TableHead>
+                  <TableHead>Origem</TableHead>
+                  <TableHead>Cliente</TableHead>
+                  <TableHead>Serviço / Plano</TableHead>
                   <TableHead className="text-right cursor-pointer" onClick={() => requestSort('revenue')}>
                     <div className="flex items-center justify-end gap-1">Valor <ArrowUpDown className="h-3 w-3" /></div>
                   </TableHead>
-                  <TableHead className="text-center">Comissão %</TableHead>
-                  <TableHead className="text-right cursor-pointer" onClick={() => requestSort('professionalValue')}>
-                    <div className="flex items-center justify-end gap-1">Sua Comissão <ArrowUpDown className="h-3 w-3" /></div>
-                  </TableHead>
+                  <TableHead className="text-center">Comissão</TableHead>
+                  <TableHead className="text-right">Sua Parte</TableHead>
                   <TableHead className="text-right">Empresa</TableHead>
                   <TableHead className="text-center">Status</TableHead>
                 </TableRow>
-              )}
-            </TableHeader>
-            <TableBody>
-              {loading ? (
-                <TableRow>
-                  <TableCell colSpan={showAdminView ? 7 : 8} className="text-center py-20 text-muted-foreground">
-                    Carregando dados...
-                  </TableCell>
-                </TableRow>
-              ) : filteredAndSortedRows.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={showAdminView ? 7 : 8} className="text-center py-20 text-muted-foreground">
-                    Nenhum atendimento encontrado para este período.
-                  </TableCell>
-                </TableRow>
-              ) : (
-                filteredAndSortedRows.map(r => (
-                  <TableRow key={r.id} className="hover:bg-muted/20 transition-colors">
-                    {showAdminView ? (
-                      <>
-                        <TableCell>
-                          <button 
-                            onClick={() => openProfessionalDetail(r)}
-                            className="font-semibold text-primary hover:underline underline-offset-4 decoration-primary/30 text-left"
-                          >
-                            {r.name}
-                          </button>
-                        </TableCell>
-                        <TableCell className="text-center">
-                          <Badge variant="secondary" className="text-[10px] uppercase font-bold tracking-tight px-2 py-0">
-                            {collaboratorTypeLabel(r.type)}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-center font-medium">{r.count}</TableCell>
-                        <TableCell className="text-right font-bold">{maskValue(r.revenue)}</TableCell>
-                        <TableCell className="text-center">
-                          <Badge variant="outline" className="text-[10px] font-medium border-primary/20 text-primary">
-                            {remunerationLabel(r.type, r.commType, r.value)}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-right font-bold text-warning">{maskValue(r.professionalValue)}</TableCell>
-                        <TableCell className="text-right font-display font-black text-foreground">
-                          {maskValue(r.companyValue)}
-                        </TableCell>
-                      </>
-                    ) : (
-                      <>
-                        <TableCell className="text-xs font-medium">
-                          {format(new Date(r.date), 'dd/MM/yyyy HH:mm')}
-                        </TableCell>
-                        <TableCell className="text-sm font-semibold">{r.clientName}</TableCell>
-                        <TableCell className="text-xs text-muted-foreground truncate max-w-[150px]" title={r.serviceName}>
-                          {r.serviceName}
-                        </TableCell>
-                        <TableCell className="text-right font-bold">{maskValue(r.revenue)}</TableCell>
-                        <TableCell className="text-center">
-                          <Badge variant="outline" className="text-[10px] font-medium border-primary/20 text-primary">
-                            {remunerationLabel(r.collaboratorType, r.commType, r.commValue)}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-right font-bold text-warning">{maskValue(r.professionalValue)}</TableCell>
-                        <TableCell className="text-right font-display font-black text-foreground text-xs">
-                          {maskValue(r.companyValue)}
-                        </TableCell>
-                        <TableCell className="text-center">
-                          <Badge 
-                            variant={r.status === 'completed' ? 'secondary' : 'outline'} 
-                            className="text-[9px] uppercase font-bold"
-                          >
-                            {r.status === 'completed' ? 'Concluído' : r.status === 'confirmed' ? 'Confirmado' : r.status}
-                          </Badge>
-                        </TableCell>
-                      </>
-                    )}
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
+              </TableHeader>
+              <TableBody>
+                {loading ? (
+                  <TableRow><TableCell colSpan={9} className="text-center py-10">Carregando...</TableCell></TableRow>
+                ) : filteredAndSortedRows.length === 0 ? (
+                  <TableRow><TableCell colSpan={9} className="text-center py-10 text-muted-foreground">Nenhum atendimento encontrado no período</TableCell></TableRow>
+                ) : (
+                  filteredAndSortedRows.map((r) => (
+                    <TableRow key={r.id}>
+                      <TableCell className="text-xs text-muted-foreground">{format(new Date(r.date), 'dd/MM/yy HH:mm')}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className={`text-[10px] ${r.origin === 'Assinatura' ? 'bg-primary/5 text-primary border-primary/20' : ''}`}>
+                          {r.origin}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="font-medium">{r.clientName}</TableCell>
+                      <TableCell className="text-sm">{r.serviceName}</TableCell>
+                      <TableCell className="text-right font-medium">{maskValue(r.revenue)}</TableCell>
+                      <TableCell className="text-center text-xs text-muted-foreground">
+                        {r.origin === 'Assinatura' ? '70%' : commissionLabel(r.commType, r.commValue)}
+                      </TableCell>
+                      <TableCell className="text-right font-bold text-warning">{maskValue(r.professionalValue)}</TableCell>
+                      <TableCell className="text-right font-bold text-green-600">{maskValue(r.companyValue)}</TableCell>
+                      <TableCell className="text-center">
+                        <Badge variant={r.status === 'completed' || r.status === 'paid' ? 'default' : 'secondary'} className="text-[10px] uppercase">
+                          {r.status === 'completed' || r.status === 'paid' ? 'Pago' : r.status}
+                        </Badge>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          )}
+        </div>
       </Card>
 
-      {/* Mobile cards */}
-      <div className="md:hidden space-y-4">
-        {loading ? (
-          <div className="text-center py-10">Carregando...</div>
-        ) : filteredAndSortedRows.length === 0 ? (
-          <div className="text-center py-10 text-muted-foreground border rounded-lg">Nenhum dado encontrado</div>
-        ) : filteredAndSortedRows.map(r => (
-          <Card key={r.id} className="border-none shadow-sm overflow-hidden" onClick={showAdminView ? () => openProfessionalDetail(r) : undefined}>
-            <CardContent className="p-4 bg-card hover:bg-muted/10 transition-colors">
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <h3 className="font-bold text-lg text-primary">{showAdminView ? r.name : r.clientName}</h3>
-                  <div className="flex items-center gap-2">
-                    {showAdminView ? (
-                      <Badge variant="secondary" className="text-[10px] uppercase">{collaboratorTypeLabel(r.type)}</Badge>
-                    ) : (
-                      <span className="text-xs text-muted-foreground">{format(new Date(r.date), 'dd/MM/yy HH:mm')}</span>
-                    )}
-                    {!showAdminView && (
-                      <Badge variant="outline" className="text-[9px] uppercase">{r.status}</Badge>
-                    )}
-                  </div>
-                </div>
-                <div className="text-right">
-                   <p className="text-[10px] text-muted-foreground uppercase font-semibold">Net Empresa</p>
-                   <p className="font-display font-black text-lg leading-tight">{maskValue(r.companyValue)}</p>
-                </div>
-              </div>
-              
-              {!showAdminView && (
-                <p className="text-sm font-medium mb-3 text-muted-foreground">{r.serviceName}</p>
-              )}
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="bg-muted/30 p-2 rounded">
-                  <span className="text-[10px] text-muted-foreground uppercase block">Faturado</span>
-                  <p className="font-bold">{maskValue(r.revenue)}</p>
-                </div>
-                <div className="bg-warning/5 p-2 rounded">
-                  <span className="text-[10px] text-warning uppercase block">{showAdminView ? "Comissão" : "Sua Comissão"}</span>
-                  <p className="font-bold text-warning">{maskValue(r.professionalValue)}</p>
-                </div>
-              </div>
-              
-              <div className="mt-3 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  {showAdminView ? (
-                    <span className="text-xs text-muted-foreground">{r.count} Serviços</span>
-                  ) : (
-                    <Badge variant="outline" className="text-[10px] border-primary/20 text-primary">
-                      {remunerationLabel(r.collaboratorType, r.commType, r.commValue)}
-                    </Badge>
-                  )}
-                  {showAdminView && <Badge variant="outline" className="text-[10px]">{remunerationLabel(r.type, r.commType, r.value)}</Badge>}
-                </div>
-                {showAdminView && <span className="text-[10px] text-primary font-bold">VER DETALHES →</span>}
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
       <ProfessionalDrawer
+        professional={activeProfessional}
         isOpen={drawerOpen}
         onClose={() => setDrawerOpen(false)}
-        professional={activeProfessional}
         startDate={startDate}
         endDate={endDate}
-        companyId={companyId || ''}
+        companyId={companyId!}
         status={filterStatus}
       />
-      
-      <style>{`
-        @media print {
-          .print\\:hidden { display: none !important; }
-          body { background: white !important; }
-          .max-w-7xl { max-width: 100% !important; }
-        }
-      `}</style>
     </div>
   );
 };
