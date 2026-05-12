@@ -218,27 +218,6 @@ export const ProfessionalDrawer = ({
               </div>
             </SheetHeader>
 
-            {/* 2. Cards gerais */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-              <Card className="bg-primary/5 border-none shadow-none">
-                <CardContent className="p-4">
-                  <p className="text-[10px] text-muted-foreground mb-1 uppercase tracking-wider font-bold">Faturado</p>
-                  <p className="text-xl font-display font-bold text-primary">{maskValue(professional.revenue)}</p>
-                </CardContent>
-              </Card>
-              <Card className="bg-warning/5 border-none shadow-none">
-                <CardContent className="p-4">
-                  <p className="text-[10px] text-muted-foreground mb-1 uppercase tracking-wider font-bold">Comissão Total</p>
-                  <p className="text-xl font-display font-bold text-warning">{maskValue(professional.professionalValue)}</p>
-                </CardContent>
-              </Card>
-              <Card className="bg-green-500/5 border-none shadow-none">
-                <CardContent className="p-4">
-                  <p className="text-[10px] text-muted-foreground mb-1 uppercase tracking-wider font-bold">Net Empresa</p>
-                  <p className="text-xl font-display font-bold text-green-600">{maskValue(professional.companyValue)}</p>
-                </CardContent>
-              </Card>
-            </div>
 
             <div className="space-y-8">
               {/* 3. Filtro por data da drawer */}
