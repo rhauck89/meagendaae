@@ -275,7 +275,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       
       setIsAlsoCollaborator(ctx.is_collaborator || false);
-      setIsOwner(ctx.is_owner || false);
+      setIsOwner(ctx.is_company_owner || ctx.is_owner || false);
       stateRef.current.hasContext = true;
 
       console.log("[AUTH_CONTEXT_DIAG] State updated successfully. Changed:", { profileChanged, companyChanged, rolesChanged });
