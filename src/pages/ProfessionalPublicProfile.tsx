@@ -90,6 +90,10 @@ export default function ProfessionalPublicProfile() {
   const [isAddReviewModalOpen, setIsAddReviewModalOpen] = useState(false);
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
   const [allReviewsList, setAllReviewsList] = useState<any[]>([]);
+  
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [availableSlotsForDate, setAvailableSlotsForDate] = useState<string[]>([]);
+  const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
 
   const { amenities: companyAmenities } = useCompanyAmenities(company?.id);
   const { scrollY } = useScroll();
