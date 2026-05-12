@@ -822,6 +822,75 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
           </section>
         )}
 
+        {/* Reviews */}
+        {reviews.length > 0 && (
+          <section id="avaliacoes" className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-bold flex items-center gap-2" style={{ color: T.text }}>
+                <Star className="w-5 h-5" style={{ color: T.accent }} />
+                Avaliações
+              </h2>
+              {allReviewsList.length > 3 && (
+                <button
+                  onClick={() => setIsReviewsDrawerOpen(true)}
+                  className="text-sm font-medium hover:underline"
+                  style={{ color: T.accent }}
+                >
+                  Ver todas
+                </button>
+              )}
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {/* Average card */}
+              {companyStats && companyStats.reviewCount > 0 && (
+                <div className="p-5 rounded-2xl border flex flex-col items-center justify-center text-center" style={{ background: T.card, borderColor: T.border }}>
+                  <p className="text-4xl font-black" style={{ color: T.text }}>{companyStats.avgRating.toFixed(1).replace('.', ',')}</p>
+                  <div className="my-2"><StarRating rating={companyStats.avgRating} size={16} /></div>
+                  <p className="text-xs opacity-60" style={{ color: T.textSec }}>{companyStats.reviewCount} avaliações</p>
+                </div>
+              )}
+              {reviews.slice(0, 2).map((rev: any, i: number) => {
+                const initial = (rev.client_display_name || 'C').charAt(0).toUpperCase();
+                const colors = ['#A855F7', '#3B82F6', '#10B981', '#F59E0B'];
+                const color = colors[i % colors.length];
+                return (
+                  <div key={i} className="p-4 rounded-2xl border flex flex-col gap-3" style={{ background: T.card, borderColor: T.border }}>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        {rev.client_avatar_url ? (
+                          <img 
+                            src={rev.client_avatar_url} 
+                            alt={rev.client_display_name} 
+                            className="w-8 h-8 rounded-full object-cover" 
+                          />
+                        ) : (
+                          <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold text-white" style={{ background: color }}>
+                            {initial}
+                          </div>
+                        )}
+                        <div>
+                          <p className="text-sm font-bold" style={{ color: T.text }}>{rev.client_display_name || 'Cliente'}</p>
+                          <div className="flex items-center gap-0.5">
+                            {[1, 2, 3, 4, 5].map(s => (
+                              <Star key={s} className={cn("w-3 h-3", s <= rev.rating ? "fill-yellow-400 text-yellow-400" : "text-white/10")} />
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                      <span className="text-xs opacity-50" style={{ color: T.textSec }}>
+                        {format(new Date(rev.created_at), 'dd/MM/yyyy')}
+                      </span>
+                    </div>
+                    <p className="text-sm italic opacity-80 leading-relaxed" style={{ color: T.text }}>
+                      "{rev.comment || 'Experiência excelente!'}"
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        )}
+
         {/* Services */}
         {services.length > 0 && cleanedGroups.length > 0 && (
           <section id="servicos" data-services-section className="space-y-4">
@@ -894,75 +963,6 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
             >
               Ver todos os serviços
             </Button>
-          </section>
-        )}
-
-        {/* Reviews */}
-        {reviews.length > 0 && (
-          <section id="avaliacoes" className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-bold flex items-center gap-2" style={{ color: T.text }}>
-                <Star className="w-5 h-5" style={{ color: T.accent }} />
-                Avaliações
-              </h2>
-              {allReviewsList.length > 3 && (
-                <button
-                  onClick={() => setIsReviewsDrawerOpen(true)}
-                  className="text-sm font-medium hover:underline"
-                  style={{ color: T.accent }}
-                >
-                  Ver todas
-                </button>
-              )}
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              {/* Average card */}
-              {companyStats && companyStats.reviewCount > 0 && (
-                <div className="p-5 rounded-2xl border flex flex-col items-center justify-center text-center" style={{ background: T.card, borderColor: T.border }}>
-                  <p className="text-4xl font-black" style={{ color: T.text }}>{companyStats.avgRating.toFixed(1).replace('.', ',')}</p>
-                  <div className="my-2"><StarRating rating={companyStats.avgRating} size={16} /></div>
-                  <p className="text-xs opacity-60" style={{ color: T.textSec }}>{companyStats.reviewCount} avaliações</p>
-                </div>
-              )}
-              {reviews.slice(0, 2).map((rev: any, i: number) => {
-                const initial = (rev.client_display_name || 'C').charAt(0).toUpperCase();
-                const colors = ['#A855F7', '#3B82F6', '#10B981', '#F59E0B'];
-                const color = colors[i % colors.length];
-                return (
-                  <div key={i} className="p-4 rounded-2xl border flex flex-col gap-3" style={{ background: T.card, borderColor: T.border }}>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        {rev.client_avatar_url ? (
-                          <img 
-                            src={rev.client_avatar_url} 
-                            alt={rev.client_display_name} 
-                            className="w-8 h-8 rounded-full object-cover" 
-                          />
-                        ) : (
-                          <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold text-white" style={{ background: color }}>
-                            {initial}
-                          </div>
-                        )}
-                        <div>
-                          <p className="text-sm font-bold" style={{ color: T.text }}>{rev.client_display_name || 'Cliente'}</p>
-                          <div className="flex items-center gap-0.5">
-                            {[1, 2, 3, 4, 5].map(s => (
-                              <Star key={s} className={cn("w-3 h-3", s <= rev.rating ? "fill-yellow-400 text-yellow-400" : "text-white/10")} />
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                      <span className="text-xs opacity-50" style={{ color: T.textSec }}>
-                        {format(new Date(rev.created_at), 'dd/MM/yyyy')}
-                      </span>
-                    </div>
-                    <p className="text-sm italic opacity-80 leading-relaxed" style={{ color: T.text }}>
-                      "{rev.comment || 'Experiência excelente!'}"
-                    </p>
-                  </div>
-                );
-              })}
-            </div>
           </section>
         )}
 
