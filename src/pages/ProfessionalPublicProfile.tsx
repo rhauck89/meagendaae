@@ -742,6 +742,37 @@ export default function ProfessionalPublicProfile() {
           )}
         </AnimatePresence>
 
+        {/* BLOCO COMPACTO DE AVALIAÇÕES */}
+        {rating && rating.count > 0 && (
+          <motion.button
+            whileHover={{ scale: 1.01 }}
+            whileTap={{ scale: 0.99 }}
+            onClick={() => setIsReviewsDrawerOpen(true)}
+            className="w-full rounded-2xl border p-4 flex items-center gap-4 text-left transition-all"
+            style={{ background: T.card, borderColor: T.border }}
+          >
+            <div className="flex flex-col items-center justify-center border-r pr-4" style={{ borderColor: T.border }}>
+              <span className="text-2xl font-black leading-tight" style={{ color: T.text }}>{rating.avg.toFixed(1).replace('.', ',')}</span>
+              <StarRating rating={rating.avg} size={10} />
+            </div>
+            
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-xs font-bold" style={{ color: T.text }}>{rating.count} avaliações</span>
+                <span className="text-[10px] font-bold uppercase tracking-widest flex items-center gap-1" style={{ color: T.accent }}>
+                  Ver todas <span className="text-lg leading-none">›</span>
+                </span>
+              </div>
+              {reviews.length > 0 ? (
+                <p className="text-xs opacity-70 italic truncate pr-4" style={{ color: T.textSec }}>
+                  "{reviews[0].comment || 'Experiência excelente!'}"
+                </p>
+              ) : (
+                <p className="text-xs opacity-40 italic" style={{ color: T.textSec }}>Nenhum comentário ainda</p>
+              )}
+            </div>
+          </motion.button>
+        )}
 
         {/* SERVIÇOS + AGENDA — duas colunas */}
         <section className="grid grid-cols-1 md:grid-cols-2 gap-4">
