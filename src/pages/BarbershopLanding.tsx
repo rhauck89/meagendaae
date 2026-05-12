@@ -1145,42 +1145,77 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
         </DrawerContent>
       </Drawer>
 
-      {/* Team Drawer */}
-      <Drawer open={isTeamDrawerOpen} onOpenChange={setIsTeamDrawerOpen}>
-        <DrawerContent className="max-h-[85vh]">
-          <DrawerHeader>
-            <DrawerTitle>Nossa Equipe</DrawerTitle>
-            <DrawerDescription>Escolha um profissional para ver a agenda</DrawerDescription>
-          </DrawerHeader>
-          <div className="grid grid-cols-2 gap-3 px-4 pb-8 overflow-y-auto">
-            {professionals.map((prof: any) => (
-              <button
-                key={prof.id}
-                onClick={() => {
-                  setIsTeamDrawerOpen(false);
-                  navigate(`/${bookingBasePath}/${slug}/${prof.slug}`);
-                }}
-                className="flex flex-col items-center p-4 rounded-2xl border text-center gap-2"
-                style={{ background: T.card, borderColor: T.border }}
-              >
-                <div className="w-16 h-16 rounded-full overflow-hidden border-2" style={{ borderColor: T.accent }}>
-                  {prof.avatar_url ? (
-                    <img src={prof.avatar_url} alt={prof.name} className="w-full h-full object-cover" />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center font-bold text-xl" style={{ background: `${T.accent}20`, color: T.accent }}>
-                      {prof.name.charAt(0)}
+      {/* Team Modal */}
+      <Dialog open={isTeamDrawerOpen} onOpenChange={setIsTeamDrawerOpen}>
+        <DialogContent 
+          className="fixed inset-auto left-[50%] top-[50%] -translate-x-1/2 -translate-y-1/2 w-[92%] sm:w-full sm:max-w-[800px] h-auto max-h-[85vh] sm:max-h-[90vh] border-none p-0 overflow-hidden flex flex-col rounded-[2rem] shadow-2xl" 
+          style={{ backgroundColor: T.card }}
+        >
+          <DialogHeader 
+            className="border-b pb-4 px-6 pt-6 shrink-0 text-left" 
+            style={{ borderColor: T.border, backgroundColor: T.card }}
+          >
+            <DialogTitle className="text-xl font-bold" style={{ color: T.text }}>Nossa Equipe</DialogTitle>
+            <DialogDescription className="font-medium" style={{ color: T.textSec }}>Escolha um profissional para ver a agenda</DialogDescription>
+          </DialogHeader>
+          
+          <DialogBody className="grid grid-cols-1 sm:grid-cols-2 gap-4 px-6 py-6 overflow-y-auto" style={{ backgroundColor: `${T.card}` }}>
+            {professionals.map((prof: any) => {
+              const profRating = professionalRatings[prof.id] || { avg: 0, count: 0 };
+              return (
+                <motion.button
+                  key={prof.id}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => {
+                    setIsTeamDrawerOpen(false);
+                    navigate(`/${bookingBasePath}/${slug}/${prof.slug}`);
+                  }}
+                  className="flex items-center p-4 rounded-2xl border text-left gap-4 transition-all duration-300 shadow-sm hover:shadow-md group"
+                  style={{ background: `${T.card}CC`, borderColor: T.border }}
+                >
+                  <div className="relative shrink-0">
+                    <div className="w-16 h-16 rounded-2xl overflow-hidden ring-2 ring-offset-2 ring-offset-transparent transition-all group-hover:ring-offset-4" style={{ ringColor: T.accent }}>
+                      {prof.avatar_url ? (
+                        <img src={prof.avatar_url} alt={prof.name} className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center font-bold text-2xl" style={{ background: `${T.accent}15`, color: T.accent }}>
+                          {prof.name.charAt(0)}
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
-                <div>
-                  <p className="font-bold text-sm" style={{ color: T.text }}>{prof.name}</p>
-                  <p className="text-xs opacity-60" style={{ color: T.textSec }}>{prof.specialty || 'Profissional'}</p>
-                </div>
-              </button>
-            ))}
-          </div>
-        </DrawerContent>
-      </Drawer>
+                    {profRating.count > 0 && (
+                      <div className="absolute -bottom-1 -right-1 bg-yellow-400 text-[10px] font-black px-1.5 py-0.5 rounded-lg flex items-center gap-0.5 shadow-sm text-black">
+                        <Star className="w-2.5 h-2.5 fill-black" />
+                        {Number(profRating.avg).toFixed(1)}
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="flex-1 min-w-0">
+                    <h4 className="font-bold text-base truncate" style={{ color: T.text }}>{prof.name}</h4>
+                    <p className="text-xs font-medium opacity-60 mb-2" style={{ color: T.textSec }}>{prof.specialty || 'Profissional'}</p>
+                    
+                    <div className="flex items-center justify-between">
+                      {profRating.count > 0 ? (
+                        <span className="text-[10px] font-bold uppercase tracking-wider opacity-40" style={{ color: T.textSec }}>
+                          {profRating.count} {profRating.count === 1 ? 'avaliação' : 'avaliações'}
+                        </span>
+                      ) : (
+                        <span className="text-[10px] font-bold uppercase tracking-wider opacity-30" style={{ color: T.textSec }}>Sem avaliações</span>
+                      )}
+                      
+                      <div className="flex items-center gap-1 text-[11px] font-bold" style={{ color: T.accent }}>
+                        Agendar <ChevronRight className="w-3.5 h-3.5" />
+                      </div>
+                    </div>
+                  </div>
+                </motion.button>
+              );
+            })}
+          </DialogBody>
+        </DialogContent>
+      </Dialog>
 
       {/* Reviews Modal */}
       <Dialog open={isReviewsDrawerOpen} onOpenChange={setIsReviewsDrawerOpen}>
