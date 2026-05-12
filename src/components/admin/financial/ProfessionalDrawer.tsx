@@ -144,7 +144,7 @@ export const ProfessionalDrawer = ({
 
   return (
     <Sheet open={isOpen} onOpenChange={onClose}>
-      <SheetContent className="sm:max-w-xl w-full p-0">
+      <SheetContent className="sm:max-w-3xl md:max-w-4xl lg:max-w-[50vw] w-full p-0">
         <ScrollArea className="h-full">
           <div className="p-6">
             <SheetHeader className="mb-6">
