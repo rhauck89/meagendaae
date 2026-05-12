@@ -1461,11 +1461,19 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       setSelectedServices(sIds);
       // If we have services pre-selected, we might want to skip the services step
       // if the user also pre-selected a professional or if there's only one.
-      if (professionalSlug || searchParams.get('professional')) {
+      const hasDateTime = (!!selectedDate && !!selectedTime) || (searchParams.get('date') && searchParams.get('time'));
+      if (hasDateTime) {
+        setStep('confirm');
+      } else if (professionalSlug || searchParams.get('professional')) {
         setStep('datetime');
       } else {
         setStep('professional');
       }
+    }
+
+    const jumpTo = searchParams.get('jumpTo');
+    if (jumpTo === 'datetime') {
+      setStep('datetime');
     }
 
     if (promoIdRef.current) {
