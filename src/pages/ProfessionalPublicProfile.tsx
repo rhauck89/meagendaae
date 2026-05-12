@@ -845,33 +845,78 @@ export default function ProfessionalPublicProfile() {
 
               {/* Seletor de data */}
               <div className="flex items-center gap-2 mb-4">
-                <div
-                  className="flex-1 px-3 py-2.5 rounded-lg border flex items-center justify-between text-sm"
+                <button
+                  onClick={() => setIsDatePickerOpen(true)}
+                  className="flex-1 px-3 py-2.5 rounded-lg border flex items-center justify-between text-sm hover:opacity-80 transition-opacity"
                   style={{ borderColor: T.border, color: T.text, background: T.bg }}
                 >
-                  <span className="capitalize">{nextAvailable.label.replace(/[^\w\s,]/g, '').trim() || format(nextAvailable.date, "dd 'de' MMMM", { locale: ptBR })}</span>
+                  <span className="capitalize">{nextAvailable.label.replace(/[^\w\s,]/g, '').trim() || format(selectedDate, "dd 'de' MMMM", { locale: ptBR })}</span>
                   <span className="opacity-50">▾</span>
-                </div>
-                <button className="w-9 h-9 rounded-lg border flex items-center justify-center" style={{ borderColor: T.border, color: T.textSec }}>‹</button>
-                <button className="w-9 h-9 rounded-lg border flex items-center justify-center" style={{ borderColor: T.border, color: T.textSec }}>›</button>
+                </button>
+                <button 
+                  onClick={handlePrevDay}
+                  disabled={isToday(selectedDate)}
+                  className="w-9 h-9 rounded-lg border flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed hover:bg-black/5" 
+                  style={{ borderColor: T.border, color: T.textSec }}
+                >
+                  ‹
+                </button>
+                <button 
+                  onClick={handleNextDay}
+                  className="w-9 h-9 rounded-lg border flex items-center justify-center hover:bg-black/5" 
+                  style={{ borderColor: T.border, color: T.textSec }}
+                >
+                  ›
+                </button>
               </div>
 
               {/* Grade de horários */}
               <div className="grid grid-cols-3 gap-2">
-                {nextAvailable.slots.slice(0, 9).map(time => (
-                  <button
-                    key={time}
-                    onClick={() => navigate(`${bookingUrl}?date=${format(nextAvailable.date, 'yyyy-MM-dd')}&time=${time}`)}
-                    className="py-2.5 rounded-lg text-sm font-bold border transition-all hover:scale-105"
-                    style={{ background: 'transparent', borderColor: `${T.accent}40`, color: T.accent }}
-                  >
-                    {time}
-                  </button>
-                ))}
+                {availableSlotsForDate.length > 0 ? (
+                  availableSlotsForDate.slice(0, 9).map(time => (
+                    <button
+                      key={time}
+                      onClick={() => navigate(`${bookingUrl}?date=${format(selectedDate, 'yyyy-MM-dd')}&time=${time}`)}
+                      className="py-2.5 rounded-lg text-sm font-bold border transition-all hover:scale-105 active:scale-95"
+                      style={{ background: 'transparent', borderColor: `${T.accent}40`, color: T.accent }}
+                    >
+                      {time}
+                    </button>
+                  ))
+                ) : (
+                  <div className="col-span-3 py-4 text-center text-xs opacity-50" style={{ color: T.textSec }}>
+                    {slotsLoading ? 'Carregando...' : 'Nenhum horário disponível para esta data.'}
+                  </div>
+                )}
               </div>
             </div>
           )}
         </section>
+
+        {/* Date Picker Dialog */}
+        <Dialog open={isDatePickerOpen} onOpenChange={setIsDatePickerOpen}>
+          <DialogContent className="p-0 border-none bg-transparent shadow-none max-w-sm">
+            <div className="p-4 rounded-[2rem] border shadow-2xl" style={{ backgroundColor: T.card, borderColor: T.border }}>
+              <div className="mb-4 text-center">
+                <h3 className="font-bold" style={{ color: T.text }}>Selecionar Data</h3>
+              </div>
+              <CalendarPicker
+                mode="single"
+                selected={selectedDate}
+                onSelect={(date) => {
+                  if (date) {
+                    setSelectedDate(date);
+                    setIsDatePickerOpen(false);
+                  }
+                }}
+                disabled={{ before: startOfDay(new Date()) }}
+                initialFocus
+                className="rounded-2xl border-none mx-auto"
+                style={{ backgroundColor: T.card }}
+              />
+            </div>
+          </DialogContent>
+        </Dialog>
 
         {/* FAIXA VERDE — CTA secundário */}
         <section
