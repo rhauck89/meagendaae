@@ -358,6 +358,31 @@ export default function ProfessionalPublicProfile() {
 
   const displayedReviews = showAllReviews ? reviews : reviews.slice(0, 3);
 
+  const handleSubmitReview = async (rating: number, comment: string) => {
+    if (!company?.id || !professional?.id) return;
+    setIsSubmittingReview(true);
+    try {
+      const { error } = await supabase.from('reviews').insert({
+        company_id: company.id,
+        professional_id: professional.id,
+        rating,
+        comment,
+        review_type: 'professional'
+      });
+
+      if (error) throw error;
+
+      toast.success("Avaliação enviada com sucesso!");
+      setIsAddReviewModalOpen(false);
+      load(); // Reload data to show the new review
+    } catch (err: any) {
+      console.error('Error submitting review:', err);
+      toast.error("Erro ao enviar avaliação: " + (err.message || 'Erro desconhecido'));
+    } finally {
+      setIsSubmittingReview(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ background: T.bg }}>
