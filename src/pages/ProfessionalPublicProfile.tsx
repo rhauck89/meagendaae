@@ -3,7 +3,7 @@ import { useEffect, useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
-import { Star, MessageCircle, MapPin, Share2, Check, Calendar, Clock, Instagram, Sparkles, Scissors, BadgeCheck, Trophy, Flame, Crown, Users, ArrowLeft, Heart, ShieldCheck, Zap, Repeat, Home, ChevronLeft, ChevronRight, Navigation } from 'lucide-react';
+import { Star, MessageCircle, MapPin, Share2, Check, Calendar, Clock, Instagram, Sparkles, Scissors, BadgeCheck, Trophy, Flame, Crown, Users, ShieldCheck, Zap, Repeat, Home, ChevronLeft, ChevronRight, Navigation } from 'lucide-react';
 import { LocationBlock } from '@/components/LocationBlock';
 import { SEOHead } from '@/components/SEOHead';
 import { format, addDays, startOfDay, isToday, isTomorrow, differenceInYears, parseISO } from 'date-fns';
@@ -605,31 +605,6 @@ export default function ProfessionalPublicProfile() {
             <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/20 to-[var(--hero-fade)]" style={{ ['--hero-fade' as any]: T.bg }} />
           </motion.div>
 
-          {/* Top icons */}
-          <div className="absolute top-4 left-4 right-4 flex items-center justify-between z-20">
-            <button
-              onClick={() => navigate(-1)}
-              className="w-10 h-10 rounded-full flex items-center justify-center backdrop-blur-md bg-black/40 border border-white/10 text-white"
-              aria-label="Voltar"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </button>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={handleShare}
-                className="w-10 h-10 rounded-full flex items-center justify-center backdrop-blur-md bg-black/40 border border-white/10 text-white"
-                aria-label="Compartilhar"
-              >
-                <Share2 className="w-4 h-4" />
-              </button>
-              <button
-                className="w-10 h-10 rounded-full flex items-center justify-center backdrop-blur-md bg-black/40 border border-white/10 text-white"
-                aria-label="Favoritar"
-              >
-                <Heart className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
 
           {/* Avatar centralizado SOBRE o banner */}
           <div className="absolute inset-x-0 bottom-24 flex justify-center z-10">

@@ -3,7 +3,7 @@ import { useEffect, useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
-import { Star, MessageCircle, MapPin, Calendar, Clock, Scissors, Sparkles, Users, Instagram, Facebook, Globe, ExternalLink, RotateCcw, X, Share2, ChevronRight, Map, ArrowLeft, Heart, Wifi, Car, Coffee, Snowflake, CreditCard, Home, Crown, BadgeCheck, Navigation } from 'lucide-react';
+import { Star, MessageCircle, MapPin, Calendar, Clock, Scissors, Sparkles, Users, Instagram, Facebook, Globe, ExternalLink, RotateCcw, X, Share2, ChevronRight, Map, Wifi, Car, Coffee, Snowflake, CreditCard, Home, Crown, BadgeCheck, Navigation } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { LocationBlock } from '@/components/LocationBlock';
 import { SEOHead, buildLocalBusinessJsonLd } from '@/components/SEOHead';
@@ -591,31 +591,6 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
             <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/30 to-[var(--hero-fade)]" style={{ ['--hero-fade' as any]: T.bg }} />
           </motion.div>
 
-          {/* Top floating actions */}
-          <div className="absolute top-4 left-4 right-4 flex items-center justify-between z-20">
-            <button
-              onClick={() => navigate(-1)}
-              className="w-10 h-10 rounded-xl flex items-center justify-center backdrop-blur-md bg-black/40 border border-white/10 text-white hover:bg-black/60 transition"
-              aria-label="Voltar"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </button>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={handleShare}
-                className="w-10 h-10 rounded-xl flex items-center justify-center backdrop-blur-md bg-black/40 border border-white/10 text-white hover:bg-black/60 transition"
-                aria-label="Compartilhar"
-              >
-                <Share2 className="w-5 h-5" />
-              </button>
-              <button
-                className="w-10 h-10 rounded-xl flex items-center justify-center backdrop-blur-md bg-black/40 border border-white/10 text-white hover:bg-black/60 transition"
-                aria-label="Favoritar"
-              >
-                <Heart className="w-5 h-5" />
-              </button>
-            </div>
-          </div>
         </div>
 
         {/* Avatar floating over hero */}
