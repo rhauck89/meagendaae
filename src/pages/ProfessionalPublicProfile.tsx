@@ -700,7 +700,7 @@ export default function ProfessionalPublicProfile() {
         <BenefitsSection companyId={company.id} professionalId={professional.id} />
 
         {/* Bloco de Assinatura */}
-        <MembershipSection companyId={company.id} />
+        <MembershipSection companyId={company.id} professionalId={professional.id} />
 
         {/* BLOCO COMPACTO DE AVALIAÇÕES PREMIUM COM CARROSSEL */}
         {rating && (
