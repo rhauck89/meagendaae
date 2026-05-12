@@ -163,6 +163,11 @@ const SubscriptionCard = ({ name, description, benefits, price, status }: any) =
   </motion.div>
 );
 
+export interface BenefitsSectionProps {
+  companyId: string;
+  professionalId?: string;
+}
+
 export const BenefitsSection = ({ companyId, professionalId }: BenefitsSectionProps) => {
   const [promotions, setPromotions] = useState<any[]>([]);
   const [loyalty, setLoyalty] = useState<any>(null);
