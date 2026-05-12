@@ -390,15 +390,24 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
     }
   };
 
-  const handleSubmitReview = async (rating: number, comment: string) => {
+  const handleSubmitReview = async (data: { 
+    rating: number; 
+    comment: string; 
+    tags: string[]; 
+    reviewer_name?: string;
+    reviewer_phone?: string;
+  }) => {
     if (!company?.id) return;
     setIsSubmittingReview(true);
     try {
       const { error } = await supabase.from('reviews').insert({
         company_id: company.id,
         professional_id: null,
-        rating,
-        comment,
+        rating: data.rating,
+        comment: data.comment,
+        tags: data.tags,
+        reviewer_name: data.reviewer_name,
+        reviewer_phone: data.reviewer_phone,
         review_type: 'company'
       });
 
@@ -1166,6 +1175,7 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
             title={company?.name || "Estabelecimento"}
             image={company?.logo_url}
             theme={T}
+            initialName={profile?.full_name}
             onCancel={() => setIsAddReviewModalOpen(false)}
             onSubmit={handleSubmitReview}
           />
