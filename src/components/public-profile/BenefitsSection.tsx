@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { motion } from 'framer-motion';
-import { Tag, Coins, Gift, ChevronRight, Info } from 'lucide-react';
+import { Tag, Coins, Gift, Info } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -99,13 +99,16 @@ export const BenefitsSection = ({ companyId, professionalId }: BenefitsSectionPr
 
   const getBenefitDetails = (item: any, type: string) => {
     if (type === 'promo') {
+      const isCashback = item.promotion_type === 'cashback';
       return {
-        type: 'Promoção' as const,
+        type: (isCashback ? 'Cashback' : 'Promoção') as any,
         title: item.title,
-        benefit: item.discount_type === 'percentage' ? `${item.discount_value}% OFF` : `R$ ${item.discount_value} OFF`,
+        benefit: isCashback 
+          ? `Ganhe ${item.discount_value}% de volta` 
+          : (item.discount_type === 'percentage' ? `${item.discount_value}% OFF` : `R$ ${item.discount_value} OFF`),
         rule: `Válido até ${format(new Date(item.end_date), 'dd/MM')}`,
-        icon: <Tag className="w-4 h-4" />,
-        color: 'bg-emerald-500',
+        icon: isCashback ? <Coins className="w-4 h-4" /> : <Tag className="w-4 h-4" />,
+        color: isCashback ? 'bg-indigo-500' : 'bg-emerald-500',
         fullRule: item.description || item.cashback_rules_text || 'Sem regras adicionais cadastradas.'
       };
     }
@@ -180,4 +183,5 @@ export const BenefitsSection = ({ companyId, professionalId }: BenefitsSectionPr
     </section>
   );
 };
+
 
