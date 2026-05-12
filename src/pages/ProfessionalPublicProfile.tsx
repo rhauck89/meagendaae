@@ -27,6 +27,32 @@ type BusinessType = 'barbershop' | 'esthetic';
 
 const DEFAULT_TZ = 'America/Sao_Paulo';
 
+const formatReviewerName = (name: string): string => {
+  if (!name) return 'Cliente';
+  const parts = name.trim().split(/\s+/);
+  if (parts.length === 1) return parts[0];
+  return `${parts[0]} ${parts[parts.length - 1].charAt(0).toUpperCase()}.`;
+};
+
+const parseReviewContent = (comment: string, existingTags: string[] = []) => {
+  let cleanComment = (comment || '').trim();
+  const tags = [...(existingTags || [])];
+  
+  // Look for [Tag] at the start of the comment
+  const tagRegex = /^\[([^\]]+)\]\s*(.*)/;
+  const match = cleanComment.match(tagRegex);
+  
+  if (match) {
+    const extractedTag = match[1];
+    if (!tags.includes(extractedTag)) {
+      tags.push(extractedTag);
+    }
+    cleanComment = match[2].trim();
+  }
+  
+  return { comment: cleanComment || 'Experiência excelente!', tags };
+};
+
 const timeStringToMinutes = (v: string) => { const [h, m] = v.split(':').map(Number); return h * 60 + m; };
 const getAppointmentMinutesInTimezone = (v: string, tz: string) => {
   const p = new Intl.DateTimeFormat('en-GB', { timeZone: tz, hour: '2-digit', minute: '2-digit', hour12: false }).formatToParts(new Date(v));
