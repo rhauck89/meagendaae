@@ -33,9 +33,29 @@ interface BarbershopLandingProps {
 }
 
 const formatReviewerName = (name: string): string => {
+  if (!name) return 'Cliente';
   const parts = name.trim().split(/\s+/);
   if (parts.length === 1) return parts[0];
   return `${parts[0]} ${parts[parts.length - 1].charAt(0).toUpperCase()}.`;
+};
+
+const parseReviewContent = (comment: string, existingTags: string[] = []) => {
+  let cleanComment = (comment || '').trim();
+  const tags = [...(existingTags || [])];
+  
+  // Look for [Tag] at the start of the comment
+  const tagRegex = /^\[([^\]]+)\]\s*(.*)/;
+  const match = cleanComment.match(tagRegex);
+  
+  if (match) {
+    const extractedTag = match[1];
+    if (!tags.includes(extractedTag)) {
+      tags.push(extractedTag);
+    }
+    cleanComment = match[2].trim();
+  }
+  
+  return { comment: cleanComment || 'Experiência excelente!', tags };
 };
 
 const StarRating = ({ rating, size = 14 }: { rating: number; size?: number }) => (
