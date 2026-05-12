@@ -94,14 +94,19 @@ export const ProfessionalDrawer = ({
         const clientName = (Array.isArray(a.client) ? a.client[0]?.name : a.client?.name) || a.client_name || 'Cliente s/ nome';
         const price = getAppointmentRevenue(a);
 
-        // Contabilizar cada serviço individualmente no ranking se houver múltiplos
+        // Calculate financials for this specific appointment
+        const fin = calculateFinancials(
+          price,
+          1, // Using 1 for fixed commission per appointment, or we could use serviceNames.length
+          professional.type,
+          professional.commType,
+          professional.value
+        );
+
+        // Contabilizar cada serviço individualmente no ranking
         serviceNames.forEach((sName: string) => {
           if (!servicesMap[sName]) servicesMap[sName] = { count: 0, revenue: 0 };
           servicesMap[sName].count += 1;
-          // Dividimos o faturamento proporcionalmente se houver múltiplos serviços? 
-          // Geralmente para ranking de faturamento por serviço, se o preço é do agendamento total,
-          // atribuímos o total ou dividimos. Aqui vamos atribuir o total para o "serviço principal" 
-          // ou dividir por igual para simplificar se não houver preço por item.
           servicesMap[sName].revenue += price / (serviceNames.length || 1);
         });
 
@@ -109,9 +114,12 @@ export const ProfessionalDrawer = ({
         clientsMap[clientName].count += 1;
         clientsMap[clientName].revenue += price;
         
-        // Adicionamos o nome formatado para o histórico
+        // Adicionamos os dados calculados para o histórico
         a.displayServiceName = displayServiceName;
         a.displayClientName = clientName;
+        a.professionalValue = fin.professionalValue;
+        a.companyValue = fin.companyValue;
+        a.revenue = price;
       });
 
       setDetails({
