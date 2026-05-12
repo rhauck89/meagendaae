@@ -50,7 +50,9 @@ export function ReviewForm({ onCancel, onSubmit, theme: T, title, subtitle, imag
       return;
     }
 
-    if (!isIdentified && (!firstName.trim() || !lastName.trim())) {
+    const reviewer_name = isIdentified ? initialName : `${firstName.trim()} ${lastName.trim()}`.trim();
+    
+    if (!reviewer_name || reviewer_name === '') {
       toast.error("Por favor, informe seu nome e sobrenome.");
       return;
     }
@@ -62,8 +64,8 @@ export function ReviewForm({ onCancel, onSubmit, theme: T, title, subtitle, imag
         rating,
         comment: comment.trim(),
         tags: selectedTags,
-        reviewer_name: isIdentified ? undefined : `${firstName.trim()} ${lastName.trim()}`,
-        reviewer_phone: isIdentified ? undefined : phone.trim() || undefined
+        reviewer_name,
+        reviewer_phone: isIdentified ? (initialPhone || undefined) : (phone.trim() || undefined)
       });
     } catch (err) {
       // Error handled by parent
@@ -126,7 +128,7 @@ export function ReviewForm({ onCancel, onSubmit, theme: T, title, subtitle, imag
             <h3 className="text-2xl font-bold tracking-tight" style={{ color: T.text }}>{title}</h3>
             {isIdentified ? (
               <p className="text-sm font-bold opacity-80" style={{ color: T.accent }}>
-                Avaliando como {initialName}
+                Olá, {initialName}, sua opinião ajuda outros clientes a escolherem o melhor!
               </p>
             ) : (
               <p className="text-sm font-medium opacity-70" style={{ color: T.textSec }}>
