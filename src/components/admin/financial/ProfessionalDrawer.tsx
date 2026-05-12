@@ -147,9 +147,7 @@ export const ProfessionalDrawer = ({
             a.is_subscription_covered
           );
 
-          // Only count towards rankings if not covered by subscription (or maybe count services anyway?)
-          // User said: "Os serviços utilizados dentro da assinatura NÃO devem gerar nova comissão individual... mas podem aparecer como utilização"
-          // I will keep them in the services map but with their actual commission (which will be 0 if covered)
+          // Contabilizar cada serviço individualmente no ranking
           serviceNames.forEach((sName: string) => {
             if (!servicesMap[sName]) servicesMap[sName] = { count: 0, revenue: 0 };
             servicesMap[sName].count += 1;
@@ -173,7 +171,7 @@ export const ProfessionalDrawer = ({
 
       const mappedSubscriptions = (subscriptionCommissions || []).map((sc: any) => ({
         id: sc.id,
-        displayClientName: sc.client?.name || 'Assinante',
+        displayClientName: (Array.isArray(sc.client) ? sc.client[0]?.name : sc.client?.name) || 'Assinante',
         displayServiceName: sc.description || 'Assinatura',
         start_time: sc.paid_at,
         revenue: Number(sc.gross_amount),
@@ -196,7 +194,7 @@ export const ProfessionalDrawer = ({
           .map(([name, stats]) => ({ name, ...stats }))
           .sort((a, b) => b.revenue - a.revenue)
           .slice(0, 5),
-        history: appointments || [],
+        history: combinedHistory,
       });
     } catch (err) {
       console.error('Error fetching professional details:', err);
@@ -204,6 +202,7 @@ export const ProfessionalDrawer = ({
       setLoading(false);
     }
   };
+
 
   const handleApplyFilter = () => {
     setAppliedStartDate(parseISO(localStartDate));
