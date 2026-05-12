@@ -203,6 +203,7 @@ export const ProfessionalDrawer = ({
       <SheetContent className="sm:max-w-3xl md:max-w-4xl lg:max-w-[50vw] w-full p-0">
         <ScrollArea className="h-full">
           <div className="p-4 md:p-8">
+            {/* 1. Cabeçalho do profissional */}
             <SheetHeader className="mb-8">
               <div className="flex items-center justify-between">
                 <div>
@@ -217,7 +218,8 @@ export const ProfessionalDrawer = ({
               </div>
             </SheetHeader>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-10">
+            {/* 2. Cards gerais */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
               <Card className="bg-primary/5 border-none shadow-none">
                 <CardContent className="p-4">
                   <p className="text-[10px] text-muted-foreground mb-1 uppercase tracking-wider font-bold">Faturado</p>
@@ -239,7 +241,64 @@ export const ProfessionalDrawer = ({
             </div>
 
             <div className="space-y-8">
-              {/* Detalhamento dos Atendimentos */}
+              {/* 3. Filtro por data da drawer */}
+              <section className="p-4 bg-muted/30 rounded-xl border border-muted-foreground/10">
+                <div className="flex items-center gap-2 mb-4">
+                  <CalendarDays className="h-4 w-4 text-primary" />
+                  <h4 className="text-sm font-bold uppercase tracking-tight">Filtrar Detalhamento</h4>
+                </div>
+                <div className="flex flex-col sm:flex-row gap-3 items-end">
+                  <div className="grid w-full items-center gap-1.5">
+                    <label className="text-[10px] uppercase font-bold text-muted-foreground ml-1">Data Inicial</label>
+                    <Input 
+                      type="date" 
+                      value={localStartDate} 
+                      onChange={(e) => setLocalStartDate(e.target.value)}
+                      className="bg-background"
+                    />
+                  </div>
+                  <div className="grid w-full items-center gap-1.5">
+                    <label className="text-[10px] uppercase font-bold text-muted-foreground ml-1">Data Final</label>
+                    <Input 
+                      type="date" 
+                      value={localEndDate} 
+                      onChange={(e) => setLocalEndDate(e.target.value)}
+                      className="bg-background"
+                    />
+                  </div>
+                  <div className="flex gap-2 w-full sm:w-auto">
+                    <Button onClick={handleApplyFilter} className="flex-1 sm:flex-none">
+                      <Search className="h-4 w-4 mr-2" />
+                      Aplicar
+                    </Button>
+                    <Button variant="outline" onClick={handleClearFilter} className="flex-1 sm:flex-none">
+                      <FilterX className="h-4 w-4 mr-2" />
+                      Limpar
+                    </Button>
+                  </div>
+                </div>
+              </section>
+
+              {/* 4. Resumo do período filtrado */}
+              <section className="bg-primary/5 rounded-xl p-5 border border-primary/10">
+                <h4 className="text-xs font-bold uppercase text-primary/70 mb-4 tracking-widest">Resumo do Período Filtrado</h4>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                  <div className="space-y-1">
+                    <p className="text-[10px] text-muted-foreground uppercase font-bold">Total em Serviços</p>
+                    <p className="text-lg font-display font-bold text-foreground">{maskValue(periodSummary.revenue)}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-[10px] text-muted-foreground uppercase font-bold">Comissão</p>
+                    <p className="text-lg font-display font-bold text-warning">{maskValue(periodSummary.professionalValue)}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-[10px] text-muted-foreground uppercase font-bold">Empresa</p>
+                    <p className="text-lg font-display font-bold text-green-600">{maskValue(periodSummary.companyValue)}</p>
+                  </div>
+                </div>
+              </section>
+
+              {/* 5. Detalhamento com tabela paginada */}
               <section>
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2">
@@ -251,7 +310,7 @@ export const ProfessionalDrawer = ({
                   </Badge>
                 </div>
                 
-                <div className="rounded-md border overflow-hidden hidden md:block w-full">
+                <div className="rounded-md border overflow-hidden hidden md:block w-full bg-card">
                   <div className="overflow-x-auto">
                     <Table className="w-full">
                       <TableHeader className="bg-muted/50">
@@ -266,14 +325,20 @@ export const ProfessionalDrawer = ({
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {details.history.length === 0 ? (
+                        {loading ? (
+                          <TableRow>
+                            <TableCell colSpan={7} className="text-center py-12 text-muted-foreground">
+                              Carregando detalhes...
+                            </TableCell>
+                          </TableRow>
+                        ) : paginatedHistory.length === 0 ? (
                           <TableRow>
                             <TableCell colSpan={7} className="text-center text-xs py-12 text-muted-foreground">
                               Nenhum registro encontrado no período
                             </TableCell>
                           </TableRow>
                         ) : (
-                          details.history.map((h: any) => (
+                          paginatedHistory.map((h: any) => (
                             <TableRow key={h.id} className="hover:bg-muted/30">
                               <TableCell className="text-[12px] font-medium py-4 px-4">
                                 <span className="block max-w-[140px] leading-tight">
@@ -310,34 +375,36 @@ export const ProfessionalDrawer = ({
 
                 {/* Mobile View - Cards */}
                 <div className="md:hidden space-y-3">
-                  {details.history.length === 0 ? (
+                  {loading ? (
+                    <div className="text-center py-8 text-sm text-muted-foreground">Carregando...</div>
+                  ) : paginatedHistory.length === 0 ? (
                     <div className="text-center py-8 text-sm text-muted-foreground border rounded-lg">
                       Nenhum registro encontrado
                     </div>
                   ) : (
-                    details.history.map((h: any) => (
-                      <div key={h.id} className="p-3 border rounded-lg bg-card space-y-2">
+                    paginatedHistory.map((h: any) => (
+                      <div key={h.id} className="p-4 border rounded-xl bg-card space-y-3 shadow-sm">
                         <div className="flex justify-between items-start">
                           <div>
                             <p className="text-xs font-bold text-primary uppercase tracking-tight">{h.displayClientName}</p>
-                            <p className="text-[11px] text-muted-foreground">{h.displayServiceName}</p>
+                            <p className="text-[11px] text-muted-foreground leading-snug mt-0.5">{h.displayServiceName}</p>
                           </div>
-                          <p className="text-[10px] font-medium bg-muted px-1.5 py-0.5 rounded">
+                          <p className="text-[10px] font-medium bg-muted px-2 py-0.5 rounded text-muted-foreground">
                             {format(new Date(h.start_time), 'dd/MM/yy HH:mm')}
                           </p>
                         </div>
                         <Separator className="opacity-50" />
                         <div className="grid grid-cols-3 gap-2 text-center">
-                          <div>
-                            <p className="text-[9px] uppercase text-muted-foreground">Valor</p>
+                          <div className="bg-muted/30 p-2 rounded-lg">
+                            <p className="text-[9px] uppercase text-muted-foreground font-bold mb-1">Valor</p>
                             <p className="text-[11px] font-bold">{maskValue(h.revenue)}</p>
                           </div>
-                          <div>
-                            <p className="text-[9px] uppercase text-muted-foreground">Comissão</p>
+                          <div className="bg-warning/5 p-2 rounded-lg">
+                            <p className="text-[9px] uppercase text-muted-foreground font-bold mb-1">Comissão</p>
                             <p className="text-[11px] font-bold text-warning">{maskValue(h.professionalValue)}</p>
                           </div>
-                          <div>
-                            <p className="text-[9px] uppercase text-muted-foreground">Empresa</p>
+                          <div className="bg-green-500/5 p-2 rounded-lg">
+                            <p className="text-[9px] uppercase text-muted-foreground font-bold mb-1">Empresa</p>
                             <p className="text-[11px] font-bold text-green-600">{maskValue(h.companyValue)}</p>
                           </div>
                         </div>
@@ -345,11 +412,40 @@ export const ProfessionalDrawer = ({
                     ))
                   )}
                 </div>
+
+                {/* Paginação */}
+                {totalPages > 1 && (
+                  <div className="flex items-center justify-between mt-6 bg-muted/20 p-3 rounded-lg border border-muted-foreground/10">
+                    <p className="text-xs text-muted-foreground font-medium">
+                      Página <span className="text-foreground font-bold">{currentPage}</span> de <span className="text-foreground font-bold">{totalPages}</span>
+                    </p>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                        disabled={currentPage === 1}
+                        className="h-8 w-8 p-0"
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                        disabled={currentPage === totalPages}
+                        className="h-8 w-8 p-0"
+                      >
+                        <ChevronRight className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </section>
 
               <Separator />
 
-              {/* Ranking de Serviços */}
+              {/* 6. Ranking de Serviços */}
               <section>
                 <div className="flex items-center gap-2 mb-4">
                   <TrendingUp className="h-5 w-5 text-primary" />
@@ -397,10 +493,11 @@ export const ProfessionalDrawer = ({
                   ))}
                 </div>
               </section>
+            </div>
           </div>
-        </div>
-      </ScrollArea>
-    </SheetContent>
-  </Sheet>
+        </ScrollArea>
+      </SheetContent>
+    </Sheet>
+);
 );
 };
