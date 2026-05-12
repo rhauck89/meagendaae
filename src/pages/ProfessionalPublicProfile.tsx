@@ -203,6 +203,7 @@ export default function ProfessionalPublicProfile() {
       supabase
         .from('reviews')
         .select('rating, comment, created_at, appointment_id, review_type, professional_id')
+        .eq('company_id', comp.id)
         .eq('professional_id', prof.id)
         .eq('review_type', 'professional')
         .order('created_at', { ascending: false })

@@ -271,7 +271,7 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
         try {
           const [ratingsRes, reviewsRes] = await Promise.all([
             supabase.rpc('get_professional_ratings' as any, { p_company_id: companyFull.id }),
-            supabase.from('reviews').select('rating, comment, created_at, professional_id, appointment_id, review_type').eq('company_id', companyFull.id).order('created_at', { ascending: false }),
+            supabase.from('reviews').select('rating, comment, created_at, professional_id, appointment_id, review_type').eq('company_id', companyFull.id).is('professional_id', null).eq('review_type', 'company').order('created_at', { ascending: false }),
           ]);
 
           if (ratingsRes.data && Array.isArray(ratingsRes.data)) {
