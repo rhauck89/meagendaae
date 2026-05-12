@@ -498,6 +498,5 @@ export const ProfessionalDrawer = ({
         </ScrollArea>
       </SheetContent>
     </Sheet>
-);
-);
+  );
 };
