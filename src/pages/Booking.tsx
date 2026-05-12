@@ -931,7 +931,19 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
             setHasValidClient(true);
             setClientDataWasAutoFilled(true);
             setShowIdentityModal(false);
-            setStep(professionalSlug ? 'services' : 'professional');
+            const jumpTo = searchParams.get('jumpTo');
+            if (jumpTo === 'datetime') {
+              setStep('datetime');
+            } else {
+              const hasProfessional = !!selectedProfessional || !!professionalSlug || searchParams.get('professional');
+              const hasServices = selectedServices.length > 0 || searchParams.get('services');
+              const hasDateTime = (!!selectedDate && !!selectedTime) || (searchParams.get('date') && searchParams.get('time'));
+
+              if (!hasProfessional) setStep('professional');
+              else if (!hasServices) setStep('services');
+              else if (!hasDateTime) setStep('datetime');
+              else setStep('confirm');
+            }
             return;
           }
           localStorage.removeItem(`whatsapp_session_${company.id}`);
