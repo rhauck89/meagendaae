@@ -264,20 +264,40 @@ export function PlanDialog({
     setFetchingProfessionals(true);
     try {
       console.log('Fetching professionals for company:', companyId);
+      
+      // We fetch collaborators and profiles joined via profile_id
+      // This matches the logic in Team.tsx to find people linked to the company
       const { data, error } = await supabase
-        .from('profiles')
-        .select('id, full_name, email, role')
+        .from('collaborators')
+        .select(`
+          id,
+          profile_id,
+          active,
+          profile:profiles!collaborators_profile_id_fkey (
+            id,
+            full_name,
+            email
+          )
+        `)
         .eq('company_id', companyId)
-        .eq('role', 'professional')
-        .order('full_name');
+        .eq('active', true);
 
       if (error) {
         console.error('Supabase error fetching professionals:', error);
         throw error;
       }
       
-      console.log('Professionals found:', data?.length || 0);
-      setProfessionals(data || []);
+      // Transform the data to the expected format
+      const formattedProfessionals = (data || [])
+        .map((c: any) => ({
+          id: c.profile_id,
+          full_name: c.profile?.full_name || 'Sem nome',
+          email: c.profile?.email || '',
+        }))
+        .filter(p => p.id); // Ensure we have an ID
+
+      console.log('Professionals found and formatted:', formattedProfessionals.length);
+      setProfessionals(formattedProfessionals);
     } catch (error: any) {
       console.error('Error fetching professionals:', error);
       toast.error('Erro ao buscar profissionais');
