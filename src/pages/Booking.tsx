@@ -1583,6 +1583,10 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       setStep('datetime');
     }
 
+    if (savedClientId || user?.id) {
+      fetchAllowedProfessionalsForSubscriptions(comp.id, savedClientId || user?.id);
+    }
+
     if (promoIdRef.current) {
       const { data: promos } = await supabase
         .from('public_promotions' as any)
