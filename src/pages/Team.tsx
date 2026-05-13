@@ -347,6 +347,8 @@ const Team = () => {
       use_company_banner: true,
       schedule_from_company: true,
       system_role: 'collaborator',
+      is_service_provider: true,
+      permissions: PERMISSION_PRESETS.collaborator,
     });
     setWizardBM({
       business_model: 'employee',
@@ -1042,7 +1044,7 @@ const Team = () => {
                       <Input value={form.whatsapp} onChange={(e) => setForm({ ...form, whatsapp: e.target.value })} placeholder="(31) 99999-9999" />
                     </div>
                     <div className="space-y-2">
-                      <Label>FunÃ§Ã£o</Label>
+                      <Label>Função</Label>
                       <Select value={form.role_title} onValueChange={(v) => setForm({ ...form, role_title: v })}>
                         <SelectTrigger><SelectValue /></SelectTrigger>
                         <SelectContent>
@@ -1052,52 +1054,109 @@ const Team = () => {
                         </SelectContent>
                       </Select>
                     </div>
-                    {/* Modelo Comercial (unificado) â€” mesma lÃ³gica e visual da tela de ediÃ§Ã£o */}
-                    <div className="space-y-2">
-                      <Label>ðŸ’° Modelo Comercial</Label>
-                      <Select
-                        value={wizardBM.business_model}
-                        onValueChange={(v) => setWizardBM({ ...wizardBM, business_model: v as BusinessModel })}
-                      >
-                        <SelectTrigger><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          {(Object.keys(BUSINESS_MODEL_LABELS) as BusinessModel[]).map((bm) => (
-                            <SelectItem key={bm} value={bm}>{BUSINESS_MODEL_LABELS[bm]}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <div className="rounded-lg border bg-muted/30 p-3 text-xs text-muted-foreground">
-                        {BUSINESS_MODEL_DESCRIPTIONS[wizardBM.business_model]}
-                      </div>
-                    </div>
 
-                    {/* FuncionÃ¡rio */}
-                    {wizardBM.business_model === 'employee' && (
-                      <div className="space-y-3 rounded-lg border p-4">
-                        <Label className="text-sm font-medium">Como ele Ã© remunerado?</Label>
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label>Tipo de membro</Label>
                         <Select
-                          value={wizardBM.commission_type}
-                          onValueChange={(v) => setWizardBM({ ...wizardBM, commission_type: v as any })}
+                          value={form.system_role}
+                          onValueChange={(v) => {
+                            setForm({ 
+                              ...form, 
+                              system_role: v,
+                              permissions: PERMISSION_PRESETS[v] || form.permissions
+                            });
+                          }}
                         >
                           <SelectTrigger><SelectValue /></SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="none">SalÃ¡rio fixo (controlado fora do sistema)</SelectItem>
-                            <SelectItem value="percentage">ComissÃ£o %</SelectItem>
-                            <SelectItem value="fixed">Valor fixo por serviÃ§o</SelectItem>
+                            {Object.entries(SYSTEM_ROLES)
+                              .filter(([key]) => key !== 'admin_principal')
+                              .map(([key, role]) => (
+                                <SelectItem key={key} value={key}>
+                                  <div className="flex items-center gap-2">
+                                    <role.icon className="h-4 w-4" />
+                                    {role.label}
+                                  </div>
+                                </SelectItem>
+                              ))}
                           </SelectContent>
                         </Select>
-                        {wizardBM.commission_type === 'percentage' && (
-                          <div className="space-y-2">
-                            <Label className="text-xs">ComissÃ£o do profissional (%)</Label>
-                            <Input
-                              type="number"
-                              value={wizardBM.commission_value || ''}
-                              onChange={(e) => setWizardBM({ ...wizardBM, commission_value: Number(e.target.value) || 0 })}
-                              placeholder="Ex: 30"
-                            />
+                      </div>
+
+                      <div className="flex items-center justify-between p-3 rounded-lg border">
+                        <div>
+                          <p className="text-sm font-medium">Este membro presta serviços?</p>
+                          <p className="text-xs text-muted-foreground">Habilita agenda, serviços e comissões</p>
+                        </div>
+                        <Switch
+                          checked={form.is_service_provider}
+                          onCheckedChange={(checked) => setForm({ ...form, is_service_provider: checked })}
+                        />
+                      </div>
+                    </div>
+
+                    {form.is_service_provider && (
+                      <>
+                        <div className="space-y-2">
+                          <Label>💰 Modelo Comercial</Label>
+                          <Select
+                            value={wizardBM.business_model}
+                            onValueChange={(v) => setWizardBM({ ...wizardBM, business_model: v as BusinessModel })}
+                          >
+                            <SelectTrigger><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              {(Object.keys(BUSINESS_MODEL_LABELS) as BusinessModel[]).map((bm) => (
+                                <SelectItem key={bm} value={bm}>{BUSINESS_MODEL_LABELS[bm]}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <div className="rounded-lg border bg-muted/30 p-3 text-xs text-muted-foreground">
+                            {BUSINESS_MODEL_DESCRIPTIONS[wizardBM.business_model]}
+                          </div>
+                        </div>
+
+                        {wizardBM.business_model === 'employee' && (
+                          <div className="space-y-3 rounded-lg border p-4">
+                            <Label className="text-sm font-medium">Como ele é remunerado?</Label>
+                            <Select
+                              value={wizardBM.commission_type}
+                              onValueChange={(v) => setWizardBM({ ...wizardBM, commission_type: v as any })}
+                            >
+                              <SelectTrigger><SelectValue /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="none">Salário fixo (controlado fora do sistema)</SelectItem>
+                                <SelectItem value="percentage">Comissão %</SelectItem>
+                                <SelectItem value="fixed">Valor fixo por serviço</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            {wizardBM.commission_type === 'percentage' && (
+                              <div className="space-y-2">
+                                <Label className="text-xs">Comissão do profissional (%)</Label>
+                                <Input
+                                  type="number"
+                                  value={wizardBM.commission_value || ''}
+                                  onChange={(e) => setWizardBM({ ...wizardBM, commission_value: Number(e.target.value) || 0 })}
+                                  placeholder="Ex: 30"
+                                />
+                              </div>
+                            )}
+                            {wizardBM.commission_type === 'fixed' && (
+                              <div className="space-y-2">
+                                <Label className="text-xs">Valor por serviço (R$)</Label>
+                                <Input
+                                  type="number"
+                                  step="0.01"
+                                  value={wizardBM.commission_value || ''}
+                                  onChange={(e) => setWizardBM({ ...wizardBM, commission_value: Number(e.target.value) || 0 })}
+                                  placeholder="Ex: 25.00"
+                                />
+                              </div>
+                            )}
                           </div>
                         )}
-                        {wizardBM.commission_type === 'fixed' && (
+                      </>
+                    )}
                           <div className="space-y-2">
                             <Label className="text-xs">Valor por serviÃ§o (R$)</Label>
                             <Input
