@@ -83,7 +83,7 @@ export function ClientImportModal({ open, onOpenChange, companyId, onImportSucce
   };
 
   const downloadTemplate = () => {
-    const csv = Papa.unparse([
+    const data = [
       {
         nome: 'Exemplo da Silva',
         whatsapp: '31999999999',
@@ -91,8 +91,18 @@ export function ClientImportModal({ open, onOpenChange, companyId, onImportSucce
         data_nascimento: '1990-05-15',
         observacoes: 'Gosta de café e corte baixo',
       },
-    ]);
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    ];
+
+    const csv = Papa.unparse(data, {
+      delimiter: ';',
+      header: true,
+    });
+    
+    // Add Excel hint and BOM for UTF-8 support with accents and proper column separation in Excel
+    const csvWithExcelHint = `sep=;\n${csv}`;
+    const BOM = '\uFEFF';
+    const blob = new Blob([BOM + csvWithExcelHint], { type: 'text/csv;charset=utf-8' });
+    
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
     link.setAttribute('download', 'modelo_importacao_clientes.csv');
@@ -105,32 +115,53 @@ export function ClientImportModal({ open, onOpenChange, companyId, onImportSucce
     const file = e.target.files?.[0];
     if (!file) return;
 
-    Papa.parse(file, {
-      header: true,
-      skipEmptyLines: true,
-      complete: (results) => {
-        const fileHeaders = results.meta.fields || [];
-        setHeaders(fileHeaders);
-        setRawData(results.data as RawRow[]);
-        
-        // Auto-mapping
-        const newMapping = { ...mapping };
-        fileHeaders.forEach(header => {
-          const lowerHeader = header.toLowerCase().trim();
-          Object.entries(AUTO_MAPPING_RULES).forEach(([key, aliases]) => {
-            if (aliases.includes(lowerHeader) && !newMapping[key as keyof ColumnMapping]) {
-              newMapping[key as keyof ColumnMapping] = header;
-            }
-          });
-        });
-        
-        setMapping(newMapping);
-        setStep('mapping');
-      },
-      error: (error) => {
-        toast.error(`Erro ao ler arquivo: ${error.message}`);
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      let content = event.target?.result as string;
+      
+      // Remove BOM if present
+      if (content.startsWith('\uFEFF')) {
+        content = content.substring(1);
       }
-    });
+      
+      // Remove Excel separator hint if present (e.g., "sep=;")
+      if (content.startsWith('sep=')) {
+        const firstNewlineIndex = content.indexOf('\n');
+        if (firstNewlineIndex !== -1) {
+          content = content.substring(firstNewlineIndex + 1);
+        }
+      }
+
+      Papa.parse(content, {
+        header: true,
+        skipEmptyLines: 'greedy',
+        delimitersToGuess: [';', ',', '\t'],
+        complete: (results) => {
+          const fileHeaders = results.meta.fields || [];
+          setHeaders(fileHeaders);
+          setRawData(results.data as RawRow[]);
+          
+          // Auto-mapping
+          const newMapping = { ...mapping };
+          fileHeaders.forEach(header => {
+            const lowerHeader = header.toLowerCase().trim();
+            Object.entries(AUTO_MAPPING_RULES).forEach(([key, aliases]) => {
+              if (aliases.includes(lowerHeader) && !newMapping[key as keyof ColumnMapping]) {
+                newMapping[key as keyof ColumnMapping] = header;
+              }
+            });
+          });
+          
+          setMapping(newMapping);
+          setStep('mapping');
+        },
+        error: (error) => {
+          toast.error(`Erro ao ler arquivo: ${error.message}`);
+        }
+      });
+    };
+
+    reader.readAsText(file, 'UTF-8');
   };
 
   const generatePreview = async () => {
