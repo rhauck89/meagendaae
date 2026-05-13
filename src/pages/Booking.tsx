@@ -1533,7 +1533,8 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
           // If no links exist yet, maybe show all (legacy behavior) or none?
           // I'll stick to legacy behavior (show all) if no links exist, 
           // but if they exist, respect them.
-        setServices(servicesRes.data || []);
+          setServices(servicesRes.data || []);
+        }
       }
     }
 
