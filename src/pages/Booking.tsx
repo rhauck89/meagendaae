@@ -1133,11 +1133,12 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
 
     rebookTriggered.current = true;
     (async () => {
+      setRebookingLoading(true);
       let bookingToUse = lastBooking;
 
-      // If lastBooking is not in state (e.g. not in localStorage), try fetching from DB
-      if (!bookingToUse && isAuthenticated) {
-        try {
+      try {
+        // If lastBooking is not in state (e.g. not in localStorage), try fetching from DB
+        if (!bookingToUse && isAuthenticated) {
           const { data: { session } } = await supabase.auth.getSession();
           if (session?.user) {
             const { data: appt } = await supabase
@@ -1159,7 +1160,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
               const apptSvcs = apptSvcsRes.data;
               const prof = profRes.data as any;
 
-              if (prof && prof.active) {
+              if (prof) {
                 const svcIds = (apptSvcs || []).map((s: any) => s.service_id);
                 const { data: svcs } = await (supabase.from('public_services' as any)
                   .select('id, name, active')
@@ -1183,57 +1184,73 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
               }
             }
           }
-        } catch (err) {
-          console.error('[REBOOK] Error fetching from DB:', err);
         }
+
+        if (!bookingToUse) {
+          console.warn('[REBOOK] No booking data found to repeat.');
+          setRebookingLoading(false);
+          return;
+        }
+
+        // Final validation of services
+        const activeServices = bookingToUse.serviceIds.filter(sid => services.find(s => s.id === sid && s.active !== false));
+        
+        if (activeServices.length === 0) {
+          toast.error('Um ou mais serviços do seu último atendimento não estão mais disponíveis.');
+          setStep('services');
+          setRebookingLoading(false);
+          return;
+        }
+
+        if (activeServices.length < bookingToUse.serviceIds.length) {
+          toast.info('Alguns serviços do seu último agendamento não estão mais disponíveis.');
+        }
+
+        setSelectedServices(activeServices);
+
+        // Professional validation
+        const profStillActive = professionals.length > 0 
+          ? professionals.find(p => p.id === bookingToUse!.professionalId && p.active !== false)
+          : true; // If not loaded yet, we'll check properly after loading services-professional link
+
+        if (!profStillActive) {
+          toast.info('O profissional do seu último atendimento não está mais disponível. Por favor, selecione um novo profissional.');
+          setStep('professional');
+          setRebookingLoading(false);
+          return;
+        }
+
+        // Check if professional can perform these services
+        const { data: spLinks } = await supabase
+          .from('service_professionals')
+          .select('service_id')
+          .eq('professional_id', bookingToUse.professionalId)
+          .in('service_id', activeServices);
+
+        if (!spLinks || spLinks.length !== activeServices.length) {
+          toast.info('Este profissional não realiza mais todos os serviços selecionados. Por favor, selecione um novo profissional.');
+          setStep('professional');
+          setRebookingLoading(false);
+          return;
+        }
+
+        setSelectedProfessional(bookingToUse.professionalId);
+        
+        // Skip identifying step if already authenticated or if we have client data
+        if (isAuthenticated || hasValidClient) {
+          setStep('datetime');
+          toast.success('Seu último atendimento foi carregado com sucesso.');
+        } else {
+          setStep('identifying');
+        }
+      } catch (err) {
+        console.error('[REBOOK] Unexpected error:', err);
+      } finally {
+        // Small delay to ensure smooth transition
+        setTimeout(() => setRebookingLoading(false), 800);
       }
-
-      if (!bookingToUse) {
-        console.warn('[REBOOK] No booking data found to repeat.');
-        return;
-      }
-
-      // Final validation of services and professional
-      const profStillActive = professionals.length > 0 
-        ? professionals.some(p => p.id === bookingToUse!.professionalId)
-        : true; // If not loaded yet, we'll trust the fetch above or wait
-
-      if (!profStillActive) {
-        toast.error('Esse profissional não está mais disponível. Escolha outro profissional.');
-        setStep('professional');
-        return;
-      }
-
-      const activeServices = bookingToUse.serviceIds.filter(sid => services.find(s => s.id === sid && s.active !== false));
-      if (activeServices.length === 0) {
-        toast.error('Esse serviço não está mais disponível. Escolha outro serviço.');
-        setStep('services');
-        return;
-      }
-
-      if (activeServices.length < bookingToUse.serviceIds.length) {
-        toast.info('Alguns serviços do seu último agendamento não estão mais disponíveis.');
-      }
-
-      setSelectedServices(activeServices);
-      setSelectedProfessional(bookingToUse.professionalId);
-      
-      // Check if professional can perform these services
-      const { data: spLinks } = await supabase
-        .from('service_professionals')
-        .select('service_id')
-        .eq('professional_id', bookingToUse.professionalId)
-        .in('service_id', activeServices);
-
-      if (!spLinks || spLinks.length !== activeServices.length) {
-        toast.error('Este profissional não realiza mais todos os serviços selecionados.');
-        setStep('professional');
-        return;
-      }
-
-      setStep('datetime');
     })();
-  }, [lastBooking, company?.id, services, professionals, searchParams, isAuthenticated]);
+  }, [lastBooking, company?.id, services, professionals, searchParams, isAuthenticated, hasValidClient]);
 
   useEffect(() => {
     if (!company?.id) return;
