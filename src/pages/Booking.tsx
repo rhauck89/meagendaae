@@ -314,6 +314,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
 
   const [subBenefit, setSubBenefit] = useState<any>(null);
   const [validatingSub, setValidatingSub] = useState(false);
+  const [allowedProfessionalIds, setAllowedProfessionalIds] = useState<string[] | null>(null);
 
   const isDark = businessType === 'barbershop';
   const bookingTimezone = companySettings?.timezone || DEFAULT_BOOKING_TIMEZONE;
