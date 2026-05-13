@@ -108,7 +108,7 @@ export function PlanDialog({
           price_yearly: plan.price_yearly ? Number(plan.price_yearly) : null,
           type: plan.type as 'limited' | 'unlimited',
           usage_limit: plan.usage_limit,
-          usage_count_mode: plan.usage_count_mode === 'day' ? 'appointment' : (plan.usage_count_mode as any) || 'service',
+          usage_count_mode: plan.usage_count_mode === 'day' ? 'appointment' : (plan.usage_count_mode || 'service'),
           included_services: plan.included_services || [],
           valid_days: plan.valid_days || [],
           valid_start_time: plan.valid_start_time || '',
@@ -135,6 +135,97 @@ export function PlanDialog({
       }
     }
   }, [open, plan, form]);
+
+  const [hasManualEdit, setHasManualEdit] = useState(false);
+
+  useEffect(() => {
+    if (!open) {
+      setHasManualEdit(false);
+      return;
+    }
+
+    const subscription = form.watch((value, { name }) => {
+      if (name === 'observations') {
+        setHasManualEdit(true);
+      }
+      
+      if (name !== 'observations' && !hasManualEdit) {
+        const name = value.name || '';
+        const mode = value.usage_count_mode;
+        const limit = value.usage_limit;
+        const type = value.type;
+        const days = value.valid_days as number[];
+        const start = value.valid_start_time;
+        const end = value.valid_end_time;
+        const monthly = value.price_monthly;
+        const yearly = value.price_yearly;
+        const includedIds = value.included_services as string[];
+        
+        const includedNames = services
+          .filter(s => includedIds.includes(s.id))
+          .map(s => s.name);
+
+        let text = `Plano: ${name || 'Novo Plano'}\n\n`;
+        
+        text += `Serviços incluídos:\n`;
+        if (includedNames.length > 0) {
+          includedNames.forEach(n => text += `- ${n}\n`);
+        } else {
+          text += `- Nenhum serviço selecionado\n`;
+        }
+        text += `\n`;
+
+        text += `Quantidade de créditos:\n`;
+        if (type === 'unlimited') {
+          text += `Este plano possui uso ilimitado por mês.\n`;
+        } else {
+          text += `Este plano possui ${limit || 0} créditos por mês.\n`;
+        }
+        text += `\n`;
+
+        text += `Forma de consumo:\n`;
+        if (mode === 'service') {
+          text += `Por serviço: cada serviço realizado consome 1 crédito. Exemplo: se o cliente agendar Corte + Barba no mesmo atendimento, serão consumidos 2 créditos.\n`;
+        } else {
+          text += `Por agendamento: cada atendimento realizado consome 1 crédito, mesmo que tenha vários serviços juntos. Exemplo: se o cliente agendar Corte + Barba + Sobrancelha no mesmo atendimento, será consumido apenas 1 crédito.\n`;
+        }
+        text += `\n`;
+
+        text += `Dias permitidos:\n`;
+        if (!days || days.length === 0 || days.length === 7) {
+          text += `[Válido todos os dias]\n`;
+        } else {
+          const dayLabels: Record<number, string> = { 1: 'segunda', 2: 'terça', 3: 'quarta', 4: 'quinta', 5: 'sexta', 6: 'sábado', 0: 'domingo' };
+          const labels = days.map(d => dayLabels[d]).join(', ');
+          text += `[Válido somente em: ${labels}]\n`;
+        }
+        text += `\n`;
+
+        text += `Horários permitidos:\n`;
+        if (!start && !end) {
+          text += `[Válido em qualquer horário]\n`;
+        } else {
+          text += `[Válido somente ${start ? `das ${start}` : ''} ${end ? `até as ${end}` : ''}]\n`;
+        }
+        text += `\n`;
+
+        text += `Valor:\n`;
+        text += `Mensal: R$ ${Number(monthly || 0).toFixed(2)}\n`;
+        if (yearly) {
+          text += `Anual: R$ ${Number(yearly).toFixed(2)}\n`;
+        }
+
+        form.setValue('observations', text);
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, [open, form, services, hasManualEdit]);
+
+  const updateObservationsAutomatically = () => {
+    setHasManualEdit(false);
+    // This will trigger the effect above
+    form.setValue('name', form.getValues('name'));
+  };
 
   const fetchServices = async () => {
     setFetchingServices(true);
@@ -209,7 +300,7 @@ export function PlanDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl h-[100dvh] sm:h-auto sm:max-h-[90vh] flex flex-col p-0 overflow-hidden">
+      <DialogContent className="max-w-2xl h-[100dvh] sm:h-auto sm:max-h-[90vh] flex flex-col p-0 overflow-hidden border-none shadow-2xl">
         <DialogHeader className="px-6 py-4 border-b shrink-0">
           <DialogTitle>{plan ? 'Editar Plano' : 'Novo Plano'}</DialogTitle>
           <DialogDescription>
@@ -221,9 +312,8 @@ export function PlanDialog({
           <form 
             onSubmit={form.handleSubmit(onSubmit)} 
             className="flex-1 min-h-0 flex flex-col overflow-hidden"
-            data-dialog-body
           >
-            <DialogBody className="flex-1 overflow-y-auto space-y-6">
+            <DialogBody className="flex-1 overflow-y-auto space-y-6 custom-scrollbar px-6 py-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField
                 control={form.control}
@@ -458,7 +548,7 @@ export function PlanDialog({
                               <span className="font-semibold text-sm">Por serviço</span>
                             </div>
                             <span className="text-xs text-muted-foreground font-normal leading-relaxed">
-                              Cada serviço consome 1 crédito. Ex: Corte + Barba = 2 créditos.
+                              Cada serviço incluído no atendimento consome 1 crédito. Ex: Corte + Barba = 2 créditos.
                             </span>
                           </Label>
                         </div>
@@ -486,17 +576,11 @@ export function PlanDialog({
                               <span className="font-semibold text-sm">Por agendamento</span>
                             </div>
                             <span className="text-xs text-muted-foreground font-normal leading-relaxed">
-                              O atendimento inteiro consome 1 crédito, mesmo com vários serviços.
+                              O atendimento inteiro consome 1 crédito, mesmo que tenha vários serviços juntos. Ex: Corte + Barba + Sobrancelha = 1 crédito.
                             </span>
                           </Label>
                         </div>
                     </RadioGroup>
-                    <p className="text-[11px] text-muted-foreground mt-2 px-1 italic">
-                      {field.value === 'service' 
-                        ? "* Cada serviço do agendamento consumirá 1 crédito do saldo." 
-                        : "* O atendimento completo consumirá apenas 1 crédito, independente do número de serviços."
-                      }
-                    </p>
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -631,11 +715,22 @@ export function PlanDialog({
               name="observations"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Observações / Regras Adicionais</FormLabel>
+                  <div className="flex items-center justify-between">
+                    <FormLabel>Observações / Regras Adicionais</FormLabel>
+                    <Button 
+                      type="button" 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={updateObservationsAutomatically}
+                      className="h-7 text-[10px] text-primary"
+                    >
+                      Atualizar regras automaticamente
+                    </Button>
+                  </div>
                   <FormControl>
                     <Textarea
                       placeholder="Ex: Válido apenas de terça a quinta."
-                      className="resize-none"
+                      className="resize-none min-h-[200px] text-xs font-mono"
                       {...field}
                     />
                   </FormControl>
@@ -666,7 +761,7 @@ export function PlanDialog({
             />
           </DialogBody>
 
-          <DialogFooter>
+          <DialogFooter className="px-6 py-4 border-t shrink-0">
             <Button
               type="button"
               variant="outline"
