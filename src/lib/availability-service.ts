@@ -295,7 +295,8 @@ async function fetchSlotInputs(
     fetchTasks.push(supabase
       .from('professional_working_hours' as any)
       .select('day_of_week, open_time, close_time, lunch_start, lunch_end, is_closed')
-      .eq('professional_id', professionalId));
+      .eq('professional_id', professionalId)
+      .eq('company_id', companyId));
   }
 
   // Index 1: Business hours
@@ -447,28 +448,23 @@ export async function getAvailableSlots(
     slots = slots.filter((s) => s > currentTime);
   }
 
-  console.log('[BOOKINGS_USED]', inputs.existingAppointments);
-  console.log('[REAL_SLOTS]', slots);
-  console.log('[SERVICE]', slots);
+  // Mandatory debug logs as requested
+  const weekday = date.getDay();
+  const profSchedule = inputs.professionalHours.find(h => h.day_of_week === weekday);
+  const companySchedule = inputs.businessHours.find(h => h.day_of_week === weekday);
+  const finalSchedule = resolved?.hours;
 
-  // Unified debug log so manual + public output can be diff-compared
-  console.log('[SLOTS]', {
-    source,
-    professional_id: professionalId,
-    date: format(date, 'yyyy-MM-dd'),
-    bookingMode: config.bookingMode,
-    menorServico: config.smallestServiceMinutes,
-    intervalo: config.bufferMinutes,
-    slotBase: config.baseSlotMinutes,
-    firstAvailable: slots[0] ?? null,
-    generatedSlots: slots,
-    slotInterval: config.slotInterval,
-    bufferMinutes: config.bufferMinutes,
-    totalDuration,
-    slots,
-  });
-
-  console.log('[SERVICE FINAL]', slots);
+  console.log('[Slots] selectedDate:', format(date, 'yyyy-MM-dd'));
+  console.log('[Slots] weekday:', weekday);
+  console.log('[Slots] professionalId:', professionalId);
+  console.log('[Slots] professionalScheduleUsed:', profSchedule ? `${profSchedule.open_time}-${profSchedule.close_time} (Closed: ${profSchedule.is_closed})` : 'None');
+  console.log('[Slots] companyScheduleUsed:', companySchedule ? `${companySchedule.open_time}-${companySchedule.close_time} (Closed: ${companySchedule.is_closed})` : 'None');
+  console.log('[Slots] finalSchedule:', finalSchedule ? `${finalSchedule.open_time}-${finalSchedule.close_time}` : 'Closed');
+  console.log('[Slots] start:', finalSchedule?.open_time);
+  console.log('[Slots] end:', finalSchedule?.close_time);
+  console.log('[Slots] pauseStart:', finalSchedule?.lunch_start);
+  console.log('[Slots] pauseEnd:', finalSchedule?.lunch_end);
+  console.log('[Slots] generatedSlots:', slots.length, 'slots');
 
   return {
     slots,
