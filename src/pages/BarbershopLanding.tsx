@@ -232,6 +232,7 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
           totalPrice: Number(appt.total_price || 0),
           totalDuration,
           bookedAt: appt.start_time,
+          notes: appt.notes,
         });
       } catch { /* ignore */ }
     })();
