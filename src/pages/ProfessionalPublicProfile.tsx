@@ -173,7 +173,6 @@ export default function ProfessionalPublicProfile() {
               email: session.email,
               avatar_url: null
             });
-            return;
           } else {
             localStorage.removeItem(`whatsapp_session_${company.id}`);
           }
