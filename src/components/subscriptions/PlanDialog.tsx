@@ -761,7 +761,7 @@ export function PlanDialog({
             />
           </DialogBody>
 
-          <DialogFooter>
+          <DialogFooter className="px-6 py-4 border-t shrink-0">
             <Button
               type="button"
               variant="outline"
