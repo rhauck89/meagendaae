@@ -350,13 +350,34 @@ const ProfessionalFinance = () => {
                           <TableCell className="text-right">{commission != null ? formatCurrency(commission) : '—'}</TableCell>
                         )}
                         <TableCell>
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
-                            Concluído
-                          </span>
+                          <Badge variant="outline" className="bg-primary/5 text-primary border-primary/10">
+                            Serviço
+                          </Badge>
                         </TableCell>
                       </TableRow>
                     );
                   })}
+                  {directCommissions.map((comm: any) => (
+                    <TableRow key={comm.id} className="bg-primary/5">
+                      <TableCell>{format(parseISO(comm.paid_at), 'dd/MM', { locale: ptBR })}</TableCell>
+                      <TableCell>—</TableCell>
+                      <TableCell>
+                        <div className="flex flex-col">
+                          <span className="font-medium">{comm.description}</span>
+                          <span className="text-[10px] text-muted-foreground uppercase">Comissão de Assinatura</span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right">{formatCurrency(Number(comm.gross_amount || 0))}</TableCell>
+                      {metrics.isCommissioned && (
+                        <TableCell className="text-right font-bold text-primary">{formatCurrency(Number(comm.commission_amount || 0))}</TableCell>
+                      )}
+                      <TableCell>
+                        <Badge className="bg-primary text-white hover:bg-primary/90">
+                          Assinatura
+                        </Badge>
+                      </TableCell>
+                    </TableRow>
+                  ))}
                 </TableBody>
               </Table>
             </div>
