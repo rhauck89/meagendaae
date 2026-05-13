@@ -107,7 +107,9 @@ export function PlanDialog({
   useEffect(() => {
     if (open) {
       fetchServices();
+      fetchProfessionals();
       if (plan) {
+        fetchPlanParticipants(plan.id);
         form.reset({
           name: plan.name,
           description: plan.description || '',
@@ -122,6 +124,8 @@ export function PlanDialog({
           valid_end_time: plan.valid_end_time || '',
           observations: plan.observations || '',
           is_active: plan.is_active,
+          all_professionals: plan.all_professionals ?? true,
+          participant_professionals: [], // Will be updated by fetchPlanParticipants
         });
       } else {
         form.reset({
@@ -138,6 +142,8 @@ export function PlanDialog({
           valid_end_time: '',
           observations: '',
           is_active: true,
+          all_professionals: true,
+          participant_professionals: [],
         });
       }
     }
