@@ -2076,6 +2076,92 @@ export type Database = {
           },
         ]
       }
+      company_collaborators: {
+        Row: {
+          active: boolean
+          company_id: string
+          created_at: string | null
+          id: string
+          is_service_provider: boolean
+          permissions: Json
+          profile_id: string
+          role: Database["public"]["Enums"]["collaborator_role"]
+          updated_at: string | null
+        }
+        Insert: {
+          active?: boolean
+          company_id: string
+          created_at?: string | null
+          id?: string
+          is_service_provider?: boolean
+          permissions?: Json
+          profile_id: string
+          role?: Database["public"]["Enums"]["collaborator_role"]
+          updated_at?: string | null
+        }
+        Update: {
+          active?: boolean
+          company_id?: string
+          created_at?: string | null
+          id?: string
+          is_service_provider?: boolean
+          permissions?: Json
+          profile_id?: string
+          role?: Database["public"]["Enums"]["collaborator_role"]
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_collaborators_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_collaborators_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies_billing"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_collaborators_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "marketplace_active_services"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "company_collaborators_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "public_company"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_collaborators_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "public_company_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_collaborators_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_collaborators_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "public_professionals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       company_domains: {
         Row: {
           company_id: string
@@ -8121,6 +8207,15 @@ export type Database = {
         Args: { p_client_id: string }
         Returns: boolean
       }
+      check_collaborator_permission: {
+        Args: {
+          p_action?: string
+          p_company_id: string
+          p_module: string
+          p_profile_id: string
+        }
+        Returns: boolean
+      }
       check_identification:
         | { Args: { p_email: string; p_whatsapp: string }; Returns: Json }
         | {
@@ -8338,6 +8433,7 @@ export type Database = {
           is_collaborator: boolean
           is_owner: boolean
           login_mode: string
+          permissions: Json
           profile_id: string
           roles: string[]
           user_id: string
@@ -8672,6 +8768,13 @@ export type Database = {
         | "no_show"
         | "rescheduled"
       business_type: "barbershop" | "esthetic"
+      collaborator_role:
+        | "professional"
+        | "receptionist"
+        | "manager"
+        | "admin"
+        | "administrative"
+        | "other"
       collaborator_type: "partner" | "commissioned" | "independent"
       commission_type: "percentage" | "fixed" | "none" | "own_revenue"
       event_status: "draft" | "published" | "cancelled" | "completed"
@@ -8865,6 +8968,14 @@ export const Constants = {
         "rescheduled",
       ],
       business_type: ["barbershop", "esthetic"],
+      collaborator_role: [
+        "professional",
+        "receptionist",
+        "manager",
+        "admin",
+        "administrative",
+        "other",
+      ],
       collaborator_type: ["partner", "commissioned", "independent"],
       commission_type: ["percentage", "fixed", "none", "own_revenue"],
       event_status: ["draft", "published", "cancelled", "completed"],

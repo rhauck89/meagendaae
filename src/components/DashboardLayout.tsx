@@ -35,48 +35,48 @@ import RoleSelectorDialog from './RoleSelectorDialog';
 
 const SIDEBAR_COLLAPSED_KEY = 'sidebar-collapsed';
 
-const adminNavItems = [
-  { href: '/dashboard', icon: Calendar, label: 'Agenda' },
-  { href: '/dashboard/services', icon: Scissors, label: 'Serviços' },
-  { href: '/dashboard/team', icon: Users, label: 'Equipe' },
-  { href: '/dashboard/clients', icon: UserCheck, label: 'Clientes' },
-  { href: '/dashboard/whatsapp', icon: MessageSquare, label: 'WhatsApp Center' },
-  { href: '/dashboard/events', icon: PartyPopper, label: 'Agenda Aberta' },
-  { href: '/dashboard/promotions', icon: Megaphone, label: 'Promoções' },
-  { href: '/dashboard/loyalty', icon: Star, label: 'Fidelidade' },
-  { href: '/dashboard/solicitacoes', icon: Inbox, label: 'Solicitações' },
+const allAdminNavItems = [
+  { href: '/dashboard', icon: Calendar, label: 'Agenda', permKey: 'agenda' },
+  { href: '/dashboard/services', icon: Scissors, label: 'Serviços', permKey: 'services' },
+  { href: '/dashboard/team', icon: Users, label: 'Equipe', permKey: 'team' },
+  { href: '/dashboard/clients', icon: UserCheck, label: 'Clientes', permKey: 'clients' },
+  { href: '/dashboard/whatsapp', icon: MessageSquare, label: 'WhatsApp Center', permKey: 'whatsapp' },
+  { href: '/dashboard/events', icon: PartyPopper, label: 'Agenda Aberta', permKey: 'events' },
+  { href: '/dashboard/promotions', icon: Megaphone, label: 'Promoções', permKey: 'promotions' },
+  { href: '/dashboard/loyalty', icon: Star, label: 'Fidelidade', permKey: 'loyalty' },
+  { href: '/dashboard/solicitacoes', icon: Inbox, label: 'Solicitações', permKey: 'requests' },
 ];
 
 
 const settingsSubItems = [
-  { href: '/dashboard/settings/general', icon: Settings, label: 'Geral' },
-  { href: '/dashboard/settings/security', icon: Lock, label: 'Segurança' },
-  { href: '/dashboard/settings/company', icon: Building2, label: 'Empresa' },
-  { href: '/dashboard/settings/schedule', icon: Clock, label: 'Agenda' },
-  { href: '/dashboard/settings/automation', icon: Zap, label: 'Automação' },
-  { href: '/dashboard/settings/branding', icon: Palette, label: 'Branding' },
-  { href: '/dashboard/settings/domain', icon: Globe, label: 'Domínio' },
-  { href: '/dashboard/settings/swap-history', icon: ArrowLeftRight, label: 'Trocas de Horário' },
-  { href: '/dashboard/settings/plan', icon: CreditCard, label: 'Plano' },
+  { href: '/dashboard/settings/general', icon: Settings, label: 'Geral', permKey: 'settings' },
+  { href: '/dashboard/settings/security', icon: Lock, label: 'Segurança', permKey: 'settings' },
+  { href: '/dashboard/settings/company', icon: Building2, label: 'Empresa', permKey: 'settings' },
+  { href: '/dashboard/settings/schedule', icon: Clock, label: 'Agenda', permKey: 'settings' },
+  { href: '/dashboard/settings/automation', icon: Zap, label: 'Automação', permKey: 'settings' },
+  { href: '/dashboard/settings/branding', icon: Palette, label: 'Branding', permKey: 'settings' },
+  { href: '/dashboard/settings/domain', icon: Globe, label: 'Domínio', permKey: 'settings' },
+  { href: '/dashboard/settings/swap-history', icon: ArrowLeftRight, label: 'Trocas de Horário', permKey: 'settings' },
+  { href: '/dashboard/settings/plan', icon: CreditCard, label: 'Plano', permKey: 'settings' },
 ];
 
 
 const financeSubItems = [
-  { href: '/dashboard/finance', icon: DollarSign, label: 'Dashboard' },
-  { href: '/dashboard/finance/transactions', icon: ArrowUpDown, label: 'Movimentações' },
-  { href: '/dashboard/finance/revenues', icon: TrendingUp, label: 'Receitas' },
-  { href: '/dashboard/finance/expenses', icon: TrendingDown, label: 'Despesas' },
-  { href: '/dashboard/finance/categories', icon: FolderOpen, label: 'Categorias' },
-  { href: '/dashboard/finance/commissions', icon: Percent, label: 'Comissões' },
-  { href: '/dashboard/finance/payables', icon: Receipt, label: 'Contas a Pagar' },
-  { href: '/dashboard/finance/receivables', icon: HandCoins, label: 'Contas a Receber' },
-  { href: '/dashboard/finance/reports', icon: FileBarChart, label: 'Relatórios' },
+  { href: '/dashboard/finance', icon: DollarSign, label: 'Dashboard', permKey: 'finance' },
+  { href: '/dashboard/finance/transactions', icon: ArrowUpDown, label: 'Movimentações', permKey: 'finance' },
+  { href: '/dashboard/finance/revenues', icon: TrendingUp, label: 'Receitas', permKey: 'finance' },
+  { href: '/dashboard/finance/expenses', icon: TrendingDown, label: 'Despesas', permKey: 'finance' },
+  { href: '/dashboard/finance/categories', icon: FolderOpen, label: 'Categorias', permKey: 'finance' },
+  { href: '/dashboard/finance/commissions', icon: Percent, label: 'Comissões', permKey: 'finance' },
+  { href: '/dashboard/finance/payables', icon: Receipt, label: 'Contas a Pagar', permKey: 'finance' },
+  { href: '/dashboard/finance/receivables', icon: HandCoins, label: 'Contas a Receber', permKey: 'finance' },
+  { href: '/dashboard/finance/reports', icon: FileBarChart, label: 'Relatórios', permKey: 'reports' },
 ];
 
 const subscriptionSubItems = [
-  { href: '/dashboard/subscriptions/subscribers', icon: Users, label: 'Assinantes' },
-  { href: '/dashboard/subscriptions/plans', icon: ClipboardList, label: 'Planos' },
-  { href: '/dashboard/subscriptions/charges', icon: CreditCard, label: 'Cobranças' },
+  { href: '/dashboard/subscriptions/subscribers', icon: Users, label: 'Assinantes', permKey: 'subscriptions' },
+  { href: '/dashboard/subscriptions/plans', icon: ClipboardList, label: 'Planos', permKey: 'subscriptions' },
+  { href: '/dashboard/subscriptions/charges', icon: CreditCard, label: 'Cobranças', permKey: 'subscriptions' },
 ];
 
 const professionalFinanceSubItems = [
@@ -151,8 +151,14 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
 
   const professionalNavItems = allProfessionalNavItems.filter(item => {
     if (!item.permKey) return true;
-    return profPerms[item.permKey];
+    return (profPerms as any)[item.permKey];
   });
+  
+  const adminNavItems = allAdminNavItems.filter(item => {
+    if (!item.permKey) return true;
+    return (profPerms as any)[item.permKey];
+  });
+
   const navItems = isAdmin ? adminNavItems : professionalNavItems;
 
   const handleRoleSelect = (mode: 'admin' | 'professional') => {
@@ -364,8 +370,15 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
     isActive: boolean,
     open: boolean,
     setOpen: (v: boolean) => void,
-    subItems: typeof settingsSubItems,
+    subItems: any[],
   ) => {
+    const filteredSubItems = subItems.filter(item => {
+      if (!item.permKey) return true;
+      return (profPerms as any)[item.permKey];
+    });
+
+    if (filteredSubItems.length === 0) return null;
+
     if (collapsed) {
       return (
         <Popover>
@@ -387,7 +400,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
           <PopoverContent side="right" align="start" sideOffset={8} className="w-52 p-2 rounded-xl shadow-lg border bg-popover">
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-2 pb-1.5 mb-1 border-b">{label}</p>
             <div className="space-y-0.5">
-              {subItems.map((item) => {
+              {filteredSubItems.map((item) => {
                 const active = location.pathname === item.href;
                 return (
                   <Link

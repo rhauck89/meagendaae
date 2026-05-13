@@ -40,7 +40,71 @@ const SYSTEM_ROLES = {
   admin: { label: 'Admin', icon: Shield, color: 'bg-blue-100 text-blue-800 border-blue-300' },
   admin_financeiro: { label: 'Admin Financeiro', icon: DollarSign, color: 'bg-green-100 text-green-800 border-green-300' },
   manager: { label: 'Gerente', icon: Briefcase, color: 'bg-purple-100 text-purple-800 border-purple-300' },
-  collaborator: { label: 'Funcionário', icon: Users, color: 'bg-slate-100 text-slate-800 border-slate-300' },
+  receptionist: { label: 'Recepcionista', icon: Users, color: 'bg-orange-100 text-orange-800 border-orange-300' },
+  collaborator: { label: 'Profissional', icon: Users, color: 'bg-slate-100 text-slate-800 border-slate-300' },
+};
+
+const PERMISSION_PRESETS: Record<string, any> = {
+  admin: {
+    agenda: { view: true, create: true, edit: true, delete: true },
+    services: { view: true, create: true, edit: true, delete: true },
+    team: { view: true, create: true, edit: true, delete: true },
+    clients: { view: true, create: true, edit: true, delete: true },
+    whatsapp: { view: true },
+    subscriptions: { view: true, create: true, edit: true, delete: true },
+    events: { view: true, create: true, edit: true, delete: true },
+    promotions: { view: true, create: true, edit: true, delete: true },
+    loyalty: { view: true, create: true, edit: true, delete: true },
+    requests: { view: true, create: true, edit: true, delete: true },
+    finance: { view: true, create: true, edit: true, delete: true, view_values: true },
+    settings: { view: true, edit: true },
+    reports: { view: true }
+  },
+  manager: {
+    agenda: { view: true, create: true, edit: true, delete: true },
+    services: { view: true, create: true, edit: true, delete: true },
+    team: { view: true, create: true, edit: true, delete: false },
+    clients: { view: true, create: true, edit: true, delete: true },
+    whatsapp: { view: true },
+    subscriptions: { view: true, create: true, edit: true, delete: false },
+    events: { view: true, create: true, edit: true, delete: true },
+    promotions: { view: true, create: true, edit: true, delete: true },
+    loyalty: { view: true, create: true, edit: true, delete: true },
+    requests: { view: true, create: true, edit: true, delete: true },
+    finance: { view: true, create: false, edit: false, delete: false, view_values: true },
+    settings: { view: true, edit: false },
+    reports: { view: true }
+  },
+  receptionist: {
+    agenda: { view: true, create: true, edit: true, delete: false },
+    services: { view: true, create: false, edit: false, delete: false },
+    team: { view: true, create: false, edit: false, delete: false },
+    clients: { view: true, create: true, edit: true, delete: false },
+    whatsapp: { view: true },
+    subscriptions: { view: false },
+    events: { view: true, create: true, edit: true, delete: false },
+    promotions: { view: true },
+    loyalty: { view: true },
+    requests: { view: true, create: true, edit: true, delete: false },
+    finance: { view: false },
+    settings: { view: false },
+    reports: { view: false }
+  },
+  collaborator: {
+    agenda: { view: true, create: false, edit: false, delete: false },
+    services: { view: false },
+    team: { view: false },
+    clients: { view: true, create: false, edit: false, delete: false },
+    whatsapp: { view: false },
+    subscriptions: { view: false },
+    events: { view: false },
+    promotions: { view: false },
+    loyalty: { view: false },
+    requests: { view: true },
+    finance: { view: false },
+    settings: { view: false },
+    reports: { view: false }
+  }
 };
 const WIZARD_STEPS = 5;
 
@@ -117,6 +181,8 @@ const Team = () => {
     use_company_banner: true,
     schedule_from_company: true,
     system_role: 'collaborator' as string,
+    is_service_provider: true,
+    permissions: PERMISSION_PRESETS.collaborator as any,
   });
 
   // Fetch company services for step 3
@@ -205,7 +271,7 @@ const Team = () => {
   const activeCollaborators = collaborators.filter((c) => c.active !== false);
   const disabledCollaborators = collaborators.filter((c) => c.active === false);
 
-  // Aggregated appointments query â€” fetch today's appointments for all professionals at once
+  // Aggregated appointments query — fetch today's appointments for all professionals at once
   const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
   const todayEnd = new Date(); todayEnd.setHours(23, 59, 59, 999);
   const professionalIds = collaborators.map((c) => c.profile_id).filter(Boolean);
@@ -281,6 +347,8 @@ const Team = () => {
       use_company_banner: true,
       schedule_from_company: true,
       system_role: 'collaborator',
+      is_service_provider: true,
+      permissions: PERMISSION_PRESETS.collaborator,
     });
     setWizardBM({
       business_model: 'employee',
@@ -353,11 +421,13 @@ const Team = () => {
           booking_mode: bookingMode,
           grid_interval: gridInterval,
           break_time: form.break_time,
-          service_ids: form.selectedServiceIds,
+          service_ids: form.is_service_provider ? form.selectedServiceIds : [],
           has_system_access: form.has_system_access,
           is_admin_self: form.is_admin_self,
           system_role: form.is_admin_self ? 'admin_principal' : form.system_role,
           use_company_banner: form.use_company_banner,
+          is_service_provider: form.is_service_provider,
+          permissions: form.permissions,
         },
       });
 
@@ -645,7 +715,7 @@ const Team = () => {
       setAbsenceDialogOpen(false);
       await refreshTeam();
     } catch (err: any) {
-      toast.error(err.message || 'Erro ao salvar ausÃªncia');
+      toast.error(err.message || 'Erro ao salvar ausência');
     }
   };
 
@@ -688,7 +758,7 @@ const Team = () => {
     if (type === 'own_revenue') return 'Receita própria';
     if (type === 'percentage') return `${value}%`;
     if (type === 'fixed') return `R$ ${Number(value).toFixed(2)}/serviço`;
-    return 'Sem comissÃ£o';
+    return 'Sem comissão';
   };
 
   const getCollaboratorProfileLink = (collaborator: any) => {
@@ -883,7 +953,7 @@ const Team = () => {
   const bookingModeLabel = (mode: string) => {
     if (mode === 'intelligent') return 'Inteligente';
     if (mode === 'fixed_grid') return 'Grade fixa';
-    return 'HÃ­brida';
+    return 'Híbrida';
   };
 
   return (
@@ -908,13 +978,13 @@ const Team = () => {
           <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>
-                {createdCredentials ? 'Profissional Criado!' : `Novo Profissional â€” Etapa ${wizardStep} de ${WIZARD_STEPS}`}
+                {createdCredentials ? 'Profissional Criado!' : `Novo Profissional — Etapa ${wizardStep} de ${WIZARD_STEPS}`}
               </DialogTitle>
             </DialogHeader>
 
             {createdCredentials ? (() => {
               const loginUrl = `${window.location.origin}/auth`;
-              const fullMessage = `ðŸ” *Acesso ao sistema*\n\nðŸ“Ž Link de login: ${loginUrl}\nðŸ“§ Email: ${createdCredentials.email}\nðŸ”‘ Senha temporÃ¡ria: ${createdCredentials.password}\n\nðŸ“Œ Link de agendamento:\n${createdCredentials.link}\n\nâš ï¸ Troque sua senha apÃ³s o primeiro login.`;
+              const fullMessage = `ðŸ” *Acesso ao sistema*\n\nðŸ“Ž Link de login: ${loginUrl}\nðŸ“§ Email: ${createdCredentials.email}\nðŸ”‘ Senha temporária: ${createdCredentials.password}\n\nðŸ“Œ Link de agendamento:\n${createdCredentials.link}\n\nâš ï¸ Troque sua senha após o primeiro login.`;
               const whatsAppUrl = buildWhatsAppUrl('', fullMessage);
               return (
               <div className="space-y-4">
@@ -929,7 +999,7 @@ const Team = () => {
                     <p className="font-mono text-sm">{createdCredentials.email}</p>
                   </div>
                   <div>
-                    <p className="text-xs text-muted-foreground">Senha temporÃ¡ria</p>
+                    <p className="text-xs text-muted-foreground">Senha temporária</p>
                     <p className="font-mono text-sm">{createdCredentials.password}</p>
                   </div>
                   <div>
@@ -937,7 +1007,7 @@ const Team = () => {
                     <p className="font-mono text-xs break-all">{createdCredentials.link}</p>
                   </div>
                 </div>
-                <p className="text-xs text-muted-foreground">O profissional pode alterar a senha apÃ³s o primeiro login.</p>
+                <p className="text-xs text-muted-foreground">O profissional pode alterar a senha após o primeiro login.</p>
                 <div className="flex gap-2">
                   <Button variant="outline" className="flex-1" onClick={() => copyToClipboard(fullMessage, 'Dados de acesso')}>
                     <Copy className="mr-2 h-4 w-4" /> Copiar acesso
@@ -976,7 +1046,7 @@ const Team = () => {
                       <Input value={form.whatsapp} onChange={(e) => setForm({ ...form, whatsapp: e.target.value })} placeholder="(31) 99999-9999" />
                     </div>
                     <div className="space-y-2">
-                      <Label>FunÃ§Ã£o</Label>
+                      <Label>Função</Label>
                       <Select value={form.role_title} onValueChange={(v) => setForm({ ...form, role_title: v })}>
                         <SelectTrigger><SelectValue /></SelectTrigger>
                         <SelectContent>
@@ -986,67 +1056,111 @@ const Team = () => {
                         </SelectContent>
                       </Select>
                     </div>
-                    {/* Modelo Comercial (unificado) â€” mesma lÃ³gica e visual da tela de ediÃ§Ã£o */}
-                    <div className="space-y-2">
-                      <Label>ðŸ’° Modelo Comercial</Label>
-                      <Select
-                        value={wizardBM.business_model}
-                        onValueChange={(v) => setWizardBM({ ...wizardBM, business_model: v as BusinessModel })}
-                      >
-                        <SelectTrigger><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          {(Object.keys(BUSINESS_MODEL_LABELS) as BusinessModel[]).map((bm) => (
-                            <SelectItem key={bm} value={bm}>{BUSINESS_MODEL_LABELS[bm]}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <div className="rounded-lg border bg-muted/30 p-3 text-xs text-muted-foreground">
-                        {BUSINESS_MODEL_DESCRIPTIONS[wizardBM.business_model]}
-                      </div>
-                    </div>
 
-                    {/* FuncionÃ¡rio */}
-                    {wizardBM.business_model === 'employee' && (
-                      <div className="space-y-3 rounded-lg border p-4">
-                        <Label className="text-sm font-medium">Como ele Ã© remunerado?</Label>
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label>Tipo de membro</Label>
                         <Select
-                          value={wizardBM.commission_type}
-                          onValueChange={(v) => setWizardBM({ ...wizardBM, commission_type: v as any })}
+                          value={form.system_role}
+                          onValueChange={(v) => {
+                            setForm({ 
+                              ...form, 
+                              system_role: v,
+                              permissions: PERMISSION_PRESETS[v] || form.permissions
+                            });
+                          }}
                         >
                           <SelectTrigger><SelectValue /></SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="none">SalÃ¡rio fixo (controlado fora do sistema)</SelectItem>
-                            <SelectItem value="percentage">ComissÃ£o %</SelectItem>
-                            <SelectItem value="fixed">Valor fixo por serviÃ§o</SelectItem>
+                            {Object.entries(SYSTEM_ROLES)
+                              .filter(([key]) => key !== 'admin_principal')
+                              .map(([key, role]) => (
+                                <SelectItem key={key} value={key}>
+                                  <div className="flex items-center gap-2">
+                                    <role.icon className="h-4 w-4" />
+                                    {role.label}
+                                  </div>
+                                </SelectItem>
+                              ))}
                           </SelectContent>
                         </Select>
-                        {wizardBM.commission_type === 'percentage' && (
-                          <div className="space-y-2">
-                            <Label className="text-xs">ComissÃ£o do profissional (%)</Label>
-                            <Input
-                              type="number"
-                              value={wizardBM.commission_value || ''}
-                              onChange={(e) => setWizardBM({ ...wizardBM, commission_value: Number(e.target.value) || 0 })}
-                              placeholder="Ex: 30"
-                            />
-                          </div>
-                        )}
-                        {wizardBM.commission_type === 'fixed' && (
-                          <div className="space-y-2">
-                            <Label className="text-xs">Valor por serviÃ§o (R$)</Label>
-                            <Input
-                              type="number"
-                              step="0.01"
-                              value={wizardBM.commission_value || ''}
-                              onChange={(e) => setWizardBM({ ...wizardBM, commission_value: Number(e.target.value) || 0 })}
-                              placeholder="Ex: 25.00"
-                            />
-                          </div>
-                        )}
                       </div>
+
+                      <div className="flex items-center justify-between p-3 rounded-lg border">
+                        <div>
+                          <p className="text-sm font-medium">Este membro presta serviços?</p>
+                          <p className="text-xs text-muted-foreground">Habilita agenda, serviços e comissões</p>
+                        </div>
+                        <Switch
+                          checked={form.is_service_provider}
+                          onCheckedChange={(checked) => setForm({ ...form, is_service_provider: checked })}
+                        />
+                      </div>
+                    </div>
+
+                    {form.is_service_provider && (
+                      <>
+                        <div className="space-y-2">
+                          <Label>💰 Modelo Comercial</Label>
+                          <Select
+                            value={wizardBM.business_model}
+                            onValueChange={(v) => setWizardBM({ ...wizardBM, business_model: v as BusinessModel })}
+                          >
+                            <SelectTrigger><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              {(Object.keys(BUSINESS_MODEL_LABELS) as BusinessModel[]).map((bm) => (
+                                <SelectItem key={bm} value={bm}>{BUSINESS_MODEL_LABELS[bm]}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <div className="rounded-lg border bg-muted/30 p-3 text-xs text-muted-foreground">
+                            {BUSINESS_MODEL_DESCRIPTIONS[wizardBM.business_model]}
+                          </div>
+                        </div>
+
+                        {wizardBM.business_model === 'employee' && (
+                          <div className="space-y-3 rounded-lg border p-4">
+                            <Label className="text-sm font-medium">Como ele é remunerado?</Label>
+                            <Select
+                              value={wizardBM.commission_type}
+                              onValueChange={(v) => setWizardBM({ ...wizardBM, commission_type: v as any })}
+                            >
+                              <SelectTrigger><SelectValue /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="none">Salário fixo (controlado fora do sistema)</SelectItem>
+                                <SelectItem value="percentage">Comissão %</SelectItem>
+                                <SelectItem value="fixed">Valor fixo por serviço</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            {wizardBM.commission_type === 'percentage' && (
+                              <div className="space-y-2">
+                                <Label className="text-xs">Comissão do profissional (%)</Label>
+                                <Input
+                                  type="number"
+                                  value={wizardBM.commission_value || ''}
+                                  onChange={(e) => setWizardBM({ ...wizardBM, commission_value: Number(e.target.value) || 0 })}
+                                  placeholder="Ex: 30"
+                                />
+                              </div>
+                            )}
+                            {wizardBM.commission_type === 'fixed' && (
+                              <div className="space-y-2">
+                                <Label className="text-xs">Valor por serviço (R$)</Label>
+                                <Input
+                                  type="number"
+                                  step="0.01"
+                                  value={wizardBM.commission_value || ''}
+                                  onChange={(e) => setWizardBM({ ...wizardBM, commission_value: Number(e.target.value) || 0 })}
+                                  placeholder="Ex: 25.00"
+                                />
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </>
                     )}
 
-                    {/* Parceiro com comissÃ£o */}
+                    {/* Parceiro com comissão */}
                     {wizardBM.business_model === 'partner_commission' && (
                       <div className="space-y-3 rounded-lg border p-4">
                         <div className="space-y-2">
@@ -1094,16 +1208,16 @@ const Team = () => {
                           </div>
                         </div>
                         <p className="text-xs text-muted-foreground">
-                          A receita dos serviÃ§os fica 100% com o profissional. O aluguel deve ser lanÃ§ado manualmente em Contas a Receber.
+                          A receita dos serviços fica 100% com o profissional. O aluguel deve ser lançado manualmente em Contas a Receber.
                         </p>
                       </div>
                     )}
 
-                    {/* SÃ³cio Investidor */}
+                    {/* Sócio Investidor */}
                     {wizardBM.business_model === 'investor_partner' && (
                       <div className="space-y-3 rounded-lg border p-4">
                         <div className="space-y-2">
-                          <Label className="text-sm font-medium">% de participaÃ§Ã£o societÃ¡ria</Label>
+                          <Label className="text-sm font-medium">% de participação societária</Label>
                           <Input
                             type="number"
                             step="0.01"
@@ -1115,7 +1229,7 @@ const Team = () => {
                       </div>
                     )}
 
-                    {/* SÃ³cio Operacional */}
+                    {/* Sócio Operacional */}
                     {wizardBM.business_model === 'operating_partner' && (
                       <div className="space-y-3 rounded-lg border p-4">
                         <div className="space-y-2">
@@ -1134,7 +1248,7 @@ const Team = () => {
                         </div>
                         {wizardBM.partner_revenue_mode === 'percent_to_company' && (
                           <div className="space-y-2">
-                            <Label className="text-xs">% que fica com o sÃ³cio</Label>
+                            <Label className="text-xs">% que fica com o sócio</Label>
                             <Input
                               type="number"
                               value={wizardBM.commission_value || ''}
@@ -1147,7 +1261,7 @@ const Team = () => {
                           </div>
                         )}
                         <div className="space-y-2">
-                          <Label className="text-xs">% societÃ¡rio (opcional)</Label>
+                          <Label className="text-xs">% societário (opcional)</Label>
                           <Input
                             type="number"
                             step="0.01"
@@ -1156,7 +1270,7 @@ const Team = () => {
                             placeholder="Ex: 50"
                           />
                           <p className="text-xs text-muted-foreground">
-                            Usado para divisÃ£o futura do lucro da empresa (relatÃ³rio).
+                            Usado para divisão futura do lucro da empresa (relatório).
                           </p>
                         </div>
                       </div>
@@ -1165,14 +1279,14 @@ const Team = () => {
                     {/* Externo */}
                     {wizardBM.business_model === 'external' && (
                       <div className="rounded-lg border bg-muted/30 p-4 text-sm text-muted-foreground">
-                        Este profissional usa apenas a agenda. Nenhum campo financeiro Ã© necessÃ¡rio.
+                        Este profissional usa apenas a agenda. Nenhum campo financeiro Ã© necessário.
                       </div>
                     )}
                     <Button className="w-full" onClick={() => {
                       if (!form.name.trim()) return toast.error('Preencha o nome');
                       setWizardStep(2);
                     }}>
-                      PrÃ³ximo <ChevronRight className="ml-2 h-4 w-4" />
+                      Próximo <ChevronRight className="ml-2 h-4 w-4" />
                     </Button>
                   </div>
                 )}
@@ -1185,7 +1299,7 @@ const Team = () => {
                     <div className="flex items-center justify-between p-3 rounded-lg border">
                       <div>
                         <p className="text-sm font-medium">Acesso ao sistema</p>
-                        <p className="text-xs text-muted-foreground">O profissional terÃ¡ login e painel prÃ³prio</p>
+                        <p className="text-xs text-muted-foreground">O profissional terá login e painel próprio</p>
                       </div>
                       <Switch
                         checked={form.has_system_access}
@@ -1200,8 +1314,8 @@ const Team = () => {
                           if (alreadyLinked) {
                             return (
                               <div className="p-3 rounded-lg border bg-amber-50/50 border-amber-200">
-                                <p className="text-sm font-medium text-amber-800">Seu login jÃ¡ estÃ¡ vinculado ao profissional {alreadyLinked.profile?.full_name}</p>
-                                <p className="text-xs text-amber-700 mt-1">Para criar outro administrador, convide um novo usuÃ¡rio informando o e-mail dele abaixo.</p>
+                                <p className="text-sm font-medium text-amber-800">Seu login já está vinculado ao profissional {alreadyLinked.profile?.full_name}</p>
+                                <p className="text-xs text-amber-700 mt-1">Para criar outro administrador, convide um novo usuário informando o e-mail dele abaixo.</p>
                               </div>
                             );
                           }
@@ -1228,10 +1342,14 @@ const Team = () => {
                             </div>
                             
                             <div className="space-y-2">
-                              <Label>NÃ­vel de permissÃ£o</Label>
+                              <Label>Nível de permissão</Label>
                               <Select 
                                 value={form.system_role} 
-                                onValueChange={(v) => setForm({ ...form, system_role: v })}
+                                onValueChange={(v) => setForm({ 
+                                  ...form, 
+                                  system_role: v,
+                                  permissions: PERMISSION_PRESETS[v] || form.permissions
+                                })}
                               >
                                 <SelectTrigger><SelectValue /></SelectTrigger>
                                 <SelectContent>
@@ -1250,12 +1368,66 @@ const Team = () => {
                             </div>
                           </div>
                         )}
+                        
+                        <div className="space-y-4 mt-6 border-t pt-4">
+                          <Label className="text-base font-bold">Permissões de acesso</Label>
+                          <p className="text-xs text-muted-foreground mb-4">
+                            Configure o que este membro pode acessar no painel administrativo.
+                          </p>
+                          
+                          <div className="space-y-6 max-h-[400px] overflow-y-auto pr-2">
+                            {Object.entries(form.permissions || {}).map(([module, perms]: [string, any]) => (
+                              <div key={module} className="space-y-3 p-3 rounded-lg border bg-muted/30">
+                                <div className="flex items-center justify-between border-b pb-2 mb-2">
+                                  <span className="font-bold text-sm uppercase tracking-wider">{module}</span>
+                                  <Switch 
+                                    checked={perms.view}
+                                    onCheckedChange={(checked) => {
+                                      const newPerms = { ...form.permissions };
+                                      newPerms[module] = { ...newPerms[module], view: checked };
+                                      setForm({ ...form, permissions: newPerms });
+                                    }}
+                                  />
+                                </div>
+                                {perms.view && (
+                                  <div className="grid grid-cols-2 gap-4">
+                                    {['create', 'edit', 'delete', 'view_values'].map((action) => {
+                                      if (action === 'view_values' && module !== 'finance') return null;
+                                      if (['whatsapp', 'reports', 'settings'].includes(module) && action !== 'edit' && action !== 'view_values') return null;
+                                      
+                                      const label = action === 'create' ? 'Criar' : 
+                                                    action === 'edit' ? 'Editar' : 
+                                                    action === 'delete' ? 'Excluir' : 'Ver valores';
+                                      
+                                      return (
+                                        <div key={action} className="flex items-center gap-2">
+                                          <Checkbox 
+                                            id={`perm-${module}-${action}`}
+                                            checked={perms[action] || false}
+                                            onCheckedChange={(checked) => {
+                                              const newPerms = { ...form.permissions };
+                                              newPerms[module] = { ...newPerms[module], [action]: !!checked };
+                                              setForm({ ...form, permissions: newPerms });
+                                            }}
+                                          />
+                                          <Label htmlFor={`perm-${module}-${action}`} className="text-xs font-medium cursor-pointer">
+                                            {label}
+                                          </Label>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
                       </>
                     )}
 
                     {!form.has_system_access && (
                       <div className="rounded-lg bg-muted/50 p-3">
-                        <p className="text-xs text-muted-foreground">O profissional aparecerÃ¡ na agenda e pÃ¡gina pÃºblica, mas nÃ£o terÃ¡ login no sistema.</p>
+                        <p className="text-xs text-muted-foreground">O profissional aparecerá na agenda e página pÃºblica, mas não terá login no sistema.</p>
                       </div>
                     )}
 
@@ -1269,7 +1441,7 @@ const Team = () => {
                         }
                         setWizardStep(3);
                       }}>
-                        PrÃ³ximo <ChevronRight className="ml-2 h-4 w-4" />
+                        Próximo <ChevronRight className="ml-2 h-4 w-4" />
                       </Button>
                     </div>
                   </div>
@@ -1278,12 +1450,12 @@ const Team = () => {
                 {/* Step 3: Schedule Config */}
                 {wizardStep === 3 && (
                   <div className="space-y-4">
-                    <p className="text-sm text-muted-foreground">Configure como a agenda do profissional irÃ¡ funcionar.</p>
+                    <p className="text-sm text-muted-foreground">Configure como a agenda do profissional irá funcionar.</p>
                     
                      <div className="flex items-center justify-between p-3 rounded-lg border">
                       <div>
-                        <p className="text-sm font-medium">Usar padrÃ£o da empresa</p>
-                        <p className="text-xs text-muted-foreground">Aplica as configuraÃ§Ãµes de agenda da empresa</p>
+                        <p className="text-sm font-medium">Usar padrão da empresa</p>
+                        <p className="text-xs text-muted-foreground">Aplica as configurações de agenda da empresa</p>
                       </div>
                       <Switch
                         checked={form.schedule_from_company}
@@ -1295,7 +1467,7 @@ const Team = () => {
                     {!(company as any)?.prof_perm_booking_mode && !(company as any)?.prof_perm_grid_interval && (
                       <div className="p-3 rounded-lg bg-muted/50 border flex items-center gap-2 text-xs text-muted-foreground">
                         <Lock className="h-3 w-3 shrink-0" />
-                        ConfiguraÃ§Ã£o definida pela empresa. O administrador nÃ£o liberou personalizaÃ§Ã£o.
+                        Configuração definida pela empresa. O administrador não liberou personalização.
                       </div>
                     )}
 
@@ -1310,19 +1482,19 @@ const Team = () => {
                                 <SelectItem value="intelligent">
                                   <div className="flex flex-col items-start">
                                     <span>Inteligente</span>
-                                    <span className="text-xs text-muted-foreground">HorÃ¡rios calculados dinamicamente</span>
+                                    <span className="text-xs text-muted-foreground">Horários calculados dinamicamente</span>
                                   </div>
                                 </SelectItem>
                                 <SelectItem value="fixed_grid">
                                   <div className="flex flex-col items-start">
                                     <span>Grade fixa</span>
-                                    <span className="text-xs text-muted-foreground">Intervalos fixos de horÃ¡rio</span>
+                                    <span className="text-xs text-muted-foreground">Intervalos fixos de horário</span>
                                   </div>
                                 </SelectItem>
                                 <SelectItem value="hybrid">
                                   <div className="flex flex-col items-start">
-                                    <span>HÃ­brida (recomendado)</span>
-                                    <span className="text-xs text-muted-foreground">Grade fixa com validaÃ§Ã£o de duraÃ§Ã£o</span>
+                                    <span>Híbrida (recomendado)</span>
+                                    <span className="text-xs text-muted-foreground">Grade fixa com validação de duração</span>
                                   </div>
                                 </SelectItem>
                               </SelectContent>
@@ -1365,7 +1537,7 @@ const Team = () => {
                               {showsGrid ? (
                                 <p className="text-sm">Grade da agenda: <span className="font-medium">{(company as any)?.fixed_slot_interval || 15} min</span></p>
                               ) : (
-                                <p className="text-sm">HorÃ¡rios dinÃ¢micos por serviÃ§o</p>
+                                <p className="text-sm">Horários dinâmicos por serviço</p>
                               )}
                             </div>
                           );
@@ -1391,7 +1563,7 @@ const Team = () => {
                         <ChevronLeft className="mr-2 h-4 w-4" /> Voltar
                       </Button>
                       <Button className="flex-1" onClick={() => setWizardStep(4)}>
-                        PrÃ³ximo <ChevronRight className="ml-2 h-4 w-4" />
+                        Próximo <ChevronRight className="ml-2 h-4 w-4" />
                       </Button>
                     </div>
                   </div>
@@ -1661,10 +1833,10 @@ const Team = () => {
                   Agenda
                 </TabsTrigger>
                 <TabsTrigger value="services" className="data-[state=active]:bg-muted text-xs sm:text-sm">
-                  ServiÃ§os
+                  Serviços
                 </TabsTrigger>
                 <TabsTrigger value="public" className="data-[state=active]:bg-muted text-xs sm:text-sm">
-                  PÃ¡gina
+                  Página
                 </TabsTrigger>
               </TabsList>
             </div>
@@ -1697,7 +1869,7 @@ const Team = () => {
               {/* SECTION 2: Modelo Comercial (unificado) */}
               <TabsContent value="model" className="mt-0 space-y-5">
                 <div className="space-y-2">
-                  <Label>Tipo de relaÃ§Ã£o com a empresa</Label>
+                  <Label>Tipo de relação com a empresa</Label>
                   <Select
                     value={editBM.business_model}
                     onValueChange={(v) => setEditBM({ ...editBM, business_model: v as BusinessModel })}
@@ -1714,7 +1886,7 @@ const Team = () => {
                   </div>
                 </div>
 
-                {/* FuncionÃ¡rio */}
+                {/* Funcionário */}
                 {editBM.business_model === 'employee' && (
                   <div className="space-y-3 rounded-lg border p-4">
                     <Label className="text-sm font-medium">Como ele Ã© remunerado?</Label>
@@ -1724,14 +1896,14 @@ const Team = () => {
                     >
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="none">SalÃ¡rio fixo (controlado fora do sistema)</SelectItem>
-                        <SelectItem value="percentage">ComissÃ£o %</SelectItem>
-                        <SelectItem value="fixed">Valor fixo por serviÃ§o</SelectItem>
+                        <SelectItem value="none">Salário fixo (controlado fora do sistema)</SelectItem>
+                        <SelectItem value="percentage">Comissão %</SelectItem>
+                        <SelectItem value="fixed">Valor fixo por serviço</SelectItem>
                       </SelectContent>
                     </Select>
                     {editBM.commission_type === 'percentage' && (
                       <div className="space-y-2">
-                        <Label className="text-xs">ComissÃ£o do profissional (%)</Label>
+                        <Label className="text-xs">Comissão do profissional (%)</Label>
                         <Input
                           type="number"
                           value={editBM.commission_value || ''}
@@ -1742,7 +1914,7 @@ const Team = () => {
                     )}
                     {editBM.commission_type === 'fixed' && (
                       <div className="space-y-2">
-                        <Label className="text-xs">Valor por serviÃ§o (R$)</Label>
+                        <Label className="text-xs">Valor por serviço (R$)</Label>
                         <Input
                           type="number"
                           step="0.01"
@@ -1755,7 +1927,7 @@ const Team = () => {
                   </div>
                 )}
 
-                {/* Parceiro com comissÃ£o */}
+                {/* Parceiro com comissão */}
                 {editBM.business_model === 'partner_commission' && (
                   <div className="space-y-3 rounded-lg border p-4">
                     <div className="space-y-2">
@@ -1803,16 +1975,16 @@ const Team = () => {
                       </div>
                     </div>
                     <p className="text-xs text-muted-foreground">
-                      A receita dos serviÃ§os fica 100% com o profissional. O aluguel deve ser lanÃ§ado manualmente em Contas a Receber.
+                      A receita dos serviços fica 100% com o profissional. O aluguel deve ser lançado manualmente em Contas a Receber.
                     </p>
                   </div>
                 )}
 
-                {/* SÃ³cio Investidor */}
+                {/* Sócio Investidor */}
                 {editBM.business_model === 'investor_partner' && (
                   <div className="space-y-3 rounded-lg border p-4">
                     <div className="space-y-2">
-                      <Label className="text-sm font-medium">% de participaÃ§Ã£o societÃ¡ria</Label>
+                      <Label className="text-sm font-medium">% de participação societária</Label>
                       <Input
                         type="number"
                         step="0.01"
@@ -1824,7 +1996,7 @@ const Team = () => {
                   </div>
                 )}
 
-                {/* SÃ³cio Operacional */}
+                {/* Sócio Operacional */}
                 {editBM.business_model === 'operating_partner' && (
                   <div className="space-y-3 rounded-lg border p-4">
                     <div className="space-y-2">
@@ -1843,7 +2015,7 @@ const Team = () => {
                     </div>
                     {editBM.partner_revenue_mode === 'percent_to_company' && (
                       <div className="space-y-2">
-                        <Label className="text-xs">% que fica com o sÃ³cio</Label>
+                        <Label className="text-xs">% que fica com o sócio</Label>
                         <Input
                           type="number"
                           value={editBM.commission_value || ''}
@@ -1856,7 +2028,7 @@ const Team = () => {
                       </div>
                     )}
                     <div className="space-y-2">
-                      <Label className="text-xs">% societÃ¡rio (opcional)</Label>
+                      <Label className="text-xs">% societário (opcional)</Label>
                       <Input
                         type="number"
                         step="0.01"
@@ -1865,7 +2037,7 @@ const Team = () => {
                         placeholder="Ex: 50"
                       />
                       <p className="text-xs text-muted-foreground">
-                        Usado para divisÃ£o futura do lucro da empresa (relatÃ³rio).
+                        Usado para divisão futura do lucro da empresa (relatório).
                       </p>
                     </div>
                   </div>
@@ -1874,7 +2046,7 @@ const Team = () => {
                 {/* Externo */}
                 {editBM.business_model === 'external' && (
                   <div className="rounded-lg border bg-muted/30 p-4 text-sm text-muted-foreground">
-                    Este profissional usa apenas a agenda. Nenhum campo financeiro Ã© necessÃ¡rio.
+                    Este profissional usa apenas a agenda. Nenhum campo financeiro Ã© necessário.
                   </div>
                 )}
 
@@ -1889,7 +2061,7 @@ const Team = () => {
                   <p className="text-xs text-muted-foreground">
                     {editTarget?.has_system_access
                       ? 'Este profissional pode entrar no painel com seu e-mail.'
-                      : 'Este profissional nÃ£o tem login. Use as aÃ§Ãµes do card para conceder acesso.'}
+                      : 'Este profissional não tem login. Use as açÃµes do card para conceder acesso.'}
                   </p>
                 </div>
               </TabsContent>
@@ -1908,7 +2080,7 @@ const Team = () => {
                       <SelectContent>
                         <SelectItem value="intelligent">Inteligente</SelectItem>
                         <SelectItem value="fixed_grid">Grade fixa</SelectItem>
-                        <SelectItem value="hybrid">HÃ­brida (recomendado)</SelectItem>
+                        <SelectItem value="hybrid">Híbrida (recomendado)</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -1948,8 +2120,8 @@ const Team = () => {
                       </div>
                     ) : (
                       <div className="p-3 rounded-lg bg-muted/50 border">
-                        <p className="text-sm">HorÃ¡rios dinÃ¢micos por serviÃ§o</p>
-                        <p className="text-xs text-muted-foreground">A grade nÃ£o se aplica no modo Inteligente.</p>
+                        <p className="text-sm">Horários dinâmicos por serviço</p>
+                        <p className="text-xs text-muted-foreground">A grade não se aplica no modo Inteligente.</p>
                       </div>
                     );
                   }
@@ -1963,7 +2135,7 @@ const Team = () => {
                           Grade da agenda: <span className="font-medium">{(company as any)?.fixed_slot_interval || 15} min</span>
                         </p>
                       ) : (
-                        <p className="text-sm">HorÃ¡rios dinÃ¢micos por serviÃ§o</p>
+                        <p className="text-sm">Horários dinâmicos por serviço</p>
                       )}
                     </div>
                   );
@@ -1984,7 +2156,7 @@ const Team = () => {
                     </SelectContent>
                   </Select>
                   <p className="text-xs text-muted-foreground">
-                    Tempo de respiro entre um atendimento e outro (nÃ£o altera a grade da agenda).
+                    Tempo de respiro entre um atendimento e outro (não altera a grade da agenda).
                   </p>
                 </div>
               </TabsContent>
@@ -1996,7 +2168,7 @@ const Team = () => {
                     <Briefcase className="h-4 w-4 text-primary" />
                   </div>
                   <div className="min-w-0">
-                    <Label className="text-sm font-semibold">ServiÃ§os atendidos</Label>
+                    <Label className="text-sm font-semibold">Serviços atendidos</Label>
                     <p className="text-xs text-muted-foreground mt-0.5">
                       {editAssignedServiceIds.length} de {companyServices.length} selecionados
                     </p>
@@ -2008,7 +2180,7 @@ const Team = () => {
                   <div className="relative flex-1">
                     <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                     <Input
-                      placeholder="Buscar serviÃ§o..."
+                      placeholder="Buscar serviço..."
                       value={editServiceSearch}
                       onChange={(e) => setEditServiceSearch(e.target.value)}
                       className="pl-9 pr-8 h-9"
@@ -2042,7 +2214,7 @@ const Team = () => {
                               .delete()
                               .eq('professional_id', editTarget.profile_id);
                             setEditAssignedServiceIds([]);
-                            toast.success('Todos os serviÃ§os removidos');
+                            toast.success('Todos os serviços removidos');
                           } else {
                             // Select all (only those not already assigned)
                             const toAdd = allIds.filter(id => !editAssignedServiceIds.includes(id));
@@ -2055,10 +2227,10 @@ const Team = () => {
                               await supabase.from('service_professionals').insert(inserts as any);
                             }
                             setEditAssignedServiceIds(allIds);
-                            toast.success('Todos os serviÃ§os vinculados');
+                            toast.success('Todos os serviços vinculados');
                           }
                         } catch (err) {
-                          toast.error('Erro ao atualizar serviÃ§os');
+                          toast.error('Erro ao atualizar serviços');
                         }
                       }}
                     >
@@ -2080,8 +2252,8 @@ const Team = () => {
                       return (
                         <p className="text-sm text-muted-foreground text-center py-6">
                           {companyServices.length === 0
-                            ? 'Nenhum serviÃ§o cadastrado. Crie serviÃ§os primeiro em ServiÃ§os.'
-                            : 'Nenhum serviÃ§o encontrado.'}
+                            ? 'Nenhum serviço cadastrado. Crie serviços primeiro em Serviços.'
+                            : 'Nenhum serviço encontrado.'}
                         </p>
                       );
                     }
