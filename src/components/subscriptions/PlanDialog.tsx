@@ -54,6 +54,8 @@ const planSchema = z.object({
   valid_end_time: z.string().optional().nullable(),
   observations: z.string().optional(),
   is_active: z.boolean().default(true),
+  all_professionals: z.boolean().default(true),
+  participant_professionals: z.array(z.string()).default([]),
 });
 
 type PlanFormValues = z.infer<typeof planSchema>;
