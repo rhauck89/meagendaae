@@ -8433,6 +8433,7 @@ export type Database = {
           is_collaborator: boolean
           is_owner: boolean
           login_mode: string
+          permissions: Json
           profile_id: string
           roles: string[]
           user_id: string
