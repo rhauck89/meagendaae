@@ -1,7 +1,17 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { motion } from 'framer-motion';
-import { Crown, Check, Info, Sparkles, Calendar, MessageCircle } from 'lucide-react';
+import { Crown, Check, Info, Sparkles, Calendar, MessageCircle, Clock, X } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogBody,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { buildWhatsAppUrl, trackWhatsAppClick } from '@/lib/whatsapp';
 
