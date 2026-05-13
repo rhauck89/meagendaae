@@ -79,6 +79,9 @@ export function PlanDialog({
   const [services, setServices] = useState<any[]>([]);
   const [serviceSearch, setServiceSearch] = useState('');
   const [fetchingServices, setFetchingServices] = useState(false);
+  const [professionals, setProfessionals] = useState<any[]>([]);
+  const [fetchingProfessionals, setFetchingProfessionals] = useState(false);
+  const [professionalSearch, setProfessionalSearch] = useState('');
 
   const form = useForm<PlanFormValues>({
     resolver: zodResolver(planSchema),
