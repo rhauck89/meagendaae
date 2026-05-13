@@ -77,6 +77,23 @@ const ProfessionalFinance = () => {
     enabled: !!profile?.id,
   });
 
+  // Fetch professional commissions (for subscriptions, etc.)
+  const { data: directCommissions = [] } = useQuery({
+    queryKey: ['prof-finance-commissions', profile?.id, dateRange.start.toISOString(), dateRange.end.toISOString()],
+    queryFn: async () => {
+      if (!profile?.id) return [];
+      const { data } = await supabase
+        .from('professional_commissions')
+        .select('*')
+        .eq('professional_id', profile.id)
+        .gte('paid_at', dateRange.start.toISOString())
+        .lte('paid_at', dateRange.end.toISOString())
+        .order('paid_at', { ascending: false });
+      return data || [];
+    },
+    enabled: !!profile?.id,
+  });
+
   // Fetch service names
   const serviceIds = useMemo(() => {
     const ids = new Set<string>();
