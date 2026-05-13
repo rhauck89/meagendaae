@@ -260,6 +260,40 @@ export function PlanDialog({
     }
   };
 
+  const fetchProfessionals = async () => {
+    setFetchingProfessionals(true);
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, full_name, professional_type')
+        .eq('company_id', companyId)
+        .order('full_name');
+
+      if (error) throw error;
+      setProfessionals(data || []);
+    } catch (error: any) {
+      console.error('Error fetching professionals:', error);
+      toast.error('Erro ao buscar profissionais');
+    } finally {
+      setFetchingProfessionals(false);
+    }
+  };
+
+  const fetchPlanParticipants = async (planId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('subscription_plan_professionals')
+        .select('professional_id')
+        .eq('plan_id', planId);
+
+      if (error) throw error;
+      const participantIds = data?.map(p => p.professional_id) || [];
+      form.setValue('participant_professionals', participantIds);
+    } catch (error: any) {
+      console.error('Error fetching plan participants:', error);
+    }
+  };
+
   const onSubmit = async (values: PlanFormValues) => {
     setLoading(true);
     try {
