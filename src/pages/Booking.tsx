@@ -2445,7 +2445,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         p_total_price: finalPrice,
         p_client_name: clientForm.full_name ?? null,
         p_client_whatsapp: formattedWhatsapp ?? null,
-        p_notes: subBenefit?.benefit_applied ? `Agendamento com benefício de assinatura: ${subBenefit.plan_name}` : null,
+        p_notes: subBenefit?.benefit_applied ? `Agendamento com benefício de assinatura: ${subBenefit.plan_name}` : (rebookedNotes || null),
         p_promotion_id: persistenceData.promotionId || null,
         p_services: aptServicesPayload,
         p_cashback_ids: useCashback && cashbackCredits.length > 0 ? cashbackCredits.map(c => c.id) : [],
