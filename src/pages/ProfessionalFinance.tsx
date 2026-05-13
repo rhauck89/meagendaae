@@ -115,24 +115,33 @@ const ProfessionalFinance = () => {
     enabled: serviceIds.length > 0,
   });
 
-  // Calculate metrics
   const metrics = useMemo(() => {
-    const totalRevenue = appointments.reduce((sum: number, a: any) => sum + Number(a.total_price || 0), 0);
+    const apptRevenue = appointments.reduce((sum: number, a: any) => sum + Number(a.total_price || 0), 0);
+    const directCommRevenue = directCommissions.reduce((sum: number, c: any) => sum + Number(c.gross_amount || 0), 0);
+    const totalRevenue = apptRevenue + directCommRevenue;
+    
     const count = appointments.length;
-    const avgTicket = count > 0 ? totalRevenue / count : 0;
+    const avgTicket = count > 0 ? apptRevenue / count : 0;
 
     const collabType = collaborator?.collaborator_type || 'independent';
     const commType = collaborator?.commission_type || 'none';
     const commValue = collaborator?.commission_value || 0;
 
-    const { professionalValue, companyValue } = calculateFinancials(
-      totalRevenue, count, collabType, commType, commValue
+    const { professionalValue: apptProfValue } = calculateFinancials(
+      apptRevenue, count, collabType, commType, commValue
     );
+
+    const directProfValue = directCommissions.reduce((sum: number, c: any) => sum + Number(c.commission_amount || 0), 0);
+    const professionalValue = apptProfValue + directProfValue;
 
     // Today metrics
     const todayStr = format(new Date(), 'yyyy-MM-dd');
     const todayAppts = appointments.filter((a: any) => format(parseISO(a.start_time), 'yyyy-MM-dd') === todayStr);
     const todayRevenue = todayAppts.reduce((sum: number, a: any) => sum + Number(a.total_price || 0), 0);
+    
+    const todayDirectComms = directCommissions.filter((c: any) => format(parseISO(c.paid_at), 'yyyy-MM-dd') === todayStr);
+    const todayDirectProfValue = todayDirectComms.reduce((sum: number, c: any) => sum + Number(c.commission_amount || 0), 0);
+
     const todayFinancials = calculateFinancials(
       todayRevenue, todayAppts.length, collabType, commType, commValue
     );
@@ -142,15 +151,14 @@ const ProfessionalFinance = () => {
       count,
       avgTicket,
       professionalValue,
-      companyValue,
-      todayRevenue,
-      todayProfessionalValue: todayFinancials.professionalValue,
+      todayRevenue: todayRevenue + todayDirectComms.reduce((sum: number, c: any) => sum + Number(c.gross_amount || 0), 0),
+      todayProfessionalValue: todayFinancials.professionalValue + todayDirectProfValue,
       collabType,
       commType,
       commValue,
-      isCommissioned: collabType === 'commissioned',
+      isCommissioned: collabType === 'commissioned' || directCommissions.length > 0,
     };
-  }, [appointments, collaborator]);
+  }, [appointments, directCommissions, collaborator]);
 
   // Chart data - revenue by day
   const chartData = useMemo(() => {
