@@ -882,7 +882,7 @@ export default function ProfessionalPublicProfile() {
                   </p>
                 </div>
                 <Button
-                  onClick={() => navigate(`${bookingUrl}?rebook=1`)}
+                  onClick={() => navigate(`${bookingUrl}?rebook=1`, { state: { lastBooking } })}
                   className="h-11 px-5 rounded-xl font-bold whitespace-nowrap"
                   style={{ background: T.accent, color: '#1a1a1a' }}
                 >
