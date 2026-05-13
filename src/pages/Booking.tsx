@@ -566,7 +566,8 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         p_whatsapp: targetWhatsapp || null,
         p_professional_id: selectedProfessional || null,
         p_service_ids: selectedServices || [],
-        p_date: selectedDate ? format(selectedDate, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd')
+        p_date: selectedDate ? format(selectedDate, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'),
+        p_time: selectedTime || null
       } as any);
 
       if (error) {
