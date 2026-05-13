@@ -260,6 +260,58 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
   
   const [currentWeekStart, setCurrentWeekStart] = useState<Date>(startOfWeek(new Date(), { locale: ptBR }));
 
+  const fetchAllowedProfessionalsForSubscriptions = async (companyId: string, clientIdOrUserId: string) => {
+    try {
+      let cid = savedClientId;
+      if (!cid) {
+        const { data: client } = await supabase
+          .from('clients')
+          .select('id')
+          .eq('user_id', clientIdOrUserId)
+          .maybeSingle();
+        if (client) cid = client.id;
+      }
+
+      if (!cid) return;
+
+      const { data: subs } = await supabase
+        .from('client_subscriptions')
+        .select('plan_id, subscription_plans(all_professionals)')
+        .eq('client_id', cid)
+        .eq('status', 'active');
+
+      if (!subs || subs.length === 0) {
+        setAllowedProfessionalIds(null);
+        return;
+      }
+
+      const allAllowed = new Set<string>();
+      let hasAllProfsPlan = false;
+
+      for (const sub of subs) {
+        const plan = sub.subscription_plans as any;
+        if (plan?.all_professionals) {
+          hasAllProfsPlan = true;
+          break;
+        }
+
+        const { data: participants } = await supabase
+          .from('subscription_plan_professionals')
+          .select('professional_id')
+          .eq('plan_id', sub.plan_id);
+        
+        participants?.forEach(p => allAllowed.add(p.professional_id));
+      }
+
+      if (hasAllProfsPlan) {
+        setAllowedProfessionalIds(null);
+      } else {
+        setAllowedProfessionalIds(Array.from(allAllowed));
+      }
+    } catch (err) {
+      console.error('Error fetching allowed professionals:', err);
+    }
+  };
   // Refined Premium Flow States
   const [showOneClickCard, setShowOneClickCard] = useState(false);
   const [isChangingData, setIsChangingData] = useState(false);
@@ -314,6 +366,13 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
 
   const [subBenefit, setSubBenefit] = useState<any>(null);
   const [validatingSub, setValidatingSub] = useState(false);
+  const [allowedProfessionalIds, setAllowedProfessionalIds] = useState<string[] | null>(null);
+
+  useEffect(() => {
+    if (company?.id && (savedClientId || user?.id)) {
+      fetchAllowedProfessionalsForSubscriptions(company.id, (savedClientId || user?.id)!);
+    }
+  }, [company?.id, savedClientId, user?.id]);
 
   const isDark = businessType === 'barbershop';
   const bookingTimezone = companySettings?.timezone || DEFAULT_BOOKING_TIMEZONE;
@@ -1534,19 +1593,6 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
           // but if they exist, respect them.
           setServices(servicesRes.data || []);
         }
-
-        const { data: profHours } = await supabase
-          .from('professional_working_hours' as any)
-          .select('*')
-          .eq('professional_id', profileId);
-        if (profHours && (profHours as any[]).length > 0) {
-          setProfessionalHours(profHours as unknown as BusinessHours[]);
-        }
-
-        setProfessionals([{ id: prof.id, full_name: prof.name, avatar_url: prof.avatar_url }]);
-
-        // Fetch recent bookings for social proof
-        fetchRecentBookings(profileId);
       }
     }
 
@@ -1580,6 +1626,10 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
     const jumpTo = searchParams.get('jumpTo');
     if (jumpTo === 'datetime') {
       setStep('datetime');
+    }
+
+    if (savedClientId || user?.id) {
+      fetchAllowedProfessionalsForSubscriptions(comp.id, savedClientId || user?.id);
     }
 
     if (promoIdRef.current) {
@@ -3261,7 +3311,9 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
             </div>
             {/* Debug removido */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {professionals.map((p, idx) => {
+              {professionals
+                .filter(p => !allowedProfessionalIds || allowedProfessionalIds.includes(p.id))
+                .map((p, idx) => {
                 const sel = selectedProfessional === p.id;
                 const rating = professionalRatings[p.id];
                 return (

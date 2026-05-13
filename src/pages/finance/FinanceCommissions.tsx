@@ -244,7 +244,7 @@ const FinanceCommissions = () => {
           professionalValue: Number(c.commission_amount),
           companyValue: Number(c.company_net_amount),
           status: 'paid',
-          origin: 'Assinatura'
+          origin: c.source_type === 'subscription_charge' ? 'Assinatura (Comissão)' : 'Assinatura'
         }));
 
         const detailed = [...detailedApp, ...detailedComm].sort((a, b) => 

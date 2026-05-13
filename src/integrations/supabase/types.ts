@@ -6295,8 +6295,90 @@ export type Database = {
           },
         ]
       }
+      subscription_plan_professionals: {
+        Row: {
+          company_id: string
+          created_at: string
+          id: string
+          plan_id: string
+          professional_id: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          id?: string
+          plan_id: string
+          professional_id: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          id?: string
+          plan_id?: string
+          professional_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscription_plan_professionals_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscription_plan_professionals_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies_billing"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscription_plan_professionals_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "marketplace_active_services"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "subscription_plan_professionals_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "public_company"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscription_plan_professionals_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "public_company_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscription_plan_professionals_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "subscription_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscription_plan_professionals_professional_id_fkey"
+            columns: ["professional_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscription_plan_professionals_professional_id_fkey"
+            columns: ["professional_id"]
+            isOneToOne: false
+            referencedRelation: "public_professionals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       subscription_plans: {
         Row: {
+          all_professionals: boolean | null
           company_id: string
           created_at: string
           description: string | null
@@ -6316,6 +6398,7 @@ export type Database = {
           valid_start_time: string | null
         }
         Insert: {
+          all_professionals?: boolean | null
           company_id: string
           created_at?: string
           description?: string | null
@@ -6335,6 +6418,7 @@ export type Database = {
           valid_start_time?: string | null
         }
         Update: {
+          all_professionals?: boolean | null
           company_id?: string
           created_at?: string
           description?: string | null

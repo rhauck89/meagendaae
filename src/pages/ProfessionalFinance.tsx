@@ -7,6 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
 import { DollarSign, TrendingUp, Users, Target, Percent } from 'lucide-react';
 import { useFinancialPrivacy } from '@/contexts/FinancialPrivacyContext';
 import FinancialPrivacyToggle from '@/components/FinancialPrivacyToggle';
@@ -77,6 +78,23 @@ const ProfessionalFinance = () => {
     enabled: !!profile?.id,
   });
 
+  // Fetch professional commissions (for subscriptions, etc.)
+  const { data: directCommissions = [] } = useQuery({
+    queryKey: ['prof-finance-commissions', profile?.id, dateRange.start.toISOString(), dateRange.end.toISOString()],
+    queryFn: async () => {
+      if (!profile?.id) return [];
+      const { data } = await supabase
+        .from('professional_commissions')
+        .select('*')
+        .eq('professional_id', profile.id)
+        .gte('paid_at', dateRange.start.toISOString())
+        .lte('paid_at', dateRange.end.toISOString())
+        .order('paid_at', { ascending: false });
+      return data || [];
+    },
+    enabled: !!profile?.id,
+  });
+
   // Fetch service names
   const serviceIds = useMemo(() => {
     const ids = new Set<string>();
@@ -98,24 +116,33 @@ const ProfessionalFinance = () => {
     enabled: serviceIds.length > 0,
   });
 
-  // Calculate metrics
   const metrics = useMemo(() => {
-    const totalRevenue = appointments.reduce((sum: number, a: any) => sum + Number(a.total_price || 0), 0);
+    const apptRevenue = appointments.reduce((sum: number, a: any) => sum + Number(a.total_price || 0), 0);
+    const directCommRevenue = directCommissions.reduce((sum: number, c: any) => sum + Number(c.gross_amount || 0), 0);
+    const totalRevenue = apptRevenue + directCommRevenue;
+    
     const count = appointments.length;
-    const avgTicket = count > 0 ? totalRevenue / count : 0;
+    const avgTicket = count > 0 ? apptRevenue / count : 0;
 
     const collabType = collaborator?.collaborator_type || 'independent';
     const commType = collaborator?.commission_type || 'none';
     const commValue = collaborator?.commission_value || 0;
 
-    const { professionalValue, companyValue } = calculateFinancials(
-      totalRevenue, count, collabType, commType, commValue
+    const { professionalValue: apptProfValue } = calculateFinancials(
+      apptRevenue, count, collabType, commType, commValue
     );
+
+    const directProfValue = directCommissions.reduce((sum: number, c: any) => sum + Number(c.commission_amount || 0), 0);
+    const professionalValue = apptProfValue + directProfValue;
 
     // Today metrics
     const todayStr = format(new Date(), 'yyyy-MM-dd');
     const todayAppts = appointments.filter((a: any) => format(parseISO(a.start_time), 'yyyy-MM-dd') === todayStr);
     const todayRevenue = todayAppts.reduce((sum: number, a: any) => sum + Number(a.total_price || 0), 0);
+    
+    const todayDirectComms = directCommissions.filter((c: any) => format(parseISO(c.paid_at), 'yyyy-MM-dd') === todayStr);
+    const todayDirectProfValue = todayDirectComms.reduce((sum: number, c: any) => sum + Number(c.commission_amount || 0), 0);
+
     const todayFinancials = calculateFinancials(
       todayRevenue, todayAppts.length, collabType, commType, commValue
     );
@@ -125,15 +152,14 @@ const ProfessionalFinance = () => {
       count,
       avgTicket,
       professionalValue,
-      companyValue,
-      todayRevenue,
-      todayProfessionalValue: todayFinancials.professionalValue,
+      todayRevenue: todayRevenue + todayDirectComms.reduce((sum: number, c: any) => sum + Number(c.gross_amount || 0), 0),
+      todayProfessionalValue: todayFinancials.professionalValue + todayDirectProfValue,
       collabType,
       commType,
       commValue,
-      isCommissioned: collabType === 'commissioned',
+      isCommissioned: collabType === 'commissioned' || directCommissions.length > 0,
     };
-  }, [appointments, collaborator]);
+  }, [appointments, directCommissions, collaborator]);
 
   // Chart data - revenue by day
   const chartData = useMemo(() => {
@@ -325,13 +351,34 @@ const ProfessionalFinance = () => {
                           <TableCell className="text-right">{commission != null ? formatCurrency(commission) : '—'}</TableCell>
                         )}
                         <TableCell>
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
-                            Concluído
-                          </span>
+                          <Badge variant="outline" className="bg-primary/5 text-primary border-primary/10">
+                            Serviço
+                          </Badge>
                         </TableCell>
                       </TableRow>
                     );
                   })}
+                  {directCommissions.map((comm: any) => (
+                    <TableRow key={comm.id} className="bg-primary/5">
+                      <TableCell>{format(parseISO(comm.paid_at), 'dd/MM', { locale: ptBR })}</TableCell>
+                      <TableCell>—</TableCell>
+                      <TableCell>
+                        <div className="flex flex-col">
+                          <span className="font-medium">{comm.description}</span>
+                          <span className="text-[10px] text-muted-foreground uppercase">Comissão de Assinatura</span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right">{formatCurrency(Number(comm.gross_amount || 0))}</TableCell>
+                      {metrics.isCommissioned && (
+                        <TableCell className="text-right font-bold text-primary">{formatCurrency(Number(comm.commission_amount || 0))}</TableCell>
+                      )}
+                      <TableCell>
+                        <Badge className="bg-primary text-white hover:bg-primary/90">
+                          Assinatura
+                        </Badge>
+                      </TableCell>
+                    </TableRow>
+                  ))}
                 </TableBody>
               </Table>
             </div>

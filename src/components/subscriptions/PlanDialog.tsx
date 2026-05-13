@@ -54,6 +54,8 @@ const planSchema = z.object({
   valid_end_time: z.string().optional().nullable(),
   observations: z.string().optional(),
   is_active: z.boolean().default(true),
+  all_professionals: z.boolean().default(true),
+  participant_professionals: z.array(z.string()).default([]),
 });
 
 type PlanFormValues = z.infer<typeof planSchema>;
@@ -77,6 +79,9 @@ export function PlanDialog({
   const [services, setServices] = useState<any[]>([]);
   const [serviceSearch, setServiceSearch] = useState('');
   const [fetchingServices, setFetchingServices] = useState(false);
+  const [professionals, setProfessionals] = useState<any[]>([]);
+  const [fetchingProfessionals, setFetchingProfessionals] = useState(false);
+  const [professionalSearch, setProfessionalSearch] = useState('');
 
   const form = useForm<PlanFormValues>({
     resolver: zodResolver(planSchema),
@@ -94,13 +99,17 @@ export function PlanDialog({
       valid_end_time: '',
       observations: '',
       is_active: true,
+      all_professionals: true,
+      participant_professionals: [],
     },
   });
 
   useEffect(() => {
     if (open) {
       fetchServices();
+      fetchProfessionals();
       if (plan) {
+        fetchPlanParticipants(plan.id);
         form.reset({
           name: plan.name,
           description: plan.description || '',
@@ -115,6 +124,8 @@ export function PlanDialog({
           valid_end_time: plan.valid_end_time || '',
           observations: plan.observations || '',
           is_active: plan.is_active,
+          all_professionals: plan.all_professionals ?? true,
+          participant_professionals: [], // Will be updated by fetchPlanParticipants
         });
       } else {
         form.reset({
@@ -131,6 +142,8 @@ export function PlanDialog({
           valid_end_time: '',
           observations: '',
           is_active: true,
+          all_professionals: true,
+          participant_professionals: [],
         });
       }
     }
@@ -247,6 +260,40 @@ export function PlanDialog({
     }
   };
 
+  const fetchProfessionals = async () => {
+    setFetchingProfessionals(true);
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, full_name, professional_type')
+        .eq('company_id', companyId)
+        .order('full_name');
+
+      if (error) throw error;
+      setProfessionals(data || []);
+    } catch (error: any) {
+      console.error('Error fetching professionals:', error);
+      toast.error('Erro ao buscar profissionais');
+    } finally {
+      setFetchingProfessionals(false);
+    }
+  };
+
+  const fetchPlanParticipants = async (planId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('subscription_plan_professionals')
+        .select('professional_id')
+        .eq('plan_id', planId);
+
+      if (error) throw error;
+      const participantIds = data?.map(p => p.professional_id) || [];
+      form.setValue('participant_professionals', participantIds);
+    } catch (error: any) {
+      console.error('Error fetching plan participants:', error);
+    }
+  };
+
   const onSubmit = async (values: PlanFormValues) => {
     setLoading(true);
     try {
@@ -264,22 +311,52 @@ export function PlanDialog({
         valid_end_time: values.valid_end_time || null,
         observations: values.observations,
         is_active: values.is_active,
+        all_professionals: values.all_professionals,
         company_id: companyId,
       };
 
-      if (plan?.id) {
+      let planId = plan?.id;
+
+      if (planId) {
         const { error } = await supabase
           .from('subscription_plans')
           .update(payload)
-          .eq('id', plan.id);
+          .eq('id', planId);
         if (error) throw error;
         toast.success('Plano atualizado com sucesso!');
       } else {
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from('subscription_plans')
-          .insert(payload);
+          .insert(payload)
+          .select()
+          .single();
         if (error) throw error;
+        planId = data.id;
         toast.success('Plano criado com sucesso!');
+      }
+
+      // Handle participants
+      if (planId) {
+        // First delete all
+        await supabase
+          .from('subscription_plan_professionals')
+          .delete()
+          .eq('plan_id', planId);
+
+        // Then insert if not all_professionals
+        if (!values.all_professionals && values.participant_professionals.length > 0) {
+          const participantPayload = values.participant_professionals.map(profId => ({
+            plan_id: planId,
+            professional_id: profId,
+            company_id: companyId
+          }));
+
+          const { error: participantError } = await supabase
+            .from('subscription_plan_professionals')
+            .insert(participantPayload);
+          
+          if (participantError) throw participantError;
+        }
       }
 
       onSuccess();
@@ -297,6 +374,12 @@ export function PlanDialog({
   );
 
   const planType = form.watch('type');
+  const allProfessionals = form.watch('all_professionals');
+
+  const filteredProfessionals = professionals.filter((p) =>
+    p.full_name?.toLowerCase().includes(professionalSearch.toLowerCase()) ||
+    p.professional_type?.toLowerCase().includes(professionalSearch.toLowerCase())
+  );
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -509,8 +592,93 @@ export function PlanDialog({
 
             <div className="space-y-4 border rounded-md p-4 bg-muted/20">
               <h3 className="text-sm font-semibold flex items-center gap-2">
-                ⚙️ Regras de Uso e Consumo
+                👥 Profissionais participantes
               </h3>
+              
+              <FormField
+                control={form.control}
+                name="all_professionals"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4 bg-background">
+                    <div className="space-y-0.5">
+                      <FormLabel className="text-base">Todos os profissionais</FormLabel>
+                      <FormDescription>
+                        Qualquer profissional ativo da empresa pode atender clientes deste plano.
+                      </FormDescription>
+                    </div>
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+
+              {!allProfessionals && (
+                <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Buscar profissional..."
+                      value={professionalSearch}
+                      onChange={(e) => setProfessionalSearch(e.target.value)}
+                      className="pl-10 h-9 bg-background"
+                    />
+                  </div>
+                  <ScrollArea className="h-[150px] border rounded-md p-2 bg-background">
+                    {fetchingProfessionals ? (
+                      <div className="flex items-center justify-center h-full">
+                        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                        {filteredProfessionals.map((prof) => (
+                          <FormField
+                            key={prof.id}
+                            control={form.control}
+                            name="participant_professionals"
+                            render={({ field }) => (
+                              <FormItem
+                                key={prof.id}
+                                className="flex flex-row items-center space-x-3 space-y-0 rounded-md border p-2 hover:bg-muted/50 cursor-pointer"
+                              >
+                                <FormControl>
+                                  <Checkbox
+                                    checked={field.value?.includes(prof.id)}
+                                    onCheckedChange={(checked) => {
+                                      return checked
+                                        ? field.onChange([...(field.value || []), prof.id])
+                                        : field.onChange(
+                                            field.value?.filter((v) => v !== prof.id)
+                                          );
+                                    }}
+                                  />
+                                </FormControl>
+                                <div className="space-y-0.5">
+                                  <FormLabel className="text-xs font-medium cursor-pointer">
+                                    {prof.full_name}
+                                  </FormLabel>
+                                  {prof.professional_type && (
+                                    <p className="text-[10px] text-muted-foreground">
+                                      {prof.professional_type}
+                                    </p>
+                                  )}
+                                </div>
+                              </FormItem>
+                            )}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </ScrollArea>
+                  <FormMessage />
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-4 border rounded-md p-4 bg-muted/20">
               
               <FormField
                 control={form.control}
