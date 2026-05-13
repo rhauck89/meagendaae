@@ -293,15 +293,16 @@ export default function ProfessionalPublicProfile() {
                   supabase.from('appointment_services').select('service_id').eq('appointment_id', appt.id).then(({ data: apptSvcs }) => {
                     if (apptSvcs && apptSvcs.length > 0) {
                       const svcIds = apptSvcs.map(as => as.service_id);
-                      supabase.from('public_services' as any).select('id, name, duration_minutes, price').in('id', svcIds).then(({ data: svcs }) => {
+                      supabase.from('public_services' as any).select('id, name, duration_minutes, price').in('id', svcIds).then(({ data: svcsRes }) => {
+                        const svcs = svcsRes as any[] | null;
                         if (svcs) {
                           setLastBooking({
                             ...appt,
                             serviceIds: svcs.map(s => s.id),
                             serviceNames: svcs.map(s => s.name),
-                            serviceDurations: svcs.map(s => (s as any).duration_minutes || 30),
+                            serviceDurations: svcs.map(s => s.duration_minutes || 30),
                             totalPrice: svcs.reduce((sum, s) => sum + Number(s.price || 0), 0),
-                            totalDuration: svcs.reduce((sum, s) => sum + Number((s as any).duration_minutes || 0), 0),
+                            totalDuration: svcs.reduce((sum, s) => sum + Number(s.duration_minutes || 0), 0),
                             professionalId: appt.professional_id,
                             notes: appt.notes
                           });
