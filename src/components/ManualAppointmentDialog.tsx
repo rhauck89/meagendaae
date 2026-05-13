@@ -423,6 +423,8 @@ export function ManualAppointmentDialog({
                        subBenefit.reason === 'payment_overdue' ? 'Benefício suspenso por atraso no pagamento' :
                        subBenefit.reason === 'limit_reached' ? 'Limite de uso mensal atingido' :
                        subBenefit.reason === 'services_not_included' ? 'Nenhum dos serviços está incluso no plano' :
+                       subBenefit.reason === 'invalid_day' ? 'Plano não é permitido para este dia da semana' :
+                       subBenefit.reason === 'invalid_time' ? `Horário não permitido (${subBenefit.valid_start_time?.substring(0, 5)} - ${subBenefit.valid_end_time?.substring(0, 5)})` :
                        'Sem benefício de assinatura'}
                     </p>
                   )}
