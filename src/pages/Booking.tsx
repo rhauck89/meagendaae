@@ -1533,8 +1533,63 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
           // If no links exist yet, maybe show all (legacy behavior) or none?
           // I'll stick to legacy behavior (show all) if no links exist, 
           // but if they exist, respect them.
-          setServices(servicesRes.data || []);
+        setServices(servicesRes.data || []);
+      }
+
+      const fetchAllowedProfessionalsForSubscriptions = async (companyId: string, clientIdOrUserId: string) => {
+        try {
+          // 1. Get client ID if only user ID is known
+          let cid = savedClientId;
+          if (!cid) {
+            const { data: client } = await supabase
+              .from('clients')
+              .select('id')
+              .eq('user_id', clientIdOrUserId)
+              .maybeSingle();
+            if (client) cid = client.id;
+          }
+
+          if (!cid) return;
+
+          // 2. Get active subscriptions
+          const { data: subs } = await supabase
+            .from('client_subscriptions')
+            .select('plan_id, subscription_plans(all_professionals)')
+            .eq('client_id', cid)
+            .eq('status', 'active');
+
+          if (!subs || subs.length === 0) {
+            setAllowedProfessionalIds(null);
+            return;
+          }
+
+          const allAllowed = new Set<string>();
+          let hasAllProfsPlan = false;
+
+          for (const sub of subs) {
+            const plan = sub.subscription_plans as any;
+            if (plan?.all_professionals) {
+              hasAllProfsPlan = true;
+              break;
+            }
+
+            const { data: participants } = await supabase
+              .from('subscription_plan_professionals')
+              .select('professional_id')
+              .eq('plan_id', sub.plan_id);
+            
+            participants?.forEach(p => allAllowed.add(p.professional_id));
+          }
+
+          if (hasAllProfsPlan) {
+            setAllowedProfessionalIds(null); // No restriction
+          } else {
+            setAllowedProfessionalIds(Array.from(allAllowed));
+          }
+        } catch (err) {
+          console.error('Error fetching allowed professionals:', err);
         }
+      };
 
         const { data: profHours } = await supabase
           .from('professional_working_hours' as any)
