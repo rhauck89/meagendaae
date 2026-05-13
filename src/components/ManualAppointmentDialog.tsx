@@ -104,8 +104,9 @@ export function ManualAppointmentDialog({
         p_client_id: selectedClient.id,
         p_professional_id: selectedProfessional,
         p_service_ids: selectedServices,
-        p_date: selectedDate ? format(selectedDate, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd')
-      });
+        p_date: selectedDate ? format(selectedDate, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'),
+        p_time: selectedSlot || null
+      } as any);
       if (error) throw error;
       setSubBenefit(data);
     } catch (err) {
