@@ -201,9 +201,17 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
   const [publicPromotions, setPublicPromotions] = useState<PromotionInfo[]>([]);
   const isPromoMode = !!promoData;
 
-  const [step, setStep] = useState<Step>('identifying');
-  const [selectedServices, setSelectedServices] = useState<string[]>([]);
-  const [selectedProfessional, setSelectedProfessional] = useState<string | null>(null);
+  const [step, setStep] = useState<Step>(() => {
+    const isRebooking = searchParams.get('rebook') === '1' || searchParams.get('rebook') === 'true';
+    if (isRebooking && (location.state as any)?.lastBooking) return 'datetime';
+    return 'identifying';
+  });
+  const [selectedServices, setSelectedServices] = useState<string[]>(() => {
+    return (location.state as any)?.lastBooking?.serviceIds || [];
+  });
+  const [selectedProfessional, setSelectedProfessional] = useState<string | null>(() => {
+    return (location.state as any)?.lastBooking?.professionalId || professionalSlug || null;
+  });
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [availableSlots, setAvailableSlots] = useState<string[]>([]);
