@@ -923,7 +923,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
   // Check if client is logged in - Refined to ignore admin sessions
   // Identification Gatekeeper - require a valid client identity before booking.
   useEffect(() => {
-    if (step === 'identifying' && company && !authLoading) {
+    if (step === 'identifying' && company && !authLoading && !rebookingLoading) {
       const localIdentityStr = localStorage.getItem(`whatsapp_session_${company.id}`);
       if (localIdentityStr) {
         try {
