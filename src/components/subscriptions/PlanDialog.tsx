@@ -549,7 +549,7 @@ export function PlanDialog({
                               <span className="font-semibold text-sm">Por serviço</span>
                             </div>
                             <span className="text-xs text-muted-foreground font-normal leading-relaxed">
-                              Cada serviço consome 1 crédito. Ex: Corte + Barba = 2 créditos.
+                              Cada serviço incluído no atendimento consome 1 crédito. Ex: Corte + Barba = 2 créditos.
                             </span>
                           </Label>
                         </div>
@@ -577,17 +577,11 @@ export function PlanDialog({
                               <span className="font-semibold text-sm">Por agendamento</span>
                             </div>
                             <span className="text-xs text-muted-foreground font-normal leading-relaxed">
-                              O atendimento inteiro consome 1 crédito, mesmo com vários serviços.
+                              O atendimento inteiro consome 1 crédito, mesmo que tenha vários serviços juntos. Ex: Corte + Barba + Sobrancelha = 1 crédito.
                             </span>
                           </Label>
                         </div>
                     </RadioGroup>
-                    <p className="text-[11px] text-muted-foreground mt-2 px-1 italic">
-                      {field.value === 'service' 
-                        ? "* Cada serviço do agendamento consumirá 1 crédito do saldo." 
-                        : "* O atendimento completo consumirá apenas 1 crédito, independente do número de serviços."
-                      }
-                    </p>
                   </FormControl>
                   <FormMessage />
                 </FormItem>
