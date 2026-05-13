@@ -300,7 +300,7 @@ export function PlanDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl h-[100dvh] sm:h-auto sm:max-h-[90vh] flex flex-col p-0 overflow-hidden">
+      <DialogContent className="max-w-2xl h-[100dvh] sm:h-auto sm:max-h-[90vh] flex flex-col p-0 overflow-hidden border-none shadow-2xl">
         <DialogHeader className="px-6 py-4 border-b shrink-0">
           <DialogTitle>{plan ? 'Editar Plano' : 'Novo Plano'}</DialogTitle>
           <DialogDescription>
