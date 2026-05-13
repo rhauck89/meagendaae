@@ -314,7 +314,7 @@ export function PlanDialog({
             className="flex-1 min-h-0 flex flex-col overflow-hidden"
             data-dialog-body
           >
-            <DialogBody className="flex-1 overflow-y-auto space-y-6">
+            <DialogBody className="flex-1 overflow-y-auto space-y-6 custom-scrollbar px-6 py-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField
                 control={form.control}
