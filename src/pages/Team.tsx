@@ -421,11 +421,13 @@ const Team = () => {
           booking_mode: bookingMode,
           grid_interval: gridInterval,
           break_time: form.break_time,
-          service_ids: form.selectedServiceIds,
+          service_ids: form.is_service_provider ? form.selectedServiceIds : [],
           has_system_access: form.has_system_access,
           is_admin_self: form.is_admin_self,
           system_role: form.is_admin_self ? 'admin_principal' : form.system_role,
           use_company_banner: form.use_company_banner,
+          is_service_provider: form.is_service_provider,
+          permissions: form.permissions,
         },
       });
 
