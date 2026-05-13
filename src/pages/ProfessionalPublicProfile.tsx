@@ -280,7 +280,7 @@ export default function ProfessionalPublicProfile() {
           if (user) {
             supabase
               .from('appointments')
-              .select('id, start_time, total_price, professional_id, status')
+              .select('id, start_time, total_price, professional_id, status, notes')
               .eq('company_id', comp.id)
               .eq('user_id', user.id)
               .eq('professional_id', prof.id)
