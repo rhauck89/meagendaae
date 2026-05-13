@@ -11,17 +11,15 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Calendar as DateCalendar } from '@/components/ui/calendar';
-import { Search, MessageCircle, Users, ArrowLeft, Calendar, DollarSign, Star, Scissors, Cake, Pencil, UserPlus, Ban, ShieldCheck, ArrowUpDown, ArrowUp, ArrowDown, CalendarCheck, Crown, Info, CreditCard, Activity, CheckCircle2, AlertCircle, Clock, Upload } from 'lucide-react';
-import { format, parseISO, isSameMonth, isSameDay, differenceInCalendarDays } from 'date-fns';
+import { Search, MessageCircle, Users, UserPlus, Ban, Crown, Info, CalendarCheck, Upload, ArrowUpDown, ArrowUp, ArrowDown, Cake } from 'lucide-react';
+import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { displayWhatsApp, formatWhatsApp, openWhatsApp, normalizePhone } from '@/lib/whatsapp';
 import { toast } from 'sonner';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { ClientImportModal } from '@/components/clients/ClientImportModal';
-import { ClientProfile } from '@/components/ClientProfile';
+import { ClientProfile } from '@/components/clients/ClientProfile';
 
 interface ClientRow {
   id: string;
@@ -32,6 +30,7 @@ interface ClientRow {
   next_recommended_visit: string | null;
   created_at: string;
   is_blocked: boolean;
+  notes?: string | null;
 }
 
 const Clients = () => {
@@ -52,53 +51,6 @@ const Clients = () => {
   const [duplicateDialogOpen, setDuplicateDialogOpen] = useState(false);
   const [importModalOpen, setImportModalOpen] = useState(false);
 
-  const handleAddClient = async () => {
-    const name = addClientForm.name.trim();
-    const whatsapp = addClientForm.whatsapp.trim();
-    if (!name || !whatsapp) {
-      toast.error('Nome e WhatsApp são obrigatórios');
-      return;
-    }
-    setAddClientSaving(true);
-    try {
-      const normalizedWa = normalizePhone(whatsapp);
-      const { data: existing } = await supabase
-        .from('clients')
-        .select('id, name, whatsapp')
-        .eq('company_id', companyId!)
-        .or(`whatsapp.eq.${normalizedWa},whatsapp.eq.55${normalizedWa}`)
-        .limit(1);
-
-      if (existing && existing.length > 0) {
-        setDuplicateClient(existing[0]);
-        setDuplicateDialogOpen(true);
-        setAddClientSaving(false);
-        return;
-      }
-      await insertClient();
-    } catch (err) {
-      toast.error('Erro ao cadastrar cliente');
-    } finally {
-      setAddClientSaving(false);
-    }
-  };
-
-  const insertClient = async () => {
-    const { error } = await supabase.from('clients').insert({
-      company_id: companyId!,
-      name: addClientForm.name.trim(),
-      whatsapp: formatWhatsApp(addClientForm.whatsapp.trim()),
-      email: addClientForm.email.trim() || null,
-      birth_date: addClientForm.birth_date || null,
-      notes: addClientForm.notes.trim() || null,
-    });
-    if (error) throw error;
-    refresh('clients');
-    toast.success('Cliente cadastrado com sucesso!');
-    setAddClientOpen(false);
-    setAddClientForm({ name: '', whatsapp: '', email: '', birth_date: '', notes: '' });
-  };
-
   const { data: appointments = [] } = useQuery({
     queryKey: ['client-appointments-stats', companyId, isAdmin, profileId],
     queryFn: async () => {
@@ -108,9 +60,7 @@ const Clients = () => {
         .select('id, client_id, professional_id, start_time, total_price, status')
         .eq('company_id', companyId)
         .in('status', ['completed', 'confirmed', 'pending', 'cancelled']);
-      if (!isAdmin && profileId) {
-        query = query.eq('professional_id', profileId);
-      }
+      if (!isAdmin && profileId) query = query.eq('professional_id', profileId);
       const { data, error } = await query;
       if (error) throw error;
       return data;
@@ -120,22 +70,14 @@ const Clients = () => {
 
   const professionalClientIds = useMemo(() => {
     if (isAdmin) return null;
-    return new Set(
-      appointments
-        .filter(a => ['completed', 'confirmed', 'pending'].includes(a.status))
-        .map(a => a.client_id)
-        .filter(Boolean)
-    );
+    return new Set(appointments.filter(a => ['completed', 'confirmed', 'pending'].includes(a.status)).map(a => a.client_id).filter(Boolean));
   }, [isAdmin, appointments]);
 
   const { data: subscriberStatuses = {} } = useQuery({
     queryKey: ['client-subscriber-statuses', companyId],
     queryFn: async () => {
       if (!companyId) return {};
-      const { data, error } = await supabase
-        .from('client_subscriptions')
-        .select('client_id, status')
-        .eq('company_id', companyId);
+      const { data, error } = await supabase.from('client_subscriptions').select('client_id, status').eq('company_id', companyId);
       if (error) throw error;
       const statusMap: Record<string, string> = {};
       data?.forEach(sub => statusMap[sub.client_id] = sub.status);
@@ -148,11 +90,7 @@ const Clients = () => {
     queryKey: ['clients', companyId],
     queryFn: async () => {
       if (!companyId) return [];
-      const { data, error } = await supabase
-        .from('clients')
-        .select('*')
-        .eq('company_id', companyId)
-        .order('name');
+      const { data, error } = await supabase.from('clients').select('*').eq('company_id', companyId).order('name');
       if (error) throw error;
       return data as ClientRow[];
     },
@@ -168,10 +106,7 @@ const Clients = () => {
     queryKey: ['profiles-for-clients', companyId],
     queryFn: async () => {
       if (!companyId) return [];
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('id, full_name')
-        .eq('company_id', companyId);
+      const { data, error } = await supabase.from('profiles').select('id, full_name').eq('company_id', companyId);
       if (error) throw error;
       return data;
     },
@@ -182,9 +117,7 @@ const Clients = () => {
 
   const clientStatsMap = useMemo(() => {
     const map: Record<string, { totalVisits: number; totalSpent: number; lastVisit: string | null; favProfName: string; favProfId: string | null; cancelledCount: number }> = {};
-    const filteredApptsForStats = (isAdmin && profFilter !== 'all')
-      ? appointments.filter(a => a.professional_id === profFilter)
-      : appointments;
+    const filteredApptsForStats = (isAdmin && profFilter !== 'all') ? appointments.filter(a => a.professional_id === profFilter) : appointments;
     visibleClients.forEach(client => {
       const clientAppts = filteredApptsForStats.filter(a => a.client_id === client.id);
       const completedAppts = clientAppts.filter(a => a.status === 'completed' || a.status === 'confirmed');
@@ -195,8 +128,7 @@ const Clients = () => {
       completedAppts.forEach(a => profCount[a.professional_id] = (profCount[a.professional_id] || 0) + 1);
       const favProfId = Object.entries(profCount).sort((a, b) => b[1] - a[1])[0]?.[0] || null;
       const favProfName = favProfId ? profileMap[favProfId] || 'Desconhecido' : '-';
-      const cancelledCount = clientAppts.filter(a => a.status === 'cancelled').length;
-      map[client.id] = { totalVisits, totalSpent, lastVisit, favProfName, favProfId, cancelledCount };
+      map[client.id] = { totalVisits, totalSpent, lastVisit, favProfName, favProfId, cancelledCount: 0 };
     });
     return map;
   }, [visibleClients, appointments, profileMap, isAdmin, profFilter]);
@@ -223,23 +155,16 @@ const Clients = () => {
     filteredClientIds: new Set(isAdmin && profFilter !== 'all' ? appointments.filter(a => a.professional_id === profFilter && ['completed', 'confirmed'].includes(a.status)).map(a => a.client_id) : [])
   }), [serverMetrics, isAdmin, profFilter, appointments]);
 
-  const uniqueProfessionals = useMemo(() => {
-    const profIds = new Set(appointments.map(a => a.professional_id).filter(Boolean));
-    return Array.from(profIds).map(id => ({ id, name: profileMap[id] || 'Desconhecido' })).sort((a, b) => a.name.localeCompare(b.name));
-  }, [appointments, profileMap]);
-
   const filtered = useMemo(() => {
     let result = visibleClients;
     if (search) {
       const s = search.toLowerCase();
       result = result.filter(c => c.name.toLowerCase().includes(s) || (c.whatsapp && c.whatsapp.includes(search)));
     }
-    if (isAdmin && profFilter !== 'all') {
-      result = result.filter(c => metrics.filteredClientIds.has(c.id));
-    }
+    if (isAdmin && profFilter !== 'all') result = result.filter(c => metrics.filteredClientIds.has(c.id));
     result.sort((a, b) => {
-      const sA = clientStatsMap[a.id] || { totalVisits: 0, totalSpent: 0, lastVisit: null, favProfName: '-' };
-      const sB = clientStatsMap[b.id] || { totalVisits: 0, totalSpent: 0, lastVisit: null, favProfName: '-' };
+      const sA = clientStatsMap[a.id] || { totalVisits: 0, totalSpent: 0, lastVisit: null };
+      const sB = clientStatsMap[b.id] || { totalVisits: 0, totalSpent: 0, lastVisit: null };
       let cmp = 0;
       switch (sortColumn) {
         case 'name': cmp = a.name.localeCompare(b.name); break;
@@ -252,16 +177,6 @@ const Clients = () => {
     return result;
   }, [visibleClients, search, sortColumn, sortDirection, profFilter, clientStatsMap, metrics.filteredClientIds, isAdmin]);
 
-  const toggleSort = (col: typeof sortColumn) => {
-    if (sortColumn === col) setSortDirection(d => d === 'asc' ? 'desc' : 'asc');
-    else { setSortColumn(col); setSortDirection('asc'); }
-  };
-
-  const SortIcon = ({ col }: { col: typeof sortColumn }) => {
-    if (sortColumn !== col) return <ArrowUpDown className="h-3 w-3 ml-1 opacity-40" />;
-    return sortDirection === 'asc' ? <ArrowUp className="h-3 w-3 ml-1 text-primary" /> : <ArrowDown className="h-3 w-3 ml-1 text-primary" />;
-  };
-
   const clientsWithBirthdays = useMemo(() => {
     const today = new Date(); today.setHours(0, 0, 0, 0);
     return visibleClients.filter(c => c.birth_date).map(c => {
@@ -272,177 +187,118 @@ const Clients = () => {
     }).sort((a, b) => a.daysRemaining - b.daysRemaining);
   }, [visibleClients]);
 
-  const displayBirthdays = showAllBirthdays ? clientsWithBirthdays : clientsWithBirthdays.slice(0, 5);
+  const handleAddClient = async () => {
+    const name = addClientForm.name.trim();
+    const whatsapp = addClientForm.whatsapp.trim();
+    if (!name || !whatsapp) { toast.error('Nome e WhatsApp são obrigatórios'); return; }
+    setAddClientSaving(true);
+    try {
+      const normalizedWa = normalizePhone(whatsapp);
+      const { data: existing } = await supabase.from('clients').select('id, name, whatsapp').eq('company_id', companyId!).or(`whatsapp.eq.${normalizedWa},whatsapp.eq.55${normalizedWa}`).limit(1);
+      if (existing && existing.length > 0) { setDuplicateClient(existing[0]); setDuplicateDialogOpen(true); setAddClientSaving(false); return; }
+      await insertClient();
+    } catch { toast.error('Erro ao cadastrar cliente'); } finally { setAddClientSaving(false); }
+  };
 
-  const daysLabel = (d: number) => d === 0 ? 'Hoje 🎂' : d === 1 ? 'Amanhã' : `${d} dias`;
+  const insertClient = async () => {
+    const { error } = await supabase.from('clients').insert({ company_id: companyId!, name: addClientForm.name.trim(), whatsapp: formatWhatsApp(addClientForm.whatsapp.trim()), email: addClientForm.email.trim() || null, birth_date: addClientForm.birth_date || null });
+    if (error) throw error;
+    refresh('clients');
+    toast.success('Cliente cadastrado com sucesso!');
+    setAddClientOpen(false);
+    setAddClientForm({ name: '', whatsapp: '', email: '', birth_date: '', notes: '' });
+  };
+
+  const selectedClient = visibleClients.find(c => c.id === selectedClientId);
+  if (selectedClient) return <ClientProfile client={selectedClient} companyId={companyId!} profileMap={profileMap} onBack={() => setSelectedClientId(null)} />;
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <h2 className="text-xl sm:text-2xl font-display font-bold">Clientes</h2>
-          <p className="text-muted-foreground text-sm">{filtered.length} {filtered.length === 1 ? 'cliente encontrado' : 'clientes encontrados'}</p>
-        </div>
+        <div><h2 className="text-xl sm:text-2xl font-display font-bold">Clientes</h2><p className="text-muted-foreground text-sm">{filtered.length} clientes encontrados</p></div>
         <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
           {isAdmin && (
             <>
-              <Button variant="outline" className="gap-2" onClick={() => setImportModalOpen(true)}>
-                <Upload className="h-4 w-4" /> Importar clientes
-              </Button>
-              <Button className="gap-2" onClick={() => setAddClientOpen(true)}>
-                <UserPlus className="h-4 w-4" /> Cadastrar cliente
-              </Button>
+              <Button variant="outline" className="gap-2" onClick={() => setImportModalOpen(true)}><Upload className="h-4 w-4" /> Importar clientes</Button>
+              <Button className="gap-2" onClick={() => setAddClientOpen(true)}><UserPlus className="h-4 w-4" /> Cadastrar cliente</Button>
             </>
           )}
         </div>
       </div>
 
-      <ClientImportModal 
-        open={importModalOpen} 
-        onOpenChange={setImportModalOpen} 
-        companyId={companyId || ''} 
-        onImportSuccess={() => queryClient.invalidateQueries({ queryKey: ['clients'] })}
-      />
+      <ClientImportModal open={importModalOpen} onOpenChange={setImportModalOpen} companyId={companyId || ''} onImportSuccess={() => queryClient.invalidateQueries({ queryKey: ['clients'] })} />
       
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         <div className="lg:col-span-3 space-y-4">
           <div className="flex gap-2">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Buscar por nome ou WhatsApp..."
-                className="pl-9"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
+              <Input placeholder="Buscar por nome ou WhatsApp..." className="pl-9" value={search} onChange={(e) => setSearch(e.target.value)} />
             </div>
-            {isAdmin && (
-              <Select value={profFilter} onValueChange={setProfFilter}>
-                <SelectTrigger className="w-[200px]">
-                  <SelectValue placeholder="Filtrar por profissional" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos profissionais</SelectItem>
-                  {uniqueProfessionals.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            )}
           </div>
 
           <Card>
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="cursor-pointer" onClick={() => toggleSort('name')}>Nome <SortIcon col="name" /></TableHead>
-                    <TableHead>WhatsApp</TableHead>
-                    <TableHead className="cursor-pointer" onClick={() => toggleSort('totalVisits')}>Visitas <SortIcon col="totalVisits" /></TableHead>
-                    <TableHead className="cursor-pointer" onClick={() => toggleSort('totalSpent')}>Gasto Total <SortIcon col="totalSpent" /></TableHead>
-                    <TableHead className="cursor-pointer" onClick={() => toggleSort('lastVisit')}>Última Visita <SortIcon col="lastVisit" /></TableHead>
-                    <TableHead>Status</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {isLoading ? (
-                    <TableRow><TableCell colSpan={6} className="text-center py-10">Carregando...</TableCell></TableRow>
-                  ) : filtered.length === 0 ? (
-                    <TableRow><TableCell colSpan={6} className="text-center py-10 text-muted-foreground">Nenhum cliente encontrado</TableCell></TableRow>
-                  ) : (
-                    filtered.map(c => {
-                      const stats = clientStatsMap[c.id] || { totalVisits: 0, totalSpent: 0, lastVisit: null, favProfName: '-' };
-                      return (
-                        <TableRow key={c.id} className="cursor-pointer hover:bg-muted/50" onClick={() => setSelectedClientId(c.id)}>
-                          <TableCell className="font-medium">{c.name}</TableCell>
-                          <TableCell>{c.whatsapp ? displayWhatsApp(c.whatsapp) : '-'}</TableCell>
-                          <TableCell>{stats.totalVisits}</TableCell>
-                          <TableCell>R$ {stats.totalSpent.toFixed(2)}</TableCell>
-                          <TableCell>{stats.lastVisit ? format(parseISO(stats.lastVisit), 'dd/MM/yyyy') : '-'}</TableCell>
-                          <TableCell>
-                            {subscriberStatuses[c.id] === 'active' && <Badge className="bg-green-500">Assinante</Badge>}
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })
-                  )}
-                </TableBody>
-              </Table>
-            </div>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="cursor-pointer" onClick={() => { setSortColumn('name'); setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc'); }}>Nome</TableHead>
+                  <TableHead>WhatsApp</TableHead>
+                  <TableHead className="cursor-pointer text-center" onClick={() => { setSortColumn('totalVisits'); setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc'); }}>Visitas</TableHead>
+                  <TableHead className="cursor-pointer text-right" onClick={() => { setSortColumn('totalSpent'); setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc'); }}>Gasto Total</TableHead>
+                  <TableHead />
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {isLoading ? <TableRow><TableCell colSpan={5} className="text-center py-10">Carregando...</TableCell></TableRow> : filtered.map(c => {
+                  const stats = clientStatsMap[c.id] || { totalVisits: 0, totalSpent: 0 };
+                  return (
+                    <TableRow key={c.id} className="cursor-pointer hover:bg-muted/50" onClick={() => setSelectedClientId(c.id)}>
+                      <TableCell className="font-medium">{c.name} {subscriberStatuses[c.id] === 'active' && <Badge className="ml-2 bg-primary/10 text-primary border-none"><Crown className="h-3 w-3 mr-1" /> Assinante</Badge>}</TableCell>
+                      <TableCell>{c.whatsapp ? displayWhatsApp(c.whatsapp) : '-'}</TableCell>
+                      <TableCell className="text-center"><Badge variant="secondary">{stats.totalVisits}</Badge></TableCell>
+                      <TableCell className="text-right font-medium">R$ {stats.totalSpent.toFixed(2)}</TableCell>
+                      <TableCell className="text-right">
+                        {c.whatsapp && <Button variant="ghost" size="icon" className="text-green-600" onClick={(e) => { e.stopPropagation(); openWhatsApp(c.whatsapp!, { source: 'clients' }); }}><MessageCircle className="h-4 w-4" /></Button>}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
           </Card>
         </div>
 
         <div className="space-y-6">
-          <Card>
-            <CardHeader><CardTitle className="text-sm font-medium">Aniversariantes próximos</CardTitle></CardHeader>
-            <CardContent className="space-y-3">
-              {displayBirthdays.length === 0 ? (
-                <p className="text-xs text-muted-foreground">Nenhum aniversário nos próximos 7 dias.</p>
-              ) : (
-                <>
-                  {displayBirthdays.map(c => (
-                    <div key={c.id} className="flex items-center justify-between text-sm">
-                      <span className="truncate">{c.name}</span>
-                      <Badge variant="outline">{daysLabel(c.daysRemaining)}</Badge>
-                    </div>
-                  ))}
-                  {clientsWithBirthdays.length > 5 && (
-                    <Button variant="ghost" size="sm" className="w-full text-xs" onClick={() => setShowAllBirthdays(!showAllBirthdays)}>
-                      {showAllBirthdays ? 'Ver menos' : 'Ver todos'}
-                    </Button>
-                  )}
-                </>
-              )}
-            </CardContent>
-          </Card>
+          {clientsWithBirthdays.length > 0 && (
+            <Card>
+              <CardHeader><CardTitle className="text-sm font-medium flex items-center gap-2"><Cake className="h-4 w-4 text-pink-500" /> Aniversariantes</CardTitle></CardHeader>
+              <CardContent className="space-y-3">
+                {clientsWithBirthdays.slice(0, 5).map(c => (
+                  <div key={c.id} className="flex items-center justify-between text-sm">
+                    <span className="truncate">{c.name}</span>
+                    <Badge variant={c.daysRemaining === 0 ? 'default' : 'secondary'} className="text-[10px]">{c.daysRemaining === 0 ? 'Hoje' : `${c.daysRemaining} dias`}</Badge>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
 
+      {/* Manual Add Dialog */}
       <Dialog open={addClientOpen} onOpenChange={setAddClientOpen}>
         <DialogContent>
-          <DialogHeader><DialogTitle>Cadastrar novo cliente</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>Novo Cliente</DialogTitle></DialogHeader>
           <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>Nome</Label>
-              <Input value={addClientForm.name} onChange={e => setAddClientForm({...addClientForm, name: e.target.value})} />
-            </div>
-            <div className="space-y-2">
-              <Label>WhatsApp</Label>
-              <Input value={addClientForm.whatsapp} onChange={e => setAddClientForm({...addClientForm, whatsapp: e.target.value})} placeholder="(00) 00000-0000" />
-            </div>
-            <div className="space-y-2">
-              <Label>Email</Label>
-              <Input value={addClientForm.email} onChange={e => setAddClientForm({...addClientForm, email: e.target.value})} />
-            </div>
-            <div className="space-y-2">
-              <Label>Data de Nascimento</Label>
-              <Input type="date" value={addClientForm.birth_date} onChange={e => setAddClientForm({...addClientForm, birth_date: e.target.value})} />
-            </div>
-            <div className="space-y-2">
-              <Label>Observações</Label>
-              <Textarea value={addClientForm.notes} onChange={e => setAddClientForm({...addClientForm, notes: e.target.value})} />
-            </div>
+            <div className="space-y-2"><Label>Nome *</Label><Input value={addClientForm.name} onChange={e => setAddClientForm(f => ({ ...f, name: e.target.value }))} /></div>
+            <div className="space-y-2"><Label>WhatsApp *</Label><Input value={addClientForm.whatsapp} onChange={e => setAddClientForm(f => ({ ...f, whatsapp: e.target.value }))} /></div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setAddClientOpen(false)}>Cancelar</Button>
-            <Button onClick={handleAddClient} disabled={addClientSaving}>Salvar</Button>
+            <Button onClick={handleAddClient} disabled={addClientSaving}>Cadastrar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      <Dialog open={duplicateDialogOpen} onOpenChange={setDuplicateDialogOpen}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>Cliente já cadastrado</DialogTitle></DialogHeader>
-          <p>Já existe um cliente com este WhatsApp: <strong>{duplicateClient?.name}</strong></p>
-          <DialogFooter>
-            <Button onClick={() => setDuplicateDialogOpen(false)}>Fechar</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <ClientProfile 
-        clientId={selectedClientId} 
-        open={!!selectedClientId} 
-        onOpenChange={(open) => !open && setSelectedClientId(null)} 
-      />
     </div>
   );
 };
