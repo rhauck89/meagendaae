@@ -758,7 +758,7 @@ const Team = () => {
     if (type === 'own_revenue') return 'Receita própria';
     if (type === 'percentage') return `${value}%`;
     if (type === 'fixed') return `R$ ${Number(value).toFixed(2)}/serviço`;
-    return 'Sem comissÃ£o';
+    return 'Sem comissão';
   };
 
   const getCollaboratorProfileLink = (collaborator: any) => {
@@ -984,7 +984,7 @@ const Team = () => {
 
             {createdCredentials ? (() => {
               const loginUrl = `${window.location.origin}/auth`;
-              const fullMessage = `ðŸ” *Acesso ao sistema*\n\nðŸ“Ž Link de login: ${loginUrl}\nðŸ“§ Email: ${createdCredentials.email}\nðŸ”‘ Senha temporÃ¡ria: ${createdCredentials.password}\n\nðŸ“Œ Link de agendamento:\n${createdCredentials.link}\n\nâš ï¸ Troque sua senha apÃ³s o primeiro login.`;
+              const fullMessage = `ðŸ” *Acesso ao sistema*\n\nðŸ“Ž Link de login: ${loginUrl}\nðŸ“§ Email: ${createdCredentials.email}\nðŸ”‘ Senha temporária: ${createdCredentials.password}\n\nðŸ“Œ Link de agendamento:\n${createdCredentials.link}\n\nâš ï¸ Troque sua senha após o primeiro login.`;
               const whatsAppUrl = buildWhatsAppUrl('', fullMessage);
               return (
               <div className="space-y-4">
@@ -999,7 +999,7 @@ const Team = () => {
                     <p className="font-mono text-sm">{createdCredentials.email}</p>
                   </div>
                   <div>
-                    <p className="text-xs text-muted-foreground">Senha temporÃ¡ria</p>
+                    <p className="text-xs text-muted-foreground">Senha temporária</p>
                     <p className="font-mono text-sm">{createdCredentials.password}</p>
                   </div>
                   <div>
@@ -1007,7 +1007,7 @@ const Team = () => {
                     <p className="font-mono text-xs break-all">{createdCredentials.link}</p>
                   </div>
                 </div>
-                <p className="text-xs text-muted-foreground">O profissional pode alterar a senha apÃ³s o primeiro login.</p>
+                <p className="text-xs text-muted-foreground">O profissional pode alterar a senha após o primeiro login.</p>
                 <div className="flex gap-2">
                   <Button variant="outline" className="flex-1" onClick={() => copyToClipboard(fullMessage, 'Dados de acesso')}>
                     <Copy className="mr-2 h-4 w-4" /> Copiar acesso
@@ -1160,7 +1160,7 @@ const Team = () => {
                       </>
                     )}
 
-                    {/* Parceiro com comissÃ£o */}
+                    {/* Parceiro com comissão */}
                     {wizardBM.business_model === 'partner_commission' && (
                       <div className="space-y-3 rounded-lg border p-4">
                         <div className="space-y-2">
@@ -1248,7 +1248,7 @@ const Team = () => {
                         </div>
                         {wizardBM.partner_revenue_mode === 'percent_to_company' && (
                           <div className="space-y-2">
-                            <Label className="text-xs">% que fica com o sÃ³cio</Label>
+                            <Label className="text-xs">% que fica com o sócio</Label>
                             <Input
                               type="number"
                               value={wizardBM.commission_value || ''}
@@ -1261,7 +1261,7 @@ const Team = () => {
                           </div>
                         )}
                         <div className="space-y-2">
-                          <Label className="text-xs">% societÃ¡rio (opcional)</Label>
+                          <Label className="text-xs">% societário (opcional)</Label>
                           <Input
                             type="number"
                             step="0.01"
@@ -1270,7 +1270,7 @@ const Team = () => {
                             placeholder="Ex: 50"
                           />
                           <p className="text-xs text-muted-foreground">
-                            Usado para divisÃ£o futura do lucro da empresa (relatÃ³rio).
+                            Usado para divisão futura do lucro da empresa (relatório).
                           </p>
                         </div>
                       </div>
@@ -1279,7 +1279,7 @@ const Team = () => {
                     {/* Externo */}
                     {wizardBM.business_model === 'external' && (
                       <div className="rounded-lg border bg-muted/30 p-4 text-sm text-muted-foreground">
-                        Este profissional usa apenas a agenda. Nenhum campo financeiro Ã© necessÃ¡rio.
+                        Este profissional usa apenas a agenda. Nenhum campo financeiro Ã© necessário.
                       </div>
                     )}
                     <Button className="w-full" onClick={() => {
@@ -1299,7 +1299,7 @@ const Team = () => {
                     <div className="flex items-center justify-between p-3 rounded-lg border">
                       <div>
                         <p className="text-sm font-medium">Acesso ao sistema</p>
-                        <p className="text-xs text-muted-foreground">O profissional terÃ¡ login e painel prÃ³prio</p>
+                        <p className="text-xs text-muted-foreground">O profissional terá login e painel próprio</p>
                       </div>
                       <Switch
                         checked={form.has_system_access}
@@ -1427,7 +1427,7 @@ const Team = () => {
 
                     {!form.has_system_access && (
                       <div className="rounded-lg bg-muted/50 p-3">
-                        <p className="text-xs text-muted-foreground">O profissional aparecerÃ¡ na agenda e pÃ¡gina pÃºblica, mas nÃ£o terÃ¡ login no sistema.</p>
+                        <p className="text-xs text-muted-foreground">O profissional aparecerá na agenda e página pÃºblica, mas não terá login no sistema.</p>
                       </div>
                     )}
 
@@ -1467,7 +1467,7 @@ const Team = () => {
                     {!(company as any)?.prof_perm_booking_mode && !(company as any)?.prof_perm_grid_interval && (
                       <div className="p-3 rounded-lg bg-muted/50 border flex items-center gap-2 text-xs text-muted-foreground">
                         <Lock className="h-3 w-3 shrink-0" />
-                        ConfiguraÃ§Ã£o definida pela empresa. O administrador nÃ£o liberou personalizaÃ§Ã£o.
+                        Configuração definida pela empresa. O administrador não liberou personalização.
                       </div>
                     )}
 
@@ -1488,13 +1488,13 @@ const Team = () => {
                                 <SelectItem value="fixed_grid">
                                   <div className="flex flex-col items-start">
                                     <span>Grade fixa</span>
-                                    <span className="text-xs text-muted-foreground">Intervalos fixos de horÃ¡rio</span>
+                                    <span className="text-xs text-muted-foreground">Intervalos fixos de horário</span>
                                   </div>
                                 </SelectItem>
                                 <SelectItem value="hybrid">
                                   <div className="flex flex-col items-start">
                                     <span>Híbrida (recomendado)</span>
-                                    <span className="text-xs text-muted-foreground">Grade fixa com validaÃ§Ã£o de duraÃ§Ã£o</span>
+                                    <span className="text-xs text-muted-foreground">Grade fixa com validação de duração</span>
                                   </div>
                                 </SelectItem>
                               </SelectContent>
@@ -1833,10 +1833,10 @@ const Team = () => {
                   Agenda
                 </TabsTrigger>
                 <TabsTrigger value="services" className="data-[state=active]:bg-muted text-xs sm:text-sm">
-                  ServiÃ§os
+                  Serviços
                 </TabsTrigger>
                 <TabsTrigger value="public" className="data-[state=active]:bg-muted text-xs sm:text-sm">
-                  PÃ¡gina
+                  Página
                 </TabsTrigger>
               </TabsList>
             </div>
@@ -1886,7 +1886,7 @@ const Team = () => {
                   </div>
                 </div>
 
-                {/* FuncionÃ¡rio */}
+                {/* Funcionário */}
                 {editBM.business_model === 'employee' && (
                   <div className="space-y-3 rounded-lg border p-4">
                     <Label className="text-sm font-medium">Como ele Ã© remunerado?</Label>
@@ -1896,7 +1896,7 @@ const Team = () => {
                     >
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="none">SalÃ¡rio fixo (controlado fora do sistema)</SelectItem>
+                        <SelectItem value="none">Salário fixo (controlado fora do sistema)</SelectItem>
                         <SelectItem value="percentage">Comissão %</SelectItem>
                         <SelectItem value="fixed">Valor fixo por serviço</SelectItem>
                       </SelectContent>
@@ -1927,7 +1927,7 @@ const Team = () => {
                   </div>
                 )}
 
-                {/* Parceiro com comissÃ£o */}
+                {/* Parceiro com comissão */}
                 {editBM.business_model === 'partner_commission' && (
                   <div className="space-y-3 rounded-lg border p-4">
                     <div className="space-y-2">
@@ -2015,7 +2015,7 @@ const Team = () => {
                     </div>
                     {editBM.partner_revenue_mode === 'percent_to_company' && (
                       <div className="space-y-2">
-                        <Label className="text-xs">% que fica com o sÃ³cio</Label>
+                        <Label className="text-xs">% que fica com o sócio</Label>
                         <Input
                           type="number"
                           value={editBM.commission_value || ''}
@@ -2028,7 +2028,7 @@ const Team = () => {
                       </div>
                     )}
                     <div className="space-y-2">
-                      <Label className="text-xs">% societÃ¡rio (opcional)</Label>
+                      <Label className="text-xs">% societário (opcional)</Label>
                       <Input
                         type="number"
                         step="0.01"
@@ -2037,7 +2037,7 @@ const Team = () => {
                         placeholder="Ex: 50"
                       />
                       <p className="text-xs text-muted-foreground">
-                        Usado para divisÃ£o futura do lucro da empresa (relatÃ³rio).
+                        Usado para divisão futura do lucro da empresa (relatório).
                       </p>
                     </div>
                   </div>
@@ -2046,7 +2046,7 @@ const Team = () => {
                 {/* Externo */}
                 {editBM.business_model === 'external' && (
                   <div className="rounded-lg border bg-muted/30 p-4 text-sm text-muted-foreground">
-                    Este profissional usa apenas a agenda. Nenhum campo financeiro Ã© necessÃ¡rio.
+                    Este profissional usa apenas a agenda. Nenhum campo financeiro Ã© necessário.
                   </div>
                 )}
 
@@ -2061,7 +2061,7 @@ const Team = () => {
                   <p className="text-xs text-muted-foreground">
                     {editTarget?.has_system_access
                       ? 'Este profissional pode entrar no painel com seu e-mail.'
-                      : 'Este profissional nÃ£o tem login. Use as aÃ§Ãµes do card para conceder acesso.'}
+                      : 'Este profissional não tem login. Use as açÃµes do card para conceder acesso.'}
                   </p>
                 </div>
               </TabsContent>
@@ -2121,7 +2121,7 @@ const Team = () => {
                     ) : (
                       <div className="p-3 rounded-lg bg-muted/50 border">
                         <p className="text-sm">Horários dinâmicos por serviço</p>
-                        <p className="text-xs text-muted-foreground">A grade nÃ£o se aplica no modo Inteligente.</p>
+                        <p className="text-xs text-muted-foreground">A grade não se aplica no modo Inteligente.</p>
                       </div>
                     );
                   }
@@ -2156,7 +2156,7 @@ const Team = () => {
                     </SelectContent>
                   </Select>
                   <p className="text-xs text-muted-foreground">
-                    Tempo de respiro entre um atendimento e outro (nÃ£o altera a grade da agenda).
+                    Tempo de respiro entre um atendimento e outro (não altera a grade da agenda).
                   </p>
                 </div>
               </TabsContent>
@@ -2168,7 +2168,7 @@ const Team = () => {
                     <Briefcase className="h-4 w-4 text-primary" />
                   </div>
                   <div className="min-w-0">
-                    <Label className="text-sm font-semibold">ServiÃ§os atendidos</Label>
+                    <Label className="text-sm font-semibold">Serviços atendidos</Label>
                     <p className="text-xs text-muted-foreground mt-0.5">
                       {editAssignedServiceIds.length} de {companyServices.length} selecionados
                     </p>
@@ -2252,7 +2252,7 @@ const Team = () => {
                       return (
                         <p className="text-sm text-muted-foreground text-center py-6">
                           {companyServices.length === 0
-                            ? 'Nenhum serviço cadastrado. Crie serviços primeiro em ServiÃ§os.'
+                            ? 'Nenhum serviço cadastrado. Crie serviços primeiro em Serviços.'
                             : 'Nenhum serviço encontrado.'}
                         </p>
                       );
