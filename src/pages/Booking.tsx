@@ -1169,19 +1169,44 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       }
 
       // 3. Fallback to Database
-      if (!bookingToUse && isAuthenticated) {
+      if (!bookingToUse) {
         try {
           const { data: { session } } = await supabase.auth.getSession();
-          if (session?.user) {
-            const { data: appt } = await supabase
+          let searchCriteria: { user_id?: string; client_id?: string } = {};
+
+          if (session?.user && isAuthenticated) {
+            searchCriteria.user_id = session.user.id;
+          } else {
+            // Try identified client by whatsapp
+            const localIdentityStr = localStorage.getItem(`whatsapp_session_${company.id}`);
+            if (localIdentityStr) {
+              const identity = JSON.parse(localIdentityStr);
+              const phone = normalizePhone(identity.whatsapp);
+              const { data: clientData } = await supabase
+                .from('clients')
+                .select('id')
+                .eq('company_id', company.id)
+                .eq('whatsapp', phone)
+                .maybeSingle();
+              if (clientData?.id) {
+                searchCriteria.client_id = clientData.id;
+              }
+            }
+          }
+
+          if (searchCriteria.user_id || searchCriteria.client_id) {
+            const query = supabase
               .from('appointments')
-              .select('id, start_time, total_price, professional_id, notes')
+              .select('id, start_time, total_price, professional_id, status, notes')
               .eq('company_id', company.id)
-              .eq('user_id', session.user.id)
               .in('status', ['completed', 'confirmed'])
               .order('start_time', { ascending: false })
-              .limit(1)
-              .maybeSingle();
+              .limit(1);
+
+            if (searchCriteria.user_id) query.eq('user_id', searchCriteria.user_id);
+            else query.eq('client_id', searchCriteria.client_id!);
+
+            const { data: appt } = await query.maybeSingle();
 
             if (appt) {
               const [apptSvcsRes, profRes] = await Promise.all([
@@ -1197,22 +1222,24 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                 const { data: svcs } = await (supabase.from('public_services' as any)
                   .select('id, name, active')
                   .in('id', svcIds) as any);
-                
-                const activeSvcIds = svcIds.filter(id => (svcs as any[])?.find(s => s.id === id && s.active));
-                
-                if (activeSvcIds.length > 0) {
-                  bookingToUse = {
-                    serviceIds: activeSvcIds,
-                    serviceNames: activeSvcIds.map(id => (svcs as any[])?.find(s => s.id === id)?.name).filter(Boolean),
-                    serviceDurations: (apptSvcs || []).filter(s => activeSvcIds.includes(s.service_id)).map(s => s.duration_minutes),
-                    professionalId: appt.professional_id,
-                    professionalName: prof.name || 'Profissional',
-                    professionalAvatar: prof.avatar_url || null,
-                    totalPrice: Number(appt.total_price || 0),
-                    totalDuration: (apptSvcs || []).filter(s => activeSvcIds.includes(s.service_id)).reduce((sum: number, s: any) => sum + (s.duration_minutes || 0), 0),
-                    bookedAt: appt.start_time,
-                    notes: appt.notes,
-                  };
+
+                if (svcs) {
+                  const activeSvcIds = svcIds.filter(id => (svcs as any[])?.find(s => s.id === id && s.active));
+                  
+                  if (activeSvcIds.length > 0) {
+                    bookingToUse = {
+                      serviceIds: activeSvcIds,
+                      serviceNames: activeSvcIds.map(id => (svcs as any[])?.find(s => s.id === id)?.name).filter(Boolean),
+                      serviceDurations: (apptSvcs || []).filter(s => activeSvcIds.includes(s.service_id)).map(s => s.duration_minutes),
+                      professionalId: appt.professional_id,
+                      professionalName: prof.name || 'Profissional',
+                      professionalAvatar: prof.avatar_url || null,
+                      totalPrice: Number(appt.total_price || 0),
+                      totalDuration: (apptSvcs || []).filter(s => activeSvcIds.includes(s.service_id)).reduce((sum: number, s: any) => sum + (s.duration_minutes || 0), 0),
+                      bookedAt: appt.start_time,
+                      notes: appt.notes,
+                    };
+                  }
                 }
               }
             }

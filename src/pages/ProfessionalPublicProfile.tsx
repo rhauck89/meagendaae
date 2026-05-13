@@ -9,7 +9,7 @@ import { SEOHead } from '@/components/SEOHead';
 import { format, addDays, startOfDay, isToday, isTomorrow, differenceInYears, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
-import { buildWhatsAppUrl, trackWhatsAppClick } from '@/lib/whatsapp';
+import { buildWhatsAppUrl, trackWhatsAppClick, normalizePhone } from '@/lib/whatsapp';
 import { type ExistingAppointment } from '@/lib/availability-engine';
 import { getAvailableSlots } from '@/lib/availability-service';
 import { formatWhatsApp } from '@/lib/whatsapp';
@@ -173,7 +173,6 @@ export default function ProfessionalPublicProfile() {
               email: session.email,
               avatar_url: null
             });
-            return;
           } else {
             localStorage.removeItem(`whatsapp_session_${company.id}`);
           }
@@ -274,47 +273,77 @@ export default function ProfessionalPublicProfile() {
         experience_years: prof.experience_years || 5
       });
 
-      // Check for last booking if logged in (non-blocking)
-      if (isAuthenticated) {
-        supabase.auth.getUser().then(({ data: { user } }) => {
-          if (user) {
-            supabase
-              .from('appointments')
-              .select('id, start_time, total_price, professional_id, status, notes')
-              .eq('company_id', comp.id)
-              .eq('user_id', user.id)
-              .eq('professional_id', prof.id)
-              .in('status', ['completed', 'confirmed'])
-              .order('start_time', { ascending: false })
-              .limit(1)
-              .maybeSingle()
-              .then(({ data: appt }) => {
-                if (appt) {
-                  supabase.from('appointment_services').select('service_id').eq('appointment_id', appt.id).then(({ data: apptSvcs }) => {
-                    if (apptSvcs && apptSvcs.length > 0) {
-                      const svcIds = apptSvcs.map(as => as.service_id);
-                      supabase.from('public_services' as any).select('id, name, duration_minutes, price').in('id', svcIds).then(({ data: svcsRes }) => {
-                        const svcs = svcsRes as any[] | null;
-                        if (svcs) {
-                          setLastBooking({
-                            ...appt,
-                            serviceIds: svcs.map(s => s.id),
-                            serviceNames: svcs.map(s => s.name),
-                            serviceDurations: svcs.map(s => s.duration_minutes || 30),
-                            totalPrice: svcs.reduce((sum, s) => sum + Number(s.price || 0), 0),
-                            totalDuration: svcs.reduce((sum, s) => sum + Number(s.duration_minutes || 0), 0),
-                            professionalId: appt.professional_id,
-                            notes: appt.notes
-                          });
-                        }
-                      });
-                    }
-                  });
-                }
-              });
+      // Check for last booking (non-blocking)
+      const fetchLastBooking = async () => {
+        if (!companyFull?.id || !prof?.id) return;
+
+        let searchCriteria: { user_id?: string; client_id?: string } = {};
+
+        // Priority 1: Auth User
+        if (isAuthenticated && user?.id) {
+          searchCriteria.user_id = user.id;
+        } 
+        // Priority 2: Identified Client by Local LocalStorage Identity
+        else if (currentClient?.whatsapp) {
+          const phone = normalizePhone(currentClient.whatsapp);
+          const { data: clientData } = await supabase
+            .from('clients')
+            .select('id')
+            .eq('company_id', companyFull.id)
+            .eq('whatsapp', phone)
+            .maybeSingle();
+          
+          if (clientData?.id) {
+            searchCriteria.client_id = clientData.id;
           }
-        }).catch(() => {});
-      }
+        }
+
+        if (!searchCriteria.user_id && !searchCriteria.client_id) return;
+
+        const query = supabase
+          .from('appointments')
+          .select('id, start_time, total_price, professional_id, status, notes')
+          .eq('company_id', companyFull.id)
+          .eq('professional_id', prof.id)
+          .in('status', ['completed', 'confirmed'])
+          .order('start_time', { ascending: false })
+          .limit(1);
+
+        if (searchCriteria.user_id) query.eq('user_id', searchCriteria.user_id);
+        else query.eq('client_id', searchCriteria.client_id!);
+
+        const { data: appt } = await query.maybeSingle();
+
+        if (appt) {
+          const { data: apptSvcs } = await supabase
+            .from('appointment_services')
+            .select('service_id')
+            .eq('appointment_id', appt.id);
+
+          if (apptSvcs && apptSvcs.length > 0) {
+            const svcIds = apptSvcs.map(as => as.service_id);
+            const { data: svcs } = await supabase
+              .from('public_services' as any)
+              .select('id, name, duration_minutes, price')
+              .in('id', svcIds);
+
+            if (svcs && svcs.length > 0) {
+              setLastBooking({
+                ...appt,
+                serviceIds: (svcs as any[]).map(s => s.id),
+                serviceNames: (svcs as any[]).map(s => s.name),
+                serviceDurations: (svcs as any[]).map(s => s.duration_minutes || 30),
+                totalPrice: (svcs as any[]).reduce((sum, s) => sum + Number(s.price || 0), 0),
+                totalDuration: (svcs as any[]).reduce((sum, s) => sum + Number(s.duration_minutes || 0), 0),
+                professionalId: appt.professional_id,
+                notes: appt.notes
+              });
+            }
+          }
+        }
+      };
+
+      fetchLastBooking();
 
       const { data: spData } = await supabase.from('service_professionals').select('service_id, price_override').eq('professional_id', prof.id);
       const svcIds = (spData || []).map((s: any) => s.service_id);
