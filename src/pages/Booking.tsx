@@ -1296,15 +1296,6 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       }
     })();
   }, [company?.id, clientLoaded, searchParams, services.length, professionals.length, isAuthenticated, location.state]);
-      } catch (err) {
-        console.error('[REBOOK] Unexpected error:', err);
-      } finally {
-        // Small delay to ensure smooth transition
-        setTimeout(() => setRebookingLoading(false), 800);
-      }
-    })();
-  }, [lastBooking, company?.id, services, professionals, searchParams, isAuthenticated, hasValidClient, clientLoaded]);
-
   useEffect(() => {
     if (!company?.id) return;
     const checkBenefits = async () => {
