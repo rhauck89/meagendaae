@@ -99,6 +99,8 @@ export function PlanDialog({
       valid_end_time: '',
       observations: '',
       is_active: true,
+      all_professionals: true,
+      participant_professionals: [],
     },
   });
 
