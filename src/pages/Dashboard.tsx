@@ -782,7 +782,9 @@ const Dashboard = () => {
         .eq('company_id', companyId)
         .maybeSingle();
 
-      if (collab) {
+      const isSubscriptionCovered = apt.is_subscription_covered || String(apt.notes || '').toLowerCase().includes('assinatura');
+
+      if (collab && !isSubscriptionCovered) {
         const serviceCount = apt.appointment_services?.length || 1;
         const { calculateFinancials } = await import('@/lib/financial-engine');
         // Commission calculated on GROSS price (before discounts/cashback/subscription)
@@ -797,6 +799,11 @@ const Dashboard = () => {
         commissionAmount = breakdown.professionalValue;
         // Company profit is based on net cash received minus professional payout
         companyProfit = netPrice - professionalEarning;
+      } else if (isSubscriptionCovered) {
+        // Skip individual commission for subscription-covered appointments
+        commissionAmount = 0;
+        professionalEarning = 0;
+        companyProfit = netPrice;
       }
 
       const noteParts = [];
