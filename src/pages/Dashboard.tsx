@@ -805,8 +805,8 @@ const Dashboard = () => {
         
         // Subscription check based on notes/appointment data
         const appointmentNotes = String(apt.notes || '').toLowerCase();
-        if (appointmentNotes.includes('assinatura') || appointmentNotes.includes('plano')) {
-          noteParts.push('Coberto por assinatura');
+        if (appointmentNotes.includes('assinatura') || appointmentNotes.includes('plano') || manualDiscount > 0) {
+          noteParts.push('Coberto por assinatura/plano');
         }
       }
       if (commissionAmount > 0) noteParts.push(`Comissão: R$ ${commissionAmount.toFixed(2)} (Base: R$ ${grossPrice.toFixed(2)}) | Lucro Líquido: R$ ${companyProfit.toFixed(2)}`);
