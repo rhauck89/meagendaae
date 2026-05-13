@@ -208,8 +208,8 @@ export function PlanDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
-        <DialogHeader>
+      <DialogContent className="max-w-2xl h-[100dvh] sm:h-auto sm:max-h-[90vh] flex flex-col p-0 overflow-hidden">
+        <DialogHeader className="px-6 py-4 border-b shrink-0">
           <DialogTitle>{plan ? 'Editar Plano' : 'Novo Plano'}</DialogTitle>
           <DialogDescription>
             Configure os detalhes do plano de assinatura para seus clientes.
@@ -217,8 +217,12 @@ export function PlanDialog({
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 flex flex-col min-h-0 overflow-hidden">
-            <DialogBody className="space-y-6">
+          <form 
+            onSubmit={form.handleSubmit(onSubmit)} 
+            className="flex-1 min-h-0 flex flex-col overflow-hidden"
+            data-dialog-body
+          >
+            <DialogBody className="flex-1 overflow-y-auto space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField
                 control={form.control}
