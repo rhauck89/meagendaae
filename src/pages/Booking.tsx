@@ -1173,9 +1173,11 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         try {
           const { data: { session } } = await supabase.auth.getSession();
           if (session?.user) {
+            let searchCriteria: { user_id?: string; client_id?: string } = { user_id: session.user.id };
+            
             const { data: appt } = await supabase
               .from('appointments')
-              .select('id, start_time, total_price, professional_id, notes')
+              .select('id, start_time, total_price, professional_id, status, notes')
               .eq('company_id', company.id)
               .eq('user_id', session.user.id)
               .in('status', ['completed', 'confirmed'])
