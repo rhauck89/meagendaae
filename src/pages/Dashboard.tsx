@@ -424,8 +424,8 @@ const Dashboard = () => {
 
       setStats({
         total: selectedAppts.length,
-        revenue: selectedAppts.filter((a) => validStatuses.includes(a.status)).reduce((sum, a) => sum + Number(a.total_price), 0),
-        revenueCompleted: selectedAppts.filter((a) => a.status === 'completed').reduce((sum, a) => sum + Number(a.total_price), 0),
+        revenue: selectedAppts.filter((a) => validStatuses.includes(a.status)).reduce((sum, a) => sum + Number(a.final_price || a.total_price), 0),
+        revenueCompleted: selectedAppts.filter((a) => a.status === 'completed').reduce((sum, a) => sum + Number(a.final_price || a.total_price), 0),
         clients: dailyClients,
       });
     }
