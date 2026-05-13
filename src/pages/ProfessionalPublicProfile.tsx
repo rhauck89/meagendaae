@@ -292,12 +292,20 @@ export default function ProfessionalPublicProfile() {
                 if (appt) {
                   supabase.from('appointment_services').select('service_id').eq('appointment_id', appt.id).then(({ data: apptSvcs }) => {
                     if (apptSvcs && apptSvcs.length > 0) {
-                      supabase.from('public_services' as any).select('name').eq('id', apptSvcs[0].service_id).maybeSingle().then(({ data: svc }) => {
-                        setLastBooking({
-                          ...appt,
-                          serviceName: (svc as any)?.name,
-                          notes: appt.notes
-                        });
+                      const svcIds = apptSvcs.map(as => as.service_id);
+                      supabase.from('public_services' as any).select('id, name, duration_minutes, price').in('id', svcIds).then(({ data: svcs }) => {
+                        if (svcs) {
+                          setLastBooking({
+                            ...appt,
+                            serviceIds: svcs.map(s => s.id),
+                            serviceNames: svcs.map(s => s.name),
+                            serviceDurations: svcs.map(s => (s as any).duration_minutes || 30),
+                            totalPrice: svcs.reduce((sum, s) => sum + Number(s.price || 0), 0),
+                            totalDuration: svcs.reduce((sum, s) => sum + Number((s as any).duration_minutes || 0), 0),
+                            professionalId: appt.professional_id,
+                            notes: appt.notes
+                          });
+                        }
                       });
                     }
                   });
