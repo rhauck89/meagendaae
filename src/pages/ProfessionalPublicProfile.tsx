@@ -280,7 +280,7 @@ export default function ProfessionalPublicProfile() {
           if (user) {
             supabase
               .from('appointments')
-              .select('id, start_time, total_price, professional_id, status')
+              .select('id, start_time, total_price, professional_id, status, notes')
               .eq('company_id', comp.id)
               .eq('user_id', user.id)
               .eq('professional_id', prof.id)
@@ -295,7 +295,8 @@ export default function ProfessionalPublicProfile() {
                       supabase.from('public_services' as any).select('name').eq('id', apptSvcs[0].service_id).maybeSingle().then(({ data: svc }) => {
                         setLastBooking({
                           ...appt,
-                          serviceName: (svc as any)?.name
+                          serviceName: (svc as any)?.name,
+                          notes: appt.notes
                         });
                       });
                     }

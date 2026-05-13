@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Scissors, Sparkles, Clock, DollarSign, ChevronRight, ChevronLeft, CheckCircle2, Bell, Zap, CalendarPlus, MessageCircle, RotateCcw, Home, User, Phone, Mail, Cake, MapPin, Star, X, AlertTriangle, Calendar, ChevronDown, Tag, ShieldCheck, AlertCircle } from 'lucide-react';
 import { format, addMinutes, addDays, startOfDay, isSameDay, parseISO, startOfWeek, endOfWeek, eachDayOfInterval, addWeeks, subWeeks, isToday, startOfMonth, endOfMonth, eachMonthOfInterval, setMonth, getYear } from 'date-fns';
 import { fromZonedTime, toZonedTime } from 'date-fns-tz';
+import { motion, AnimatePresence } from 'framer-motion';
 import { sendAppointmentCreatedWebhook } from '@/lib/automations';
 import { getBookingStatus, getPromoValidityStatus, isSlotEligible } from '@/lib/promotion-period';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -266,10 +267,13 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
   }, []);
 
   const [hasBenefitsActive, setHasBenefitsActive] = useState(false);
+  const [rebookingLoading, setRebookingLoading] = useState(false);
+  const [rebookedNotes, setRebookedNotes] = useState<string | null>(null);
   const [lastBooking, setLastBooking] = useState<{
     serviceIds: string[]; serviceNames: string[]; serviceDurations: number[];
     professionalId: string; professionalName: string; professionalAvatar: string | null;
     totalPrice: number; totalDuration: number; bookedAt: string;
+    notes?: string | null;
   } | null>(null);
   const [rebookDismissed, setRebookDismissed] = useState(false);
   const selectedSlotIsAvailable = selectedTime ? generatedSlots.includes(selectedTime) : false;
@@ -1128,20 +1132,21 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
     if (rebookTriggered.current) return;
     const rebookParam = searchParams.get('rebook');
     if (rebookParam !== '1' && rebookParam !== 'true') return;
-    if (!company?.id || services.length === 0) return;
+    if (!company?.id || services.length === 0 || !clientLoaded) return;
 
     rebookTriggered.current = true;
     (async () => {
+      setRebookingLoading(true);
       let bookingToUse = lastBooking;
 
-      // If lastBooking is not in state (e.g. not in localStorage), try fetching from DB
-      if (!bookingToUse && isAuthenticated) {
-        try {
+      try {
+        // If lastBooking is not in state (e.g. not in localStorage), try fetching from DB
+        if (!bookingToUse && isAuthenticated) {
           const { data: { session } } = await supabase.auth.getSession();
           if (session?.user) {
             const { data: appt } = await supabase
               .from('appointments')
-              .select('id, start_time, total_price, professional_id')
+              .select('id, start_time, total_price, professional_id, notes')
               .eq('company_id', company.id)
               .eq('user_id', session.user.id)
               .in('status', ['completed', 'confirmed'])
@@ -1158,7 +1163,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
               const apptSvcs = apptSvcsRes.data;
               const prof = profRes.data as any;
 
-              if (prof && prof.active) {
+              if (prof) {
                 const svcIds = (apptSvcs || []).map((s: any) => s.service_id);
                 const { data: svcs } = await (supabase.from('public_services' as any)
                   .select('id, name, active')
@@ -1177,62 +1182,84 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                     totalPrice: Number(appt.total_price || 0),
                     totalDuration: (apptSvcs || []).filter(s => activeSvcIds.includes(s.service_id)).reduce((sum: number, s: any) => sum + (s.duration_minutes || 0), 0),
                     bookedAt: appt.start_time,
+                    notes: appt.notes,
                   };
                 }
               }
             }
           }
-        } catch (err) {
-          console.error('[REBOOK] Error fetching from DB:', err);
         }
+
+        if (!bookingToUse) {
+          console.warn('[REBOOK] No booking data found to repeat.');
+          setRebookingLoading(false);
+          return;
+        }
+
+        // Store rebooked notes if any
+        if (bookingToUse.notes) {
+          setRebookedNotes(bookingToUse.notes);
+        }
+
+        // Final validation of services
+        const activeServices = bookingToUse.serviceIds.filter(sid => services.find(s => s.id === sid && s.active !== false));
+        
+        if (activeServices.length === 0) {
+          toast.error('Um ou mais serviços do seu último atendimento não estão mais disponíveis.');
+          setStep('services');
+          setRebookingLoading(false);
+          return;
+        }
+
+        if (activeServices.length < bookingToUse.serviceIds.length) {
+          toast.info('Alguns serviços do seu último agendamento não estão mais disponíveis.');
+        }
+
+        setSelectedServices(activeServices);
+
+        // Professional validation
+        const profStillActive = professionals.length > 0 
+          ? professionals.find(p => p.id === bookingToUse!.professionalId && p.active !== false)
+          : true; 
+
+        if (!profStillActive) {
+          toast.info('O profissional do seu último atendimento não está mais disponível. Por favor, selecione um novo profissional.');
+          setStep('professional');
+          setRebookingLoading(false);
+          return;
+        }
+
+        // Check if professional can perform these services
+        const { data: spLinks } = await supabase
+          .from('service_professionals')
+          .select('service_id')
+          .eq('professional_id', bookingToUse.professionalId)
+          .in('service_id', activeServices);
+
+        if (!spLinks || spLinks.length !== activeServices.length) {
+          toast.info('Este profissional não realiza mais todos os serviços selecionados. Por favor, selecione um novo profissional.');
+          setStep('professional');
+          setRebookingLoading(false);
+          return;
+        }
+
+        setSelectedProfessional(bookingToUse.professionalId);
+        
+        // Skip identifying step if already authenticated or if we have client data
+        if (isAuthenticated || hasValidClient) {
+          setStep('datetime');
+          toast.success('Seu último atendimento foi carregado com sucesso.');
+        } else {
+          setStep('identifying');
+        }
+      } catch (err) {
+        console.error('[REBOOK] Unexpected error:', err);
+      } finally {
+        // Small delay to ensure smooth transition
+        setTimeout(() => setRebookingLoading(false), 800);
       }
-
-      if (!bookingToUse) {
-        console.warn('[REBOOK] No booking data found to repeat.');
-        return;
-      }
-
-      // Final validation of services and professional
-      const profStillActive = professionals.length > 0 
-        ? professionals.some(p => p.id === bookingToUse!.professionalId)
-        : true; // If not loaded yet, we'll trust the fetch above or wait
-
-      if (!profStillActive) {
-        toast.error('Esse profissional não está mais disponível. Escolha outro profissional.');
-        setStep('professional');
-        return;
-      }
-
-      const activeServices = bookingToUse.serviceIds.filter(sid => services.find(s => s.id === sid && s.active !== false));
-      if (activeServices.length === 0) {
-        toast.error('Esse serviço não está mais disponível. Escolha outro serviço.');
-        setStep('services');
-        return;
-      }
-
-      if (activeServices.length < bookingToUse.serviceIds.length) {
-        toast.info('Alguns serviços do seu último agendamento não estão mais disponíveis.');
-      }
-
-      setSelectedServices(activeServices);
-      setSelectedProfessional(bookingToUse.professionalId);
-      
-      // Check if professional can perform these services
-      const { data: spLinks } = await supabase
-        .from('service_professionals')
-        .select('service_id')
-        .eq('professional_id', bookingToUse.professionalId)
-        .in('service_id', activeServices);
-
-      if (!spLinks || spLinks.length !== activeServices.length) {
-        toast.error('Este profissional não realiza mais todos os serviços selecionados.');
-        setStep('professional');
-        return;
-      }
-
-      setStep('datetime');
     })();
-  }, [lastBooking, company?.id, services, professionals, searchParams, isAuthenticated]);
+  }, [lastBooking, company?.id, services, professionals, searchParams, isAuthenticated, hasValidClient, clientLoaded]);
 
   useEffect(() => {
     if (!company?.id) return;
@@ -2418,7 +2445,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         p_total_price: finalPrice,
         p_client_name: clientForm.full_name ?? null,
         p_client_whatsapp: formattedWhatsapp ?? null,
-        p_notes: subBenefit?.benefit_applied ? `Agendamento com benefício de assinatura: ${subBenefit.plan_name}` : null,
+        p_notes: subBenefit?.benefit_applied ? `Agendamento com benefício de assinatura: ${subBenefit.plan_name}` : (rebookedNotes || null),
         p_promotion_id: persistenceData.promotionId || null,
         p_services: aptServicesPayload,
         p_cashback_ids: useCashback && cashbackCredits.length > 0 ? cashbackCredits.map(c => c.id) : [],
@@ -2565,7 +2592,8 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
           professionalAvatar: professionalProfile?.avatar_url || null,
           totalPrice: finalPrice,
           totalDuration,
-           bookedAt: new Date().toISOString(),
+          bookedAt: new Date().toISOString(),
+          notes: rebookedNotes || null, // Keep existing rebooked notes if any, or null
         };
         localStorage.setItem(`last_booking_${company.id}`, JSON.stringify(lastBooking));
       } catch { /* non-critical */ }
@@ -2664,6 +2692,39 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
   // ─── Render ───
   return (
     <div className={cn("min-h-screen font-sans tracking-tight", (selectedServices.length > 0 && step === 'services') ? "pb-32" : "pb-20 sm:pb-0")} style={{ background: T.bg, color: T.text }}>
+      <AnimatePresence>
+        {rebookingLoading && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-black/95 backdrop-blur-xl"
+          >
+            <div className="relative">
+              <div className="w-20 h-20 border-4 border-amber-500/20 border-t-amber-500 rounded-full animate-spin" />
+              <div className="absolute inset-0 flex items-center justify-center">
+                <RotateCcw className="w-8 h-8 text-amber-500 animate-pulse" />
+              </div>
+            </div>
+            <motion.h2 
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.2 }}
+              className="mt-8 text-xl font-black text-white uppercase tracking-widest text-center px-4"
+            >
+              Preparando seu último atendimento...
+            </motion.h2>
+            <motion.p
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.3 }}
+              className="mt-2 text-amber-500/60 font-bold text-xs uppercase tracking-widest"
+            >
+              Recuperando serviços e profissional
+            </motion.p>
+          </motion.div>
+        )}
+      </AnimatePresence>
       {/* DEBUG BANNER REMOVIDO */}
 
       {/* Premium Header Fixo */}

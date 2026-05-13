@@ -107,6 +107,7 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
     serviceIds: string[]; serviceNames: string[]; serviceDurations: number[];
     professionalId: string; professionalName: string; professionalAvatar: string | null;
     totalPrice: number; totalDuration: number; bookedAt: string;
+    notes?: string | null;
   } | null>(null);
   const [rebookDismissed, setRebookDismissed] = useState(false);
   const [isServicesDrawerOpen, setIsServicesDrawerOpen] = useState(false);
@@ -199,7 +200,7 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
         }
         const { data: appt } = await supabase
           .from('appointments')
-          .select('id, start_time, total_price, professional_id')
+          .select('id, start_time, total_price, professional_id, notes')
           .eq('company_id', company.id)
           .eq('user_id', user.id)
           .in('status', ['completed', 'confirmed', 'pending'])
@@ -232,6 +233,7 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
           totalPrice: Number(appt.total_price || 0),
           totalDuration,
           bookedAt: appt.start_time,
+          notes: appt.notes,
         });
       } catch { /* ignore */ }
     })();
