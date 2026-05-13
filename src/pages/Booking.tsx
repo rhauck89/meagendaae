@@ -2682,6 +2682,39 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
   // ─── Render ───
   return (
     <div className={cn("min-h-screen font-sans tracking-tight", (selectedServices.length > 0 && step === 'services') ? "pb-32" : "pb-20 sm:pb-0")} style={{ background: T.bg, color: T.text }}>
+      <AnimatePresence>
+        {rebookingLoading && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-black/95 backdrop-blur-xl"
+          >
+            <div className="relative">
+              <div className="w-20 h-20 border-4 border-amber-500/20 border-t-amber-500 rounded-full animate-spin" />
+              <div className="absolute inset-0 flex items-center justify-center">
+                <RotateCcw className="w-8 h-8 text-amber-500 animate-pulse" />
+              </div>
+            </div>
+            <motion.h2 
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.2 }}
+              className="mt-8 text-xl font-black text-white uppercase tracking-widest text-center px-4"
+            >
+              Preparando seu último atendimento...
+            </motion.h2>
+            <motion.p
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.3 }}
+              className="mt-2 text-amber-500/60 font-bold text-xs uppercase tracking-widest"
+            >
+              Recuperando serviços e profissional
+            </motion.p>
+          </motion.div>
+        )}
+      </AnimatePresence>
       {/* DEBUG BANNER REMOVIDO */}
 
       {/* Premium Header Fixo */}
