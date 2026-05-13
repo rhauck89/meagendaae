@@ -2235,6 +2235,17 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
     }
   }, [selectedProfessional, professionalHours, businessHours, totalDuration, currentWeekStart, selectedDate]);
 
+  const handleProfessionalChange = () => {
+    setSelectedProfessional(null);
+    setSelectedDate(undefined);
+    setSelectedTime(null);
+    setAvailableSlots([]);
+    setGeneratedSlots([]);
+    setSelectedSlotPromo(null);
+    setSelectedSlotIncentivePromo(null);
+    setStep('professional');
+  };
+
   const handleQuickSlot = (date: Date, time: string) => {
     skipTimeResetRef.current = true;
     setSelectedDate(date);
