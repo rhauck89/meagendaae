@@ -206,19 +206,17 @@ export function PlanDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[calc(100vh-48px)] flex flex-col p-0 overflow-hidden">
-        <div className="p-6 pb-2">
-          <DialogHeader>
-            <DialogTitle>{plan ? 'Editar Plano' : 'Novo Plano'}</DialogTitle>
-            <DialogDescription>
-              Configure os detalhes do plano de assinatura para seus clientes.
-            </DialogDescription>
-          </DialogHeader>
-        </div>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>{plan ? 'Editar Plano' : 'Novo Plano'}</DialogTitle>
+          <DialogDescription>
+            Configure os detalhes do plano de assinatura para seus clientes.
+          </DialogDescription>
+        </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col min-h-0 overflow-hidden">
-            <div className="overflow-y-auto p-6 pt-2 space-y-6">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 flex flex-col min-h-0 overflow-hidden">
+            <DialogBody className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField
                 control={form.control}
