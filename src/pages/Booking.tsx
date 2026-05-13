@@ -368,6 +368,12 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
   const [validatingSub, setValidatingSub] = useState(false);
   const [allowedProfessionalIds, setAllowedProfessionalIds] = useState<string[] | null>(null);
 
+  useEffect(() => {
+    if (company?.id && (savedClientId || user?.id)) {
+      fetchAllowedProfessionalsForSubscriptions(company.id, (savedClientId || user?.id)!);
+    }
+  }, [company?.id, savedClientId, user?.id]);
+
   const isDark = businessType === 'barbershop';
   const bookingTimezone = companySettings?.timezone || DEFAULT_BOOKING_TIMEZONE;
 
