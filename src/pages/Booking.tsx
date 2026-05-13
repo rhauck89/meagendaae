@@ -268,10 +268,12 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
 
   const [hasBenefitsActive, setHasBenefitsActive] = useState(false);
   const [rebookingLoading, setRebookingLoading] = useState(false);
+  const [rebookedNotes, setRebookedNotes] = useState<string | null>(null);
   const [lastBooking, setLastBooking] = useState<{
     serviceIds: string[]; serviceNames: string[]; serviceDurations: number[];
     professionalId: string; professionalName: string; professionalAvatar: string | null;
     totalPrice: number; totalDuration: number; bookedAt: string;
+    notes?: string | null;
   } | null>(null);
   const [rebookDismissed, setRebookDismissed] = useState(false);
   const selectedSlotIsAvailable = selectedTime ? generatedSlots.includes(selectedTime) : false;
