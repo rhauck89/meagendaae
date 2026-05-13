@@ -161,14 +161,7 @@ const Dashboard = () => {
     const finalPrice = Number(apt.final_price || apt.total_price || 0);
     const cashbackUsed = Number(apt.cashback_used || 0);
     const manualDiscount = Number(apt.manual_discount || 0);
-    
-    // Determine the promotion discount automatically
-    let promoDiscount = Number(apt.promotion_discount || 0);
-    if (apt.promotion_id && promoDiscount === 0) {
-      // If we have a promotion but discount is not recorded, calculate it
-      // promotion_discount = gross - final - cashback - manual
-      promoDiscount = Math.max(0, calculatedGross - finalPrice - cashbackUsed - manualDiscount);
-    }
+    const promoDiscount = Number(apt.promotion_discount || 0);
 
     setCompleteCustomAmount(calculatedGross.toString());
     setCompletePromoDiscount(promoDiscount > 0 ? promoDiscount.toString() : '');
@@ -2437,7 +2430,6 @@ const Dashboard = () => {
               </div>
     </div>
 
-            {/* Net amount preview */}
             {completeTarget && (() => {
               const gross = parseFloat(completeCustomAmount) || Number(completeTarget.original_price || completeTarget.total_price);
               const discM = parseFloat(completeManualDiscount) || 0;
