@@ -408,6 +408,164 @@ export function PlanDialog({
               )}
             />
 
+            <div className="space-y-4 border rounded-md p-4 bg-muted/20">
+              <h3 className="text-sm font-semibold flex items-center gap-2">
+                ⚙️ Regras de Uso e Consumo
+              </h3>
+              
+              <FormField
+                control={form.control}
+                name="usage_count_mode"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Como consumir créditos</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                      value={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione o modo" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="service">Por serviço (Corte + Barba = 2 créditos)</SelectItem>
+                        <SelectItem value="appointment">Por agendamento (Corte + Barba = 1 crédito)</SelectItem>
+                        <SelectItem value="day">Por dia (Vários agendamentos no dia = 1 crédito)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormDescription>
+                      Define como o saldo de usos será descontado do cliente.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <div className="space-y-3">
+                <FormLabel>Dias da semana permitidos</FormLabel>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {[
+                    { id: 1, label: 'Segunda' },
+                    { id: 2, label: 'Terça' },
+                    { id: 3, label: 'Quarta' },
+                    { id: 4, label: 'Quinta' },
+                    { id: 5, label: 'Sexta' },
+                    { id: 6, label: 'Sábado' },
+                    { id: 0, label: 'Domingo' },
+                  ].map((day) => (
+                    <FormField
+                      key={day.id}
+                      control={form.control}
+                      name="valid_days"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-row items-start space-x-2 space-y-0">
+                          <FormControl>
+                            <Checkbox
+                              checked={field.value?.includes(day.id)}
+                              onCheckedChange={(checked) => {
+                                return checked
+                                  ? field.onChange([...(field.value || []), day.id])
+                                  : field.onChange(
+                                      field.value?.filter((value) => value !== day.id)
+                                    );
+                              }}
+                            />
+                          </FormControl>
+                          <FormLabel className="text-xs font-normal cursor-pointer">
+                            {day.label}
+                          </FormLabel>
+                        </FormItem>
+                      )}
+                    />
+                  ))}
+                </div>
+                <FormDescription className="text-xs">
+                  Se nenhum dia for selecionado, o plano será válido todos os dias.
+                </FormDescription>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="valid_start_time"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Horário inicial permitido</FormLabel>
+                      <FormControl>
+                        <Input type="time" {...field} value={field.value || ''} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="valid_end_time"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Horário final permitido</FormLabel>
+                      <FormControl>
+                        <Input type="time" {...field} value={field.value || ''} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              
+              {(() => {
+                const days = form.watch('valid_days');
+                const start = form.watch('valid_start_time');
+                const end = form.watch('valid_end_time');
+                const mode = form.watch('usage_count_mode');
+                
+                const dayLabels = [
+                  { id: 1, label: 'segunda' },
+                  { id: 2, label: 'terça' },
+                  { id: 3, label: 'quarta' },
+                  { id: 4, label: 'quinta' },
+                  { id: 5, label: 'sexta' },
+                  { id: 6, label: 'sábado' },
+                  { id: 0, label: 'domingo' },
+                ];
+                
+                const selectedDayLabels = dayLabels
+                  .filter(d => days?.includes(d.id))
+                  .map(d => d.label);
+                  
+                let summary = "";
+                if (selectedDayLabels.length === 0) {
+                  summary = "Válido todos os dias";
+                } else if (selectedDayLabels.length === 7) {
+                  summary = "Válido todos os dias";
+                } else {
+                  summary = `Válido ${selectedDayLabels.join(', ')}`;
+                }
+                
+                if (start && end) {
+                  summary += `, das ${start} às ${end}`;
+                } else if (start) {
+                  summary += `, a partir das ${start}`;
+                } else if (end) {
+                  summary += `, até as ${end}`;
+                } else {
+                  summary += ", qualquer horário";
+                }
+                
+                const modeLabel = mode === 'service' ? 'por serviço' : mode === 'appointment' ? 'por agendamento' : 'por dia';
+                summary += `. Consumo ${modeLabel}.`;
+                
+                return (
+                  <p className="text-xs font-medium text-primary bg-primary/5 p-2 rounded border border-primary/10">
+                    💡 Resumo: {summary}
+                  </p>
+                );
+              })()}
+            </div>
+
             <FormField
               control={form.control}
               name="observations"
