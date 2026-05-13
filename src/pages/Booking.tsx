@@ -280,7 +280,9 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
     const params = new URLSearchParams(window.location.search);
     return params.get('rebook') === '1' || params.get('rebook') === 'true';
   });
-  const [rebookedNotes, setRebookedNotes] = useState<string | null>(null);
+  const [rebookedNotes, setRebookedNotes] = useState<string | null>(() => {
+    return (location.state as any)?.lastBooking?.notes || null;
+  });
   const [lastBooking, setLastBooking] = useState<{
     serviceIds: string[]; serviceNames: string[]; serviceDurations: number[];
     professionalId: string; professionalName: string; professionalAvatar: string | null;
