@@ -156,6 +156,7 @@ export function ManualAppointmentDialog({
       .from('collaborators')
       .select('profile_id, active, profile:profiles(full_name)')
       .eq('company_id', companyId)
+      .eq('is_service_provider', true)
       .eq('active', true);
     setProfessionals(data || []);
     if (!isAdmin && profileId) {

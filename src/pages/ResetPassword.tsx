@@ -90,8 +90,8 @@ const ResetPassword = () => {
 
   const validate = () => {
     const newErrors: Record<string, string> = {};
-    if (password.length < 6) newErrors.password = 'A senha deve ter no mÃ­nimo 6 caracteres.';
-    if (password !== confirmPassword) newErrors.confirm = 'As senhas nÃ£o coincidem.';
+    if (password.length < 6) newErrors.password = 'A senha deve ter no mínimo 6 caracteres.';
+    if (password !== confirmPassword) newErrors.confirm = 'As senhas não coincidem.';
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -186,7 +186,7 @@ const ResetPassword = () => {
                   type="password"
                   value={password}
                   onChange={(e) => { setPassword(e.target.value); setErrors(p => ({ ...p, password: '' })); }}
-                  placeholder="MÃ­nimo 6 caracteres"
+                  placeholder="Mínimo 6 caracteres"
                   autoComplete="new-password"
                 />
                 {errors.password && <p className="text-sm text-destructive">{errors.password}</p>}

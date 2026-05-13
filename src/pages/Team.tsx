@@ -34,13 +34,14 @@ import {
   type RentCycle,
 } from '@/lib/business-model';
 
-const ROLE_TITLES = ['Barbeiro', 'Cabeleireira', 'Esteticista', 'Manicure', 'Recepcionista'];
+const ROLE_TITLES = ['Barbeiro', 'Cabeleireira', 'Esteticista', 'Manicure', 'Recepcionista', 'Atendente', 'Gerente', 'Administrativo'];
 const SYSTEM_ROLES = {
   admin_principal: { label: 'Admin Principal', icon: Crown, color: 'bg-amber-100 text-amber-800 border-amber-300' },
   admin: { label: 'Admin', icon: Shield, color: 'bg-blue-100 text-blue-800 border-blue-300' },
   admin_financeiro: { label: 'Admin Financeiro', icon: DollarSign, color: 'bg-green-100 text-green-800 border-green-300' },
   manager: { label: 'Gerente', icon: Briefcase, color: 'bg-purple-100 text-purple-800 border-purple-300' },
   receptionist: { label: 'Recepcionista', icon: Users, color: 'bg-orange-100 text-orange-800 border-orange-300' },
+  administrative: { label: 'Administrativo', icon: Briefcase, color: 'bg-indigo-100 text-indigo-800 border-indigo-300' },
   collaborator: { label: 'Profissional', icon: Users, color: 'bg-slate-100 text-slate-800 border-slate-300' },
 };
 
@@ -108,6 +109,14 @@ const PERMISSION_PRESETS: Record<string, any> = {
 };
 const WIZARD_STEPS = 5;
 
+const PAYMENT_METHOD_OPTIONS = [
+  { value: 'pix', label: 'Pix' },
+  { value: 'dinheiro', label: 'Dinheiro' },
+  { value: 'transferencia', label: 'Transferência' },
+  { value: 'cartao', label: 'Cartão' },
+  { value: 'outro', label: 'Outro' },
+];
+
 const Team = () => {
   const { companyId, user } = useAuth();
   const queryClient = useQueryClient();
@@ -124,7 +133,24 @@ const Team = () => {
   // Edit modal state
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<any>(null);
-  const [editForm, setEditForm] = useState({ name: '', email: '', collaborator_type: 'commissioned' as string, commission_type: 'percentage' as string, commission_value: '' as string | number, booking_mode: 'hybrid' as string, grid_interval: 15 as number, break_time: 0 as number, use_company_banner: true as boolean });
+  const [editForm, setEditForm] = useState({
+    name: '',
+    email: '',
+    collaborator_type: 'commissioned' as string,
+    commission_type: 'percentage' as string,
+    commission_value: '' as string | number,
+    booking_mode: 'hybrid' as string,
+    grid_interval: 15 as number,
+    break_time: 0 as number,
+    use_company_banner: true as boolean,
+    is_service_provider: true,
+    salary_amount: '',
+    salary_payment_day: '',
+    salary_next_due_date: '',
+    salary_recurrence: 'monthly',
+    salary_payment_method: 'pix',
+    salary_auto_expense: false,
+  });
   // New unified business model form
   const [editBM, setEditBM] = useState<BusinessModelForm>({
     business_model: 'employee',
@@ -183,6 +209,12 @@ const Team = () => {
     system_role: 'collaborator' as string,
     is_service_provider: true,
     permissions: PERMISSION_PRESETS.collaborator as any,
+    salary_amount: '',
+    salary_payment_day: '',
+    salary_next_due_date: '',
+    salary_recurrence: 'monthly',
+    salary_payment_method: 'pix',
+    salary_auto_expense: false,
   });
 
   // Fetch company services for step 3
@@ -349,6 +381,12 @@ const Team = () => {
       system_role: 'collaborator',
       is_service_provider: true,
       permissions: PERMISSION_PRESETS.collaborator,
+      salary_amount: '',
+      salary_payment_day: '',
+      salary_next_due_date: '',
+      salary_recurrence: 'monthly',
+      salary_payment_method: 'pix',
+      salary_auto_expense: false,
     });
     setWizardBM({
       business_model: 'employee',
@@ -376,6 +414,36 @@ const Team = () => {
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/(^-|-$)/g, '');
 
+  const applyServiceProviderMode = (isServiceProvider: boolean) => {
+    setForm((prev) => ({
+      ...prev,
+      is_service_provider: isServiceProvider,
+      selectedServiceIds: isServiceProvider ? prev.selectedServiceIds : [],
+      system_role: isServiceProvider ? 'collaborator' : (prev.system_role === 'collaborator' ? 'receptionist' : prev.system_role),
+      permissions: isServiceProvider
+        ? PERMISSION_PRESETS.collaborator
+        : (prev.system_role === 'collaborator' ? PERMISSION_PRESETS.receptionist : prev.permissions),
+    }));
+  };
+
+  const handleSystemRoleChange = (role: string) => {
+    setForm((prev) => ({
+      ...prev,
+      system_role: role,
+      is_service_provider: role === 'collaborator' ? true : prev.is_service_provider,
+      permissions: PERMISSION_PRESETS[role] || prev.permissions,
+    }));
+  };
+
+  const buildSalaryPayload = () => ({
+    salary_amount: Number(form.salary_amount) || 0,
+    salary_payment_day: form.salary_payment_day ? Number(form.salary_payment_day) : null,
+    salary_next_due_date: form.salary_next_due_date || null,
+    salary_recurrence: form.salary_recurrence,
+    salary_payment_method: form.salary_payment_method || null,
+    salary_auto_expense: form.salary_auto_expense,
+  });
+
   const handleAdd = async () => {
     if (!form.name.trim()) {
       return toast.error('Preencha o nome');
@@ -398,7 +466,7 @@ const Team = () => {
       const gridInterval = form.schedule_from_company ? (company?.fixed_slot_interval || 15) : form.grid_interval;
 
       const legacy = deriveLegacyFields(wizardBM);
-      const paymentType = legacy.commission_type;
+      const paymentType = form.is_service_provider ? legacy.commission_type : 'none';
 
       const response = await supabase.functions.invoke('create-collaborator', {
         body: {
@@ -406,14 +474,14 @@ const Team = () => {
           email: form.is_admin_self ? (user?.email || '') : form.email.trim(),
           whatsapp: form.whatsapp.trim() || null,
           company_id: companyId,
-          collaborator_type: legacy.collaborator_type,
+          collaborator_type: form.is_service_provider ? legacy.collaborator_type : 'commissioned',
           payment_type: paymentType,
-          commission_value: legacy.commission_value,
-          business_model: wizardBM.business_model,
-          partner_revenue_mode: wizardBM.partner_revenue_mode,
-          partner_equity_percent: wizardBM.partner_equity_percent || 0,
-          rent_amount: wizardBM.rent_amount || 0,
-          rent_cycle: wizardBM.rent_cycle,
+          commission_value: form.is_service_provider ? legacy.commission_value : 0,
+          business_model: form.is_service_provider ? wizardBM.business_model : 'employee',
+          partner_revenue_mode: form.is_service_provider ? wizardBM.partner_revenue_mode : null,
+          partner_equity_percent: form.is_service_provider ? (wizardBM.partner_equity_percent || 0) : 0,
+          rent_amount: form.is_service_provider ? (wizardBM.rent_amount || 0) : 0,
+          rent_cycle: form.is_service_provider ? wizardBM.rent_cycle : 'monthly',
           role: 'collaborator',
           role_title: form.role_title,
           slug: professionalSlug,
@@ -428,6 +496,7 @@ const Team = () => {
           use_company_banner: form.use_company_banner,
           is_service_provider: form.is_service_provider,
           permissions: form.permissions,
+          ...buildSalaryPayload(),
         },
       });
 
@@ -523,6 +592,13 @@ const Team = () => {
       grid_interval: (collaborator as any).grid_interval || 15,
       break_time: (collaborator as any).break_time || 0,
       use_company_banner: (collaborator as any).use_company_banner ?? true,
+      is_service_provider: (collaborator as any).is_service_provider !== false,
+      salary_amount: (collaborator as any).salary_amount ? String((collaborator as any).salary_amount) : '',
+      salary_payment_day: (collaborator as any).salary_payment_day ? String((collaborator as any).salary_payment_day) : '',
+      salary_next_due_date: (collaborator as any).salary_next_due_date || '',
+      salary_recurrence: (collaborator as any).salary_recurrence || 'monthly',
+      salary_payment_method: (collaborator as any).salary_payment_method || 'pix',
+      salary_auto_expense: (collaborator as any).salary_auto_expense || false,
     });
     setEditServiceSearch('');
     setEditSlugDirty(false);
@@ -599,17 +675,25 @@ const Team = () => {
       // Derive legacy fields from the unified business model so the
       // financial engine and reports keep working unchanged.
       const legacy = deriveLegacyFields(editBM);
+      const editIsProvider = editForm.is_service_provider !== false;
       const updateData: any = {
-        business_model: editBM.business_model,
-        partner_revenue_mode: editBM.partner_revenue_mode,
-        partner_equity_percent: editBM.partner_equity_percent || 0,
-        rent_amount: editBM.rent_amount || 0,
-        rent_cycle: editBM.rent_cycle,
-        collaborator_type: legacy.collaborator_type as any,
-        commission_type: legacy.commission_type as any,
-        commission_value: legacy.commission_value,
+        business_model: editIsProvider ? editBM.business_model : 'employee',
+        partner_revenue_mode: editIsProvider ? editBM.partner_revenue_mode : null,
+        partner_equity_percent: editIsProvider ? (editBM.partner_equity_percent || 0) : 0,
+        rent_amount: editIsProvider ? (editBM.rent_amount || 0) : 0,
+        rent_cycle: editIsProvider ? editBM.rent_cycle : 'monthly',
+        collaborator_type: editIsProvider ? (legacy.collaborator_type as any) : 'commissioned',
+        commission_type: editIsProvider ? (legacy.commission_type as any) : 'none',
+        commission_value: editIsProvider ? legacy.commission_value : 0,
         break_time: editForm.break_time,
         use_company_banner: editForm.use_company_banner,
+        is_service_provider: editIsProvider,
+        salary_amount: editIsProvider ? 0 : (Number(editForm.salary_amount) || 0),
+        salary_payment_day: !editIsProvider && editForm.salary_payment_day ? Number(editForm.salary_payment_day) : null,
+        salary_next_due_date: !editIsProvider && editForm.salary_next_due_date ? editForm.salary_next_due_date : null,
+        salary_recurrence: editIsProvider ? 'none' : editForm.salary_recurrence,
+        salary_payment_method: editIsProvider ? null : editForm.salary_payment_method,
+        salary_auto_expense: !editIsProvider && editForm.salary_auto_expense,
       };
       // Only allow booking_mode change if permitted
       if ((company as any)?.prof_perm_booking_mode) {
@@ -623,6 +707,20 @@ const Team = () => {
         .from('collaborators')
         .update(updateData)
         .eq('id', editTarget.id);
+
+      await supabase
+        .from('company_collaborators')
+        .update({
+          is_service_provider: editIsProvider,
+          salary_amount: updateData.salary_amount,
+          salary_payment_day: updateData.salary_payment_day,
+          salary_next_due_date: updateData.salary_next_due_date,
+          salary_recurrence: updateData.salary_recurrence,
+          salary_payment_method: updateData.salary_payment_method,
+          salary_auto_expense: updateData.salary_auto_expense,
+        } as any)
+        .eq('company_id', companyId!)
+        .eq('profile_id', editTarget.profile_id);
 
       toast.success('Profissional atualizado!');
       setEditDialogOpen(false);
@@ -914,7 +1012,7 @@ const Team = () => {
               )}
               {isAbsent && (
                 <Badge variant="secondary" className="flex items-center gap-1 rounded-full border-amber-300 bg-amber-100 px-3 py-1 text-amber-800">
-                  <CalendarOff className="h-3 w-3" /> {absenceTypeLabel((collaborator as any).absence_type)} atÃ© {(collaborator as any).absence_end}
+                  <CalendarOff className="h-3 w-3" /> {absenceTypeLabel((collaborator as any).absence_type)} até {(collaborator as any).absence_end}
                 </Badge>
               )}
             </div>
@@ -984,7 +1082,7 @@ const Team = () => {
 
             {createdCredentials ? (() => {
               const loginUrl = `${window.location.origin}/auth`;
-              const fullMessage = `ðŸ” *Acesso ao sistema*\n\nðŸ“Ž Link de login: ${loginUrl}\nðŸ“§ Email: ${createdCredentials.email}\nðŸ”‘ Senha temporária: ${createdCredentials.password}\n\nðŸ“Œ Link de agendamento:\n${createdCredentials.link}\n\nâš ï¸ Troque sua senha após o primeiro login.`;
+              const fullMessage = `” *Acesso ao sistema*\n\n“Ž Link de login: ${loginUrl}\n“§ Email: ${createdCredentials.email}\n”‘ Senha temporária: ${createdCredentials.password}\n\n“Œ Link de agendamento:\n${createdCredentials.link}\n\nâš ï¸ Troque sua senha após o primeiro login.`;
               const whatsAppUrl = buildWhatsAppUrl('', fullMessage);
               return (
               <div className="space-y-4">
@@ -1062,13 +1160,7 @@ const Team = () => {
                         <Label>Tipo de membro</Label>
                         <Select
                           value={form.system_role}
-                          onValueChange={(v) => {
-                            setForm({ 
-                              ...form, 
-                              system_role: v,
-                              permissions: PERMISSION_PRESETS[v] || form.permissions
-                            });
-                          }}
+                          onValueChange={handleSystemRoleChange}
                         >
                           <SelectTrigger><SelectValue /></SelectTrigger>
                           <SelectContent>
@@ -1093,10 +1185,65 @@ const Team = () => {
                         </div>
                         <Switch
                           checked={form.is_service_provider}
-                          onCheckedChange={(checked) => setForm({ ...form, is_service_provider: checked })}
+                          onCheckedChange={(checked) => applyServiceProviderMode(Boolean(checked))}
                         />
                       </div>
                     </div>
+
+                    {!form.is_service_provider && (
+                      <div className="space-y-3 rounded-lg border p-4 bg-muted/20">
+                        <div>
+                          <Label className="text-sm font-medium">Pagamento fixo do membro</Label>
+                          <p className="text-xs text-muted-foreground">
+                            Use para recepcionistas, atendentes, gerentes ou administrativos. Isso não altera o painel do profissional prestador.
+                          </p>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <div className="space-y-2">
+                            <Label className="text-xs">Valor do salário/pagamento (R$)</Label>
+                            <Input type="number" step="0.01" min="0" value={form.salary_amount} onChange={(e) => setForm({ ...form, salary_amount: e.target.value })} placeholder="Ex: 1800.00" />
+                          </div>
+                          <div className="space-y-2">
+                            <Label className="text-xs">Dia de vencimento</Label>
+                            <Input type="number" min="1" max="31" value={form.salary_payment_day} onChange={(e) => setForm({ ...form, salary_payment_day: e.target.value })} placeholder="Ex: 5" />
+                          </div>
+                          <div className="space-y-2">
+                            <Label className="text-xs">Próximo vencimento</Label>
+                            <Input type="date" value={form.salary_next_due_date} onChange={(e) => setForm({ ...form, salary_next_due_date: e.target.value })} />
+                          </div>
+                          <div className="space-y-2">
+                            <Label className="text-xs">Repetição</Label>
+                            <Select value={form.salary_recurrence} onValueChange={(v) => setForm({ ...form, salary_recurrence: v })}>
+                              <SelectTrigger><SelectValue /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="none">Sem repetição</SelectItem>
+                                <SelectItem value="weekly">Semanal</SelectItem>
+                                <SelectItem value="biweekly">Quinzenal</SelectItem>
+                                <SelectItem value="monthly">Mensal</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-2 sm:col-span-2">
+                            <Label className="text-xs">Forma de pagamento</Label>
+                            <Select value={form.salary_payment_method} onValueChange={(v) => setForm({ ...form, salary_payment_method: v })}>
+                              <SelectTrigger><SelectValue /></SelectTrigger>
+                              <SelectContent>
+                                {PAYMENT_METHOD_OPTIONS.map((option) => (
+                                  <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between rounded-lg border bg-background p-3">
+                          <div>
+                            <p className="text-sm font-medium">Enviar para despesas</p>
+                            <p className="text-xs text-muted-foreground">Cria uma despesa pendente na categoria Salários após confirmar o cadastro.</p>
+                          </div>
+                          <Switch checked={form.salary_auto_expense} onCheckedChange={(checked) => setForm({ ...form, salary_auto_expense: Boolean(checked) })} />
+                        </div>
+                      </div>
+                    )}
 
                     {form.is_service_provider && (
                       <>
@@ -1279,7 +1426,7 @@ const Team = () => {
                     {/* Externo */}
                     {wizardBM.business_model === 'external' && (
                       <div className="rounded-lg border bg-muted/30 p-4 text-sm text-muted-foreground">
-                        Este profissional usa apenas a agenda. Nenhum campo financeiro Ã© necessário.
+                        Este profissional usa apenas a agenda. Nenhum campo financeiro é necessário.
                       </div>
                     )}
                     <Button className="w-full" onClick={() => {
@@ -1345,11 +1492,7 @@ const Team = () => {
                               <Label>Nível de permissão</Label>
                               <Select 
                                 value={form.system_role} 
-                                onValueChange={(v) => setForm({ 
-                                  ...form, 
-                                  system_role: v,
-                                  permissions: PERMISSION_PRESETS[v] || form.permissions
-                                })}
+                                onValueChange={handleSystemRoleChange}
                               >
                                 <SelectTrigger><SelectValue /></SelectTrigger>
                                 <SelectContent>
@@ -1427,7 +1570,7 @@ const Team = () => {
 
                     {!form.has_system_access && (
                       <div className="rounded-lg bg-muted/50 p-3">
-                        <p className="text-xs text-muted-foreground">O profissional aparecerá na agenda e página pÃºblica, mas não terá login no sistema.</p>
+                        <p className="text-xs text-muted-foreground">O profissional aparecerá na agenda e página pública, mas não terá login no sistema.</p>
                       </div>
                     )}
 
@@ -1439,7 +1582,7 @@ const Team = () => {
                         if (form.has_system_access && !form.is_admin_self && !form.email.trim()) {
                           return toast.error('Preencha o email de acesso');
                         }
-                        setWizardStep(3);
+                        setWizardStep(form.is_service_provider ? 3 : 5);
                       }}>
                         Próximo <ChevronRight className="ml-2 h-4 w-4" />
                       </Button>
@@ -1448,7 +1591,7 @@ const Team = () => {
                 )}
 
                 {/* Step 3: Schedule Config */}
-                {wizardStep === 3 && (
+                {wizardStep === 3 && form.is_service_provider && (
                   <div className="space-y-4">
                     <p className="text-sm text-muted-foreground">Configure como a agenda do profissional irá funcionar.</p>
                     
@@ -1570,7 +1713,7 @@ const Team = () => {
                 )}
 
                 {/* Step 4: Visual Config + Services */}
-                {wizardStep === 4 && (
+                {wizardStep === 4 && form.is_service_provider && (
                   <div className="space-y-4">
                     <p className="text-sm font-medium">Configuração visual</p>
                     <div className="flex items-center justify-between p-3 rounded-lg border">
@@ -1672,29 +1815,36 @@ const Team = () => {
                         <div className="flex justify-between"><span className="text-muted-foreground">Vínculo</span><span className="font-medium text-primary">Administrador</span></div>
                       )}
                       {form.whatsapp && <div className="flex justify-between"><span className="text-muted-foreground">WhatsApp</span><span className="font-medium">{form.whatsapp}</span></div>}
-                      <div className="flex justify-between"><span className="text-muted-foreground">Modelo Comercial</span><span className="font-medium">{BUSINESS_MODEL_LABELS[wizardBM.business_model]}</span></div>
-                      {wizardBM.business_model === 'partner_commission' && Number(wizardBM.commission_value) > 0 && (
+                      <div className="flex justify-between"><span className="text-muted-foreground">Tipo</span><span className="font-medium">{form.is_service_provider ? 'Profissional prestador' : ((SYSTEM_ROLES as any)[form.system_role]?.label || 'Membro administrativo')}</span></div>
+                      {form.is_service_provider && <div className="flex justify-between"><span className="text-muted-foreground">Modelo Comercial</span><span className="font-medium">{BUSINESS_MODEL_LABELS[wizardBM.business_model]}</span></div>}
+                      {form.is_service_provider && wizardBM.business_model === 'partner_commission' && Number(wizardBM.commission_value) > 0 && (
                         <div className="flex justify-between"><span className="text-muted-foreground">% profissional</span><span className="font-medium">{wizardBM.commission_value}%</span></div>
                       )}
-                      {wizardBM.business_model === 'employee' && wizardBM.commission_type !== 'none' && (
+                      {form.is_service_provider && wizardBM.business_model === 'employee' && wizardBM.commission_type !== 'none' && (
                         <div className="flex justify-between"><span className="text-muted-foreground">Remuneração</span><span className="font-medium">{wizardBM.commission_type === 'percentage' ? `${wizardBM.commission_value}%` : `R$ ${Number(wizardBM.commission_value).toFixed(2)}/serviço`}</span></div>
                       )}
-                      {wizardBM.business_model === 'chair_rental' && (
+                      {form.is_service_provider && wizardBM.business_model === 'chair_rental' && (
                         <div className="flex justify-between"><span className="text-muted-foreground">Aluguel</span><span className="font-medium">R$ {Number(wizardBM.rent_amount).toFixed(2)} ({RENT_CYCLE_LABELS[wizardBM.rent_cycle || 'monthly']})</span></div>
                       )}
-                      {wizardBM.business_model === 'operating_partner' && wizardBM.partner_revenue_mode && (
+                      {form.is_service_provider && wizardBM.business_model === 'operating_partner' && wizardBM.partner_revenue_mode && (
                         <div className="flex justify-between"><span className="text-muted-foreground">Receita</span><span className="font-medium">{PARTNER_REVENUE_MODE_LABELS[wizardBM.partner_revenue_mode]}</span></div>
                       )}
-                      {wizardBM.business_model === 'investor_partner' && Number(wizardBM.partner_equity_percent) > 0 && (
+                      {form.is_service_provider && wizardBM.business_model === 'investor_partner' && Number(wizardBM.partner_equity_percent) > 0 && (
                         <div className="flex justify-between"><span className="text-muted-foreground">Participação</span><span className="font-medium">{wizardBM.partner_equity_percent}%</span></div>
                       )}
                       <div className="flex justify-between"><span className="text-muted-foreground">Acesso</span><span className="font-medium">{form.has_system_access ? (form.is_admin_self ? 'Admin vinculado' : 'Com login') : 'Sem acesso'}</span></div>
-                      <div className="flex justify-between"><span className="text-muted-foreground">Agenda</span><span className="font-medium">{form.schedule_from_company ? 'Padrão da empresa' : bookingModeLabel(form.booking_mode)}</span></div>
-                      <div className="flex justify-between"><span className="text-muted-foreground">Capa</span><span className="font-medium">{form.use_company_banner ? 'Da empresa' : 'Personalizada'}</span></div>
-                      <div className="flex justify-between"><span className="text-muted-foreground">Serviços</span><span className="font-medium">{form.selectedServiceIds.length > 0 ? `${form.selectedServiceIds.length} selecionado(s)` : 'Nenhum'}</span></div>
+                      {form.is_service_provider && <div className="flex justify-between"><span className="text-muted-foreground">Agenda</span><span className="font-medium">{form.schedule_from_company ? 'Padrão da empresa' : bookingModeLabel(form.booking_mode)}</span></div>}
+                      {form.is_service_provider && <div className="flex justify-between"><span className="text-muted-foreground">Capa</span><span className="font-medium">{form.use_company_banner ? 'Da empresa' : 'Personalizada'}</span></div>}
+                      {form.is_service_provider && <div className="flex justify-between"><span className="text-muted-foreground">Serviços</span><span className="font-medium">{form.selectedServiceIds.length > 0 ? `${form.selectedServiceIds.length} selecionado(s)` : 'Nenhum'}</span></div>}
+                      {!form.is_service_provider && Number(form.salary_amount) > 0 && (
+                        <div className="flex justify-between"><span className="text-muted-foreground">Pagamento fixo</span><span className="font-medium">R$ {Number(form.salary_amount).toFixed(2)}</span></div>
+                      )}
+                      {!form.is_service_provider && form.salary_auto_expense && (
+                        <div className="flex justify-between"><span className="text-muted-foreground">Despesa</span><span className="font-medium">Será criada em Salários</span></div>
+                      )}
                     </div>
                     <div className="flex gap-2">
-                      <Button variant="outline" className="flex-1" onClick={() => setWizardStep(4)}>
+                      <Button variant="outline" className="flex-1" onClick={() => setWizardStep(form.is_service_provider ? 4 : 2)}>
                         <ChevronLeft className="mr-2 h-4 w-4" /> Voltar
                       </Button>
                       <Button className="flex-1" onClick={handleAdd}>
@@ -1868,6 +2018,66 @@ const Team = () => {
 
               {/* SECTION 2: Modelo Comercial (unificado) */}
               <TabsContent value="model" className="mt-0 space-y-5">
+                <div className="flex items-center justify-between p-3 rounded-lg border">
+                  <div>
+                    <p className="text-sm font-medium">Este membro presta serviços?</p>
+                    <p className="text-xs text-muted-foreground">Desative apenas para recepcionistas, atendentes, gerentes ou administrativos.</p>
+                  </div>
+                  <Switch checked={editForm.is_service_provider} onCheckedChange={(checked) => setEditForm({ ...editForm, is_service_provider: Boolean(checked) })} />
+                </div>
+
+                {!editForm.is_service_provider && (
+                  <div className="space-y-3 rounded-lg border p-4 bg-muted/20">
+                    <Label className="text-sm font-medium">Pagamento fixo do membro</Label>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div className="space-y-2">
+                        <Label className="text-xs">Valor do salário/pagamento (R$)</Label>
+                        <Input type="number" step="0.01" min="0" value={editForm.salary_amount} onChange={(e) => setEditForm({ ...editForm, salary_amount: e.target.value })} placeholder="Ex: 1800.00" />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-xs">Dia de vencimento</Label>
+                        <Input type="number" min="1" max="31" value={editForm.salary_payment_day} onChange={(e) => setEditForm({ ...editForm, salary_payment_day: e.target.value })} placeholder="Ex: 5" />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-xs">Próximo vencimento</Label>
+                        <Input type="date" value={editForm.salary_next_due_date} onChange={(e) => setEditForm({ ...editForm, salary_next_due_date: e.target.value })} />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-xs">Repetição</Label>
+                        <Select value={editForm.salary_recurrence} onValueChange={(v) => setEditForm({ ...editForm, salary_recurrence: v })}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="none">Sem repetição</SelectItem>
+                            <SelectItem value="weekly">Semanal</SelectItem>
+                            <SelectItem value="biweekly">Quinzenal</SelectItem>
+                            <SelectItem value="monthly">Mensal</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2 sm:col-span-2">
+                        <Label className="text-xs">Forma de pagamento</Label>
+                        <Select value={editForm.salary_payment_method} onValueChange={(v) => setEditForm({ ...editForm, salary_payment_method: v })}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            {PAYMENT_METHOD_OPTIONS.map((option) => (
+                              <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between rounded-lg border bg-background p-3">
+                      <div>
+                        <p className="text-sm font-medium">Enviar para despesas</p>
+                        <p className="text-xs text-muted-foreground">Mantém este pagamento identificado para lançamento em Salários.</p>
+                      </div>
+                      <Switch checked={editForm.salary_auto_expense} onCheckedChange={(checked) => setEditForm({ ...editForm, salary_auto_expense: Boolean(checked) })} />
+                    </div>
+                  </div>
+                )}
+
+                {editForm.is_service_provider && (
+                <>
                 <div className="space-y-2">
                   <Label>Tipo de relação com a empresa</Label>
                   <Select
@@ -1889,7 +2099,7 @@ const Team = () => {
                 {/* Funcionário */}
                 {editBM.business_model === 'employee' && (
                   <div className="space-y-3 rounded-lg border p-4">
-                    <Label className="text-sm font-medium">Como ele Ã© remunerado?</Label>
+                    <Label className="text-sm font-medium">Como ele é remunerado?</Label>
                     <Select
                       value={editBM.commission_type}
                       onValueChange={(v) => setEditBM({ ...editBM, commission_type: v as any })}
@@ -2046,8 +2256,11 @@ const Team = () => {
                 {/* Externo */}
                 {editBM.business_model === 'external' && (
                   <div className="rounded-lg border bg-muted/30 p-4 text-sm text-muted-foreground">
-                    Este profissional usa apenas a agenda. Nenhum campo financeiro Ã© necessário.
+                    Este profissional usa apenas a agenda. Nenhum campo financeiro é necessário.
                   </div>
+                )}
+
+                </>
                 )}
 
                 <div className="rounded-lg border bg-muted/30 p-3 space-y-1">
@@ -2061,7 +2274,7 @@ const Team = () => {
                   <p className="text-xs text-muted-foreground">
                     {editTarget?.has_system_access
                       ? 'Este profissional pode entrar no painel com seu e-mail.'
-                      : 'Este profissional não tem login. Use as açÃµes do card para conceder acesso.'}
+                      : 'Este profissional não tem login. Use as ações do card para conceder acesso.'}
                   </p>
                 </div>
               </TabsContent>

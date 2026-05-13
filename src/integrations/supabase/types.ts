@@ -1539,11 +1539,20 @@ export type Database = {
           grid_interval: number
           has_system_access: boolean
           id: string
+          is_service_provider: boolean
           partner_equity_percent: number
           partner_revenue_mode: string | null
+          permissions: Json
           profile_id: string
           rent_amount: number
           rent_cycle: string | null
+          salary_amount: number
+          salary_auto_expense: boolean
+          salary_expense_category_id: string | null
+          salary_next_due_date: string | null
+          salary_payment_day: number | null
+          salary_payment_method: string | null
+          salary_recurrence: string
           slug: string | null
           system_role: string | null
           use_company_banner: boolean
@@ -1565,11 +1574,20 @@ export type Database = {
           grid_interval?: number
           has_system_access?: boolean
           id?: string
+          is_service_provider?: boolean
           partner_equity_percent?: number
           partner_revenue_mode?: string | null
+          permissions?: Json
           profile_id: string
           rent_amount?: number
           rent_cycle?: string | null
+          salary_amount?: number
+          salary_auto_expense?: boolean
+          salary_expense_category_id?: string | null
+          salary_next_due_date?: string | null
+          salary_payment_day?: number | null
+          salary_payment_method?: string | null
+          salary_recurrence?: string
           slug?: string | null
           system_role?: string | null
           use_company_banner?: boolean
@@ -1591,11 +1609,20 @@ export type Database = {
           grid_interval?: number
           has_system_access?: boolean
           id?: string
+          is_service_provider?: boolean
           partner_equity_percent?: number
           partner_revenue_mode?: string | null
+          permissions?: Json
           profile_id?: string
           rent_amount?: number
           rent_cycle?: string | null
+          salary_amount?: number
+          salary_auto_expense?: boolean
+          salary_expense_category_id?: string | null
+          salary_next_due_date?: string | null
+          salary_payment_day?: number | null
+          salary_payment_method?: string | null
+          salary_recurrence?: string
           slug?: string | null
           system_role?: string | null
           use_company_banner?: boolean
@@ -2086,6 +2113,13 @@ export type Database = {
           permissions: Json
           profile_id: string
           role: Database["public"]["Enums"]["collaborator_role"]
+          salary_amount: number
+          salary_auto_expense: boolean
+          salary_expense_category_id: string | null
+          salary_next_due_date: string | null
+          salary_payment_day: number | null
+          salary_payment_method: string | null
+          salary_recurrence: string
           updated_at: string | null
         }
         Insert: {
@@ -2097,6 +2131,13 @@ export type Database = {
           permissions?: Json
           profile_id: string
           role?: Database["public"]["Enums"]["collaborator_role"]
+          salary_amount?: number
+          salary_auto_expense?: boolean
+          salary_expense_category_id?: string | null
+          salary_next_due_date?: string | null
+          salary_payment_day?: number | null
+          salary_payment_method?: string | null
+          salary_recurrence?: string
           updated_at?: string | null
         }
         Update: {
@@ -2108,6 +2149,13 @@ export type Database = {
           permissions?: Json
           profile_id?: string
           role?: Database["public"]["Enums"]["collaborator_role"]
+          salary_amount?: number
+          salary_auto_expense?: boolean
+          salary_expense_category_id?: string | null
+          salary_next_due_date?: string | null
+          salary_payment_day?: number | null
+          salary_payment_method?: string | null
+          salary_recurrence?: string
           updated_at?: string | null
         }
         Relationships: [

@@ -543,7 +543,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
                       </button>
                     </TooltipTrigger>
                     <TooltipContent side="right">
-                      {isAdmin ? 'Modo Administrador â€” Clique para trocar' : 'Modo Profissional â€” Clique para trocar'}
+                      {isAdmin ? 'Modo Administrador — Clique para trocar' : 'Modo Profissional — Clique para trocar'}
                     </TooltipContent>
                   </Tooltip>
                 ) : (
@@ -618,7 +618,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
                     {profile?.full_name?.charAt(0)?.toUpperCase() || '?'}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{profile?.full_name || 'UsuÃ¡rio'}</p>
+                    <p className="text-sm font-medium truncate">{profile?.full_name || 'Usuário'}</p>
                     <p className="text-xs text-sidebar-foreground/50 truncate">{profile?.email}</p>
                   </div>
                 </div>
@@ -694,12 +694,12 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
                 </button>
               </PopoverTrigger>
               <PopoverContent className="w-80 p-0" align="end">
-                <div className="p-3 border-b"><h3 className="font-semibold text-sm">NotificaÃ§Ãµes</h3></div>
+                <div className="p-3 border-b"><h3 className="font-semibold text-sm">Notificações</h3></div>
                 <ScrollArea className="max-h-80">
                   {unreadTickets > 0 && (
                     <button onClick={() => navigate('/dashboard/support')} className="w-full text-left px-3 py-2.5 hover:bg-muted border-b flex items-center gap-2">
                       <MessageSquare className="h-4 w-4 text-primary shrink-0" />
-                      <span className="text-sm">{unreadTickets} ticket(s) com atualizaÃ§Ã£o</span>
+                      <span className="text-sm">{unreadTickets} ticket(s) com atualização</span>
                     </button>
                   )}
                   {platformMessages?.map((msg: any) => (
@@ -718,7 +718,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
                     </div>
                   ))}
                   {totalNotifications === 0 && (
-                    <p className="text-center text-sm text-muted-foreground py-6">Nenhuma notificaÃ§Ã£o</p>
+                    <p className="text-center text-sm text-muted-foreground py-6">Nenhuma notificação</p>
                   )}
                 </ScrollArea>
               </PopoverContent>

@@ -17,8 +17,8 @@ export const useUserRole = () => {
   );
 
   const isAdmin = useMemo(
-    () => (isOwner || isProfessional || isSuperAdmin) && !isProfessionalMode,
-    [isOwner, isProfessional, isSuperAdmin, isProfessionalMode]
+    () => (isOwner || isProfessional || isCollaborator || isSuperAdmin) && !isProfessionalMode,
+    [isOwner, isProfessional, isCollaborator, isSuperAdmin, isProfessionalMode]
   );
 
   const hasRole = useCallback((role: string) => roles.includes(role), [roles]);

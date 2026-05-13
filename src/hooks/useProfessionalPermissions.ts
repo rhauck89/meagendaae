@@ -18,26 +18,28 @@ export interface ProfessionalPermissions {
 }
 
 export const useProfessionalPermissions = (): ProfessionalPermissions => {
-  const { companyId, isOwner, permissions, loading: authLoading } = useAuth();
+  const { isOwner, permissions, loading: authLoading, loginMode } = useAuth();
+
+  const fullProfessionalPanel = {
+    agenda: true,
+    services: true,
+    team: true,
+    clients: true,
+    whatsapp: true,
+    subscriptions: true,
+    events: true,
+    promotions: true,
+    loyalty: true,
+    requests: true,
+    finance: true,
+    settings: true,
+    reports: true,
+    loading: authLoading
+  };
 
   // If owner, has all permissions
-  if (isOwner) {
-    return {
-      agenda: true,
-      services: true,
-      team: true,
-      clients: true,
-      whatsapp: true,
-      subscriptions: true,
-      events: true,
-      promotions: true,
-      loyalty: true,
-      requests: true,
-      finance: true,
-      settings: true,
-      reports: true,
-      loading: authLoading
-    };
+  if (isOwner || loginMode === 'professional') {
+    return fullProfessionalPanel;
   }
 
   // Map backend permissions to frontend keys

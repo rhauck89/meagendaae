@@ -280,6 +280,7 @@ export function PlanDialog({
           )
         `)
         .eq('company_id', companyId)
+        .eq('is_service_provider', true)
         .eq('active', true);
 
       if (error) {

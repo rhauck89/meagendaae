@@ -65,6 +65,24 @@ Deno.serve(async (req) => {
     const hasSystemAccess = body.has_system_access !== false;
     const useCompanyBanner = body.use_company_banner !== false;
     const isAdminSelf = body.is_admin_self === true;
+    const systemRole = typeof body.system_role === "string" ? body.system_role : "collaborator";
+    const isServiceProvider = body.is_service_provider !== false;
+    const permissions = body.permissions && typeof body.permissions === "object" && !Array.isArray(body.permissions)
+      ? body.permissions
+      : {};
+    const rawSalaryAmount = Number(body.salary_amount);
+    const salaryAmount = Number.isFinite(rawSalaryAmount) && rawSalaryAmount >= 0 ? rawSalaryAmount : 0;
+    const rawSalaryPaymentDay = Number(body.salary_payment_day);
+    const salaryPaymentDay = Number.isInteger(rawSalaryPaymentDay) && rawSalaryPaymentDay >= 1 && rawSalaryPaymentDay <= 31
+      ? rawSalaryPaymentDay
+      : null;
+    const salaryNextDueDate = typeof body.salary_next_due_date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(body.salary_next_due_date)
+      ? body.salary_next_due_date
+      : null;
+    const allowedSalaryRecurrences = ["none", "weekly", "biweekly", "monthly"];
+    const salaryRecurrence = allowedSalaryRecurrences.includes(body.salary_recurrence) ? body.salary_recurrence : "monthly";
+    const salaryPaymentMethod = typeof body.salary_payment_method === "string" ? body.salary_payment_method.trim() || null : null;
+    const salaryAutoExpense = body.salary_auto_expense === true;
 
     // For own_revenue, commission_value defaults to 0
     const effectiveCommissionValue = paymentType === "own_revenue" ? 0 : commissionValue;
@@ -292,9 +310,7 @@ Deno.serve(async (req) => {
       const rawEquity = Number(body.partner_equity_percent);
       const partnerEquityPercent = Number.isFinite(rawEquity) && rawEquity >= 0 && rawEquity <= 100 ? rawEquity : 0;
 
-      const systemRole = typeof body.system_role === "string" ? body.system_role : "collaborator";
-
-      const { error: collaboratorError } = await supabaseAdmin.from("collaborators").insert({
+      const collaboratorPayload = {
         company_id: companyId,
         profile_id: profileId,
         collaborator_type: collaboratorType,
@@ -313,7 +329,17 @@ Deno.serve(async (req) => {
         partner_revenue_mode: partnerRevenueMode,
         partner_equity_percent: partnerEquityPercent,
         system_role: systemRole,
-      });
+        is_service_provider: isServiceProvider,
+        permissions,
+        salary_amount: !isServiceProvider ? salaryAmount : 0,
+        salary_payment_day: !isServiceProvider ? salaryPaymentDay : null,
+        salary_next_due_date: !isServiceProvider ? salaryNextDueDate : null,
+        salary_recurrence: !isServiceProvider ? salaryRecurrence : "none",
+        salary_payment_method: !isServiceProvider ? salaryPaymentMethod : null,
+        salary_auto_expense: !isServiceProvider && salaryAutoExpense,
+      };
+
+      const { error: collaboratorError } = await supabaseAdmin.from("collaborators").insert(collaboratorPayload);
 
       if (collaboratorError) {
         return jsonResponse({
@@ -321,51 +347,147 @@ Deno.serve(async (req) => {
           warning: `Collaborator insert failed: ${collaboratorError.message}`,
         });
       }
+    } else {
+      await supabaseAdmin
+        .from("collaborators")
+        .update({
+          has_system_access: hasSystemAccess,
+          use_company_banner: useCompanyBanner,
+          system_role: systemRole,
+          is_service_provider: isServiceProvider,
+          permissions,
+          salary_amount: !isServiceProvider ? salaryAmount : 0,
+          salary_payment_day: !isServiceProvider ? salaryPaymentDay : null,
+          salary_next_due_date: !isServiceProvider ? salaryNextDueDate : null,
+          salary_recurrence: !isServiceProvider ? salaryRecurrence : "none",
+          salary_payment_method: !isServiceProvider ? salaryPaymentMethod : null,
+          salary_auto_expense: !isServiceProvider && salaryAutoExpense,
+        })
+        .eq("id", existingCollaborator.id);
     }
 
-    // Copy company business hours to the new professional's working hours
-    try {
-      const { data: existingProfHours } = await supabaseAdmin
-        .from("professional_working_hours")
-        .select("id")
-        .eq("professional_id", profileId)
-        .eq("company_id", companyId)
-        .limit(1);
+    const collaboratorRole =
+      systemRole === "receptionist" ? "receptionist" :
+      systemRole === "manager" ? "manager" :
+      systemRole === "admin" || systemRole === "admin_financeiro" || systemRole === "admin_principal" ? "admin" :
+      systemRole === "administrative" ? "administrative" :
+      isServiceProvider ? "professional" : "other";
 
-      if (!existingProfHours || existingProfHours.length === 0) {
-        const { data: companyHours } = await supabaseAdmin
-          .from("business_hours")
-          .select("day_of_week, open_time, close_time, lunch_start, lunch_end, is_closed")
+    await supabaseAdmin
+      .from("company_collaborators")
+      .upsert({
+        company_id: companyId,
+        profile_id: profileId,
+        role: collaboratorRole,
+        is_service_provider: isServiceProvider,
+        permissions,
+        active: true,
+        salary_amount: !isServiceProvider ? salaryAmount : 0,
+        salary_payment_day: !isServiceProvider ? salaryPaymentDay : null,
+        salary_next_due_date: !isServiceProvider ? salaryNextDueDate : null,
+        salary_recurrence: !isServiceProvider ? salaryRecurrence : "none",
+        salary_payment_method: !isServiceProvider ? salaryPaymentMethod : null,
+        salary_auto_expense: !isServiceProvider && salaryAutoExpense,
+      }, { onConflict: "company_id,profile_id" });
+
+    if (isServiceProvider) {
+      // Copy company business hours to the new professional's working hours
+      try {
+        const { data: existingProfHours } = await supabaseAdmin
+          .from("professional_working_hours")
+          .select("id")
+          .eq("professional_id", profileId)
           .eq("company_id", companyId)
-          .order("day_of_week");
+          .limit(1);
 
-        if (companyHours && companyHours.length > 0) {
-          const profHours = companyHours.map((h: any) => ({
-            professional_id: profileId,
-            company_id: companyId,
-            day_of_week: h.day_of_week,
-            open_time: h.open_time,
-            close_time: h.close_time,
-            lunch_start: h.lunch_start,
-            lunch_end: h.lunch_end,
-            is_closed: h.is_closed,
-          }));
-          await supabaseAdmin.from("professional_working_hours").insert(profHours);
+        if (!existingProfHours || existingProfHours.length === 0) {
+          const { data: companyHours } = await supabaseAdmin
+            .from("business_hours")
+            .select("day_of_week, open_time, close_time, lunch_start, lunch_end, is_closed")
+            .eq("company_id", companyId)
+            .order("day_of_week");
+
+          if (companyHours && companyHours.length > 0) {
+            const profHours = companyHours.map((h: any) => ({
+              professional_id: profileId,
+              company_id: companyId,
+              day_of_week: h.day_of_week,
+              open_time: h.open_time,
+              close_time: h.close_time,
+              lunch_start: h.lunch_start,
+              lunch_end: h.lunch_end,
+              is_closed: h.is_closed,
+            }));
+            await supabaseAdmin.from("professional_working_hours").insert(profHours);
+          }
         }
+      } catch (scheduleErr) {
+        console.error("Failed to copy company hours to professional", scheduleErr);
       }
-    } catch (scheduleErr) {
-      console.error("Failed to copy company hours to professional", scheduleErr);
     }
 
     // Link services if provided
     const serviceIds = Array.isArray(body.service_ids) ? body.service_ids.filter((id: any) => typeof id === "string" && id.length > 0) : [];
-    if (serviceIds.length > 0) {
+    if (isServiceProvider && serviceIds.length > 0) {
       const links = serviceIds.map((svcId: string) => ({
         service_id: svcId,
         professional_id: profileId,
         company_id: companyId,
       }));
       await supabaseAdmin.from("service_professionals").insert(links);
+    }
+
+    if (!isServiceProvider && salaryAutoExpense && salaryAmount > 0) {
+      const { data: salaryCategory } = await supabaseAdmin
+        .from("company_expense_categories")
+        .select("id")
+        .eq("company_id", companyId)
+        .in("name", ["Salário", "Salários", "Salarios"])
+        .limit(1)
+        .maybeSingle();
+
+      let salaryCategoryId = salaryCategory?.id || null;
+      if (!salaryCategoryId) {
+        const { data: insertedSalaryCategory } = await supabaseAdmin
+          .from("company_expense_categories")
+          .insert({
+            company_id: companyId,
+            name: "Salários",
+            type: "expense",
+            description: "Despesas de salário e pagamentos fixos da equipe",
+          })
+          .select("id")
+          .single();
+        salaryCategoryId = insertedSalaryCategory?.id || null;
+      }
+
+      await supabaseAdmin
+        .from("collaborators")
+        .update({ salary_expense_category_id: salaryCategoryId })
+        .eq("company_id", companyId)
+        .eq("profile_id", profileId);
+      await supabaseAdmin
+        .from("company_collaborators")
+        .update({ salary_expense_category_id: salaryCategoryId })
+        .eq("company_id", companyId)
+        .eq("profile_id", profileId);
+
+      const dueDate = salaryNextDueDate || new Date().toISOString().slice(0, 10);
+      await supabaseAdmin.from("company_expenses").insert({
+        company_id: companyId,
+        description: `Salário - ${name}`,
+        amount: salaryAmount,
+        expense_date: dueDate,
+        due_date: dueDate,
+        status: "pending",
+        category_id: salaryCategoryId,
+        is_recurring: salaryRecurrence !== "none",
+        recurrence_type: salaryRecurrence === "weekly" ? "weekly" : "monthly",
+        recurrence_interval: salaryRecurrence === "biweekly" ? 2 : 1,
+        notes: `Despesa gerada automaticamente pelo cadastro de membro da equipe. Recorrência: ${salaryRecurrence}.`,
+        created_by: caller.id,
+        payment_method: salaryPaymentMethod,
+      });
     }
 
     return jsonResponse({
@@ -378,6 +500,7 @@ Deno.serve(async (req) => {
         commission_value: paymentType === "none" || paymentType === "own_revenue" ? 0 : (Number.isNaN(commissionValue) ? 0 : commissionValue),
         has_system_access: hasSystemAccess,
         is_admin_self: isAdminSelf,
+        is_service_provider: isServiceProvider,
       },
     });
   } catch (error) {

@@ -323,7 +323,8 @@ const Dashboard = () => {
     const { data, error } = await supabase
       .from('collaborators')
       .select('profile_id, profile:profiles(full_name)')
-      .eq('company_id', companyId!);
+      .eq('company_id', companyId!)
+      .eq('is_service_provider', true);
     
     if (error) {
       console.error('[DASHBOARD] Error fetching collaborators:', error);
