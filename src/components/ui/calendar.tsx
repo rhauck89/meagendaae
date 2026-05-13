@@ -34,20 +34,27 @@ function Calendar({ className, classNames, showOutsideDays = true, ...props }: C
         ),
         day: cn(
           buttonVariants({ variant: "ghost" }),
-          "h-9 w-9 p-0 font-normal aria-selected:opacity-100",
+          "h-9 w-9 p-0 font-normal",
+          "text-[var(--calendar-text)] opacity-[var(--calendar-day-opacity,0.95)] hover:bg-[var(--calendar-hover-bg,theme(colors.accent.DEFAULT))] hover:text-[var(--calendar-text)]",
           "calendar-day"
         ),
         day_range_end: "day-range-end",
         day_selected: cn(
-          "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground",
-          "calendar-day-selected"
+          "bg-[var(--calendar-selected-bg,theme(colors.primary.DEFAULT))] text-[var(--calendar-selected-text,theme(colors.primary.foreground))] hover:bg-[var(--calendar-selected-bg,theme(colors.primary.DEFAULT))] hover:text-[var(--calendar-selected-text,theme(colors.primary.foreground))] focus:bg-[var(--calendar-selected-bg,theme(colors.primary.DEFAULT))] focus:text-[var(--calendar-selected-text,theme(colors.primary.foreground))]",
+          "calendar-day-selected opacity-100"
         ),
-        day_today: cn("bg-accent text-accent-foreground", "calendar-day-today"),
+        day_today: cn(
+          "bg-transparent border-[1.5px] border-[var(--calendar-today-border,theme(colors.accent.DEFAULT))] text-[var(--calendar-text)]",
+          "calendar-day-today"
+        ),
         day_outside: cn(
-          "day-outside text-muted-foreground opacity-50 aria-selected:bg-accent/50 aria-selected:text-muted-foreground aria-selected:opacity-30",
+          "day-outside text-[var(--calendar-muted-text)] opacity-[var(--calendar-outside-opacity,0.5)] aria-selected:bg-accent/50 aria-selected:text-muted-foreground aria-selected:opacity-30",
           "calendar-day-outside"
         ),
-        day_disabled: cn("text-muted-foreground opacity-50", "calendar-day-disabled"),
+        day_disabled: cn(
+          "text-[var(--calendar-disabled-text)] opacity-[var(--calendar-disabled-opacity,0.4)]",
+          "calendar-day-disabled"
+        ),
         day_range_middle: "aria-selected:bg-accent aria-selected:text-accent-foreground",
         day_hidden: "invisible",
         ...classNames,
