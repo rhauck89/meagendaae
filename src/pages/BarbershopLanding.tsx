@@ -107,6 +107,7 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
     serviceIds: string[]; serviceNames: string[]; serviceDurations: number[];
     professionalId: string; professionalName: string; professionalAvatar: string | null;
     totalPrice: number; totalDuration: number; bookedAt: string;
+    notes?: string | null;
   } | null>(null);
   const [rebookDismissed, setRebookDismissed] = useState(false);
   const [isServicesDrawerOpen, setIsServicesDrawerOpen] = useState(false);
