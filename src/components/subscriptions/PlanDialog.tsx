@@ -615,23 +615,21 @@ export function PlanDialog({
                 </FormItem>
               )}
             />
-          </div>
+          </DialogBody>
 
-          <div className="p-6 pt-4 border-t bg-muted/20">
-            <DialogFooter className="gap-2 sm:gap-0">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => onOpenChange(false)}
-              >
-                Cancelar
-              </Button>
-              <Button type="submit" disabled={loading}>
-                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {plan ? 'Atualizar Plano' : 'Criar Plano'}
-              </Button>
-            </DialogFooter>
-          </div>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+            >
+              Cancelar
+            </Button>
+            <Button type="submit" disabled={loading}>
+              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {plan ? 'Atualizar Plano' : 'Criar Plano'}
+            </Button>
+          </DialogFooter>
         </form>
       </Form>
     </DialogContent>
