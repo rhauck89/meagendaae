@@ -1388,6 +1388,7 @@ export type Database = {
           is_blocked: boolean
           name: string
           next_recommended_visit: string | null
+          notes: string | null
           opt_in_whatsapp: boolean
           postal_code: string | null
           registration_complete: boolean
@@ -1411,6 +1412,7 @@ export type Database = {
           is_blocked?: boolean
           name: string
           next_recommended_visit?: string | null
+          notes?: string | null
           opt_in_whatsapp?: boolean
           postal_code?: string | null
           registration_complete?: boolean
@@ -1434,6 +1436,7 @@ export type Database = {
           is_blocked?: boolean
           name?: string
           next_recommended_visit?: string | null
+          notes?: string | null
           opt_in_whatsapp?: boolean
           postal_code?: string | null
           registration_complete?: boolean
