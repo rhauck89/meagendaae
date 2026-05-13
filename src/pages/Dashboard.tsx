@@ -440,7 +440,7 @@ const Dashboard = () => {
       (() => {
         let query = supabase
           .from('appointments')
-          .select('status, total_price, client_id, start_time, client:clients!appointments_client_id_fkey(name)')
+          .select('status, total_price, final_price, client_id, start_time, client:clients!appointments_client_id_fkey(name)')
           .eq('company_id', companyId!)
           .gte('start_time', toSpStart(monthStart))
           .lte('start_time', toSpEnd(monthEnd));
@@ -485,8 +485,8 @@ const Dashboard = () => {
 
 
     const safeNum = (v: any) => isNaN(Number(v)) ? 0 : Number(v);
-    const revenue = safeNum(confirmed.reduce((sum, a) => sum + Number(a.total_price), 0));
-    const revenueCompleted = safeNum(completed.reduce((sum, a) => sum + Number(a.total_price), 0));
+    const revenue = safeNum(confirmed.reduce((sum, a) => sum + Number(a.final_price || a.total_price), 0));
+    const revenueCompleted = safeNum(completed.reduce((sum, a) => sum + Number(a.final_price || a.total_price), 0));
     
     // Calculate REAL capacity
     const slotDuration = companyRes.data?.fixed_slot_interval || 30;
@@ -541,7 +541,7 @@ const Dashboard = () => {
       (() => {
         let query = supabase
           .from('appointments')
-          .select('start_time, status, total_price')
+          .select('start_time, status, total_price, final_price')
           .eq('company_id', companyId)
           .gte('start_time', `${startDateStr}T00:00:00`)
           .order('start_time', { ascending: true });
@@ -605,7 +605,7 @@ const Dashboard = () => {
       if (!map[d]) continue;
       if (['confirmed', 'completed', 'in_progress'].includes(a.status)) {
         map[d].confirmed++;
-        map[d].revenue += Number(a.total_price) || 0;
+        map[d].revenue += Number(a.final_price || a.total_price) || 0;
         map[d].clients++;
       } else if (a.status === 'cancelled' || a.status === 'no_show') {
         map[d].cancellations++;
