@@ -292,12 +292,21 @@ export default function ProfessionalPublicProfile() {
                 if (appt) {
                   supabase.from('appointment_services').select('service_id').eq('appointment_id', appt.id).then(({ data: apptSvcs }) => {
                     if (apptSvcs && apptSvcs.length > 0) {
-                      supabase.from('public_services' as any).select('name').eq('id', apptSvcs[0].service_id).maybeSingle().then(({ data: svc }) => {
-                        setLastBooking({
-                          ...appt,
-                          serviceName: (svc as any)?.name,
-                          notes: appt.notes
-                        });
+                      const svcIds = apptSvcs.map(as => as.service_id);
+                      supabase.from('public_services' as any).select('id, name, duration_minutes, price').in('id', svcIds).then(({ data: svcsRes }) => {
+                        const svcs = svcsRes as any[] | null;
+                        if (svcs) {
+                          setLastBooking({
+                            ...appt,
+                            serviceIds: svcs.map(s => s.id),
+                            serviceNames: svcs.map(s => s.name),
+                            serviceDurations: svcs.map(s => s.duration_minutes || 30),
+                            totalPrice: svcs.reduce((sum, s) => sum + Number(s.price || 0), 0),
+                            totalDuration: svcs.reduce((sum, s) => sum + Number(s.duration_minutes || 0), 0),
+                            professionalId: appt.professional_id,
+                            notes: appt.notes
+                          });
+                        }
                       });
                     }
                   });
@@ -857,7 +866,7 @@ export default function ProfessionalPublicProfile() {
                     {avatarUrl ? <img src={avatarUrl} className="w-full h-full object-cover" alt="" /> : <div className="w-full h-full" style={{ background: T.accent }} />}
                   </div>
                   <div>
-                    <p className="text-sm font-bold" style={{ color: T.text }}>{lastBooking.serviceName || 'Serviço'}</p>
+                    <p className="text-sm font-bold" style={{ color: T.text }}>{lastBooking.serviceNames?.join(' + ') || lastBooking.serviceName || 'Serviço'}</p>
                     <p className="text-xs opacity-70" style={{ color: T.textSec }}>
                       {format(parseISO(lastBooking.start_time), "dd 'de' MMMM 'de' yyyy 'às' HH:mm", { locale: ptBR })}
                     </p>
@@ -873,7 +882,7 @@ export default function ProfessionalPublicProfile() {
                   </p>
                 </div>
                 <Button
-                  onClick={() => navigate(`${bookingUrl}?rebook=1`)}
+                  onClick={() => navigate(`${bookingUrl}?rebook=1`, { state: { lastBooking } })}
                   className="h-11 px-5 rounded-xl font-bold whitespace-nowrap"
                   style={{ background: T.accent, color: '#1a1a1a' }}
                 >

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useMemo } from 'react';
 import type { Database } from '@/integrations/supabase/types';
-import { useParams, useSearchParams } from 'react-router-dom';
+import { useParams, useSearchParams, useLocation } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -171,6 +171,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
   const { slug: paramSlug, professionalSlug } = useParams<{ slug: string; professionalSlug?: string }>();
   const slug = customSlug || paramSlug;
   const [searchParams] = useSearchParams();
+  const location = useLocation();
   const preselected = usePreselectedSlot();
   const promoIdRef = useRef(searchParams.get('promo'));
   const [company, setCompany] = useState<any>(null);
@@ -200,9 +201,17 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
   const [publicPromotions, setPublicPromotions] = useState<PromotionInfo[]>([]);
   const isPromoMode = !!promoData;
 
-  const [step, setStep] = useState<Step>('identifying');
-  const [selectedServices, setSelectedServices] = useState<string[]>([]);
-  const [selectedProfessional, setSelectedProfessional] = useState<string | null>(null);
+  const [step, setStep] = useState<Step>(() => {
+    const isRebooking = searchParams.get('rebook') === '1' || searchParams.get('rebook') === 'true';
+    if (isRebooking && (location.state as any)?.lastBooking) return 'datetime';
+    return 'identifying';
+  });
+  const [selectedServices, setSelectedServices] = useState<string[]>(() => {
+    return (location.state as any)?.lastBooking?.serviceIds || [];
+  });
+  const [selectedProfessional, setSelectedProfessional] = useState<string | null>(() => {
+    return (location.state as any)?.lastBooking?.professionalId || professionalSlug || null;
+  });
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [availableSlots, setAvailableSlots] = useState<string[]>([]);
@@ -267,8 +276,13 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
   }, []);
 
   const [hasBenefitsActive, setHasBenefitsActive] = useState(false);
-  const [rebookingLoading, setRebookingLoading] = useState(false);
-  const [rebookedNotes, setRebookedNotes] = useState<string | null>(null);
+  const [rebookingLoading, setRebookingLoading] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('rebook') === '1' || params.get('rebook') === 'true';
+  });
+  const [rebookedNotes, setRebookedNotes] = useState<string | null>(() => {
+    return (location.state as any)?.lastBooking?.notes || null;
+  });
   const [lastBooking, setLastBooking] = useState<{
     serviceIds: string[]; serviceNames: string[]; serviceDurations: number[];
     professionalId: string; professionalName: string; professionalAvatar: string | null;
@@ -919,7 +933,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
   // Check if client is logged in - Refined to ignore admin sessions
   // Identification Gatekeeper - require a valid client identity before booking.
   useEffect(() => {
-    if (step === 'identifying' && company && !authLoading) {
+    if (step === 'identifying' && company && !authLoading && !rebookingLoading) {
       const localIdentityStr = localStorage.getItem(`whatsapp_session_${company.id}`);
       if (localIdentityStr) {
         try {
@@ -1131,17 +1145,32 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
   useEffect(() => {
     if (rebookTriggered.current) return;
     const rebookParam = searchParams.get('rebook');
-    if (rebookParam !== '1' && rebookParam !== 'true') return;
-    if (!company?.id || services.length === 0 || !clientLoaded) return;
+    if (rebookParam !== '1' && rebookParam !== 'true') {
+      if (rebookingLoading) setRebookingLoading(false);
+      return;
+    }
+
+    // Wait for critical data
+    if (!company?.id || !clientLoaded) return;
 
     rebookTriggered.current = true;
     (async () => {
       setRebookingLoading(true);
-      let bookingToUse = lastBooking;
+      
+      // 1. Try to get booking from navigation state (fastest)
+      let bookingToUse = (location.state as any)?.lastBooking;
 
-      try {
-        // If lastBooking is not in state (e.g. not in localStorage), try fetching from DB
-        if (!bookingToUse && isAuthenticated) {
+      // 2. Fallback to localStorage
+      if (!bookingToUse) {
+        try {
+          const stored = localStorage.getItem(`last_booking_${company.id}`);
+          if (stored) bookingToUse = JSON.parse(stored);
+        } catch { /* ignore */ }
+      }
+
+      // 3. Fallback to Database
+      if (!bookingToUse && isAuthenticated) {
+        try {
           const { data: { session } } = await supabase.auth.getSession();
           if (session?.user) {
             const { data: appt } = await supabase
@@ -1188,24 +1217,36 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
               }
             }
           }
+        } catch (dbErr) {
+          console.error('[REBOOK] DB error:', dbErr);
+        }
+      }
+
+      if (!bookingToUse) {
+        console.warn('[REBOOK] No booking data found to repeat.');
+        toast.error('Não encontramos seu último atendimento para repetir.');
+        setRebookingLoading(false);
+        return;
+      }
+
+      try {
+        // Ensure services are loaded for validation
+        let currentServices = services;
+        if (currentServices.length === 0) {
+          const { data } = await supabase.from('public_services' as any).select('*').eq('company_id', company.id);
+          if (data) {
+            currentServices = data;
+            setServices(data);
+          }
         }
 
-        if (!bookingToUse) {
-          console.warn('[REBOOK] No booking data found to repeat.');
-          setRebookingLoading(false);
-          return;
-        }
-
-        // Store rebooked notes if any
-        if (bookingToUse.notes) {
-          setRebookedNotes(bookingToUse.notes);
-        }
-
-        // Final validation of services
-        const activeServices = bookingToUse.serviceIds.filter(sid => services.find(s => s.id === sid && s.active !== false));
+        // Validate services
+        const activeServices = bookingToUse.serviceIds.filter((sid: string) => 
+          currentServices.find(s => s.id === sid && s.active !== false)
+        );
         
         if (activeServices.length === 0) {
-          toast.error('Um ou mais serviços do seu último atendimento não estão mais disponíveis.');
+          toast.error('Os serviços do seu último atendimento não estão mais disponíveis.');
           setStep('services');
           setRebookingLoading(false);
           return;
@@ -1217,13 +1258,20 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
 
         setSelectedServices(activeServices);
 
-        // Professional validation
-        const profStillActive = professionals.length > 0 
-          ? professionals.find(p => p.id === bookingToUse!.professionalId && p.active !== false)
-          : true; 
+        // Professional validation - ensure professionals are loaded
+        let currentProfessionals = professionals;
+        if (currentProfessionals.length === 0) {
+          const { data } = await supabase.from('public_professionals' as any).select('*').eq('company_id', company.id).eq('active', true);
+          if (data) {
+            currentProfessionals = data;
+            setProfessionals(data);
+          }
+        }
+
+        const profStillActive = currentProfessionals.find(p => p.id === bookingToUse!.professionalId && p.active !== false);
 
         if (!profStillActive) {
-          toast.info('O profissional do seu último atendimento não está mais disponível. Por favor, selecione um novo profissional.');
+          toast.info('O profissional do seu último atendimento não está mais disponível.');
           setStep('professional');
           setRebookingLoading(false);
           return;
@@ -1237,30 +1285,27 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
           .in('service_id', activeServices);
 
         if (!spLinks || spLinks.length !== activeServices.length) {
-          toast.info('Este profissional não realiza mais todos os serviços selecionados. Por favor, selecione um novo profissional.');
+          toast.info('Este profissional não realiza mais todos os serviços do seu último atendimento.');
           setStep('professional');
           setRebookingLoading(false);
           return;
         }
 
         setSelectedProfessional(bookingToUse.professionalId);
+        if (bookingToUse.notes) setRebookedNotes(bookingToUse.notes);
         
-        // Skip identifying step if already authenticated or if we have client data
-        if (isAuthenticated || hasValidClient) {
-          setStep('datetime');
-          toast.success('Seu último atendimento foi carregado com sucesso.');
-        } else {
-          setStep('identifying');
-        }
+        // Final jump to datetime
+        console.log('[REBOOK] Success! Moving to datetime step.');
+        setStep('datetime');
+        toast.success('Seu último atendimento foi carregado com sucesso.');
       } catch (err) {
-        console.error('[REBOOK] Unexpected error:', err);
+        console.error('[REBOOK] Error during validation:', err);
+        toast.error('Ocorreu um erro ao preparar seu atendimento.');
       } finally {
-        // Small delay to ensure smooth transition
-        setTimeout(() => setRebookingLoading(false), 800);
+        setRebookingLoading(false);
       }
     })();
-  }, [lastBooking, company?.id, services, professionals, searchParams, isAuthenticated, hasValidClient, clientLoaded]);
-
+  }, [company?.id, clientLoaded, searchParams, services.length, professionals.length, isAuthenticated, location.state]);
   useEffect(() => {
     if (!company?.id) return;
     const checkBenefits = async () => {

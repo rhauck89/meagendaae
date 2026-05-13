@@ -746,7 +746,7 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
                   </p>
                 </div>
                 <Button
-                  onClick={() => navigate(`/${bookingBasePath}/${slug}/agendar?rebook=1`)}
+                  onClick={() => navigate(`/${bookingBasePath}/${slug}/agendar?rebook=1`, { state: { lastBooking } })}
                   variant="outline"
                   className="w-full sm:w-auto rounded-xl font-semibold text-sm border-2 h-11"
                   style={{ borderColor: T.accent, color: T.accent, background: 'transparent' }}
