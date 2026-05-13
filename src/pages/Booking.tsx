@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Scissors, Sparkles, Clock, DollarSign, ChevronRight, ChevronLeft, CheckCircle2, Bell, Zap, CalendarPlus, MessageCircle, RotateCcw, Home, User, Phone, Mail, Cake, MapPin, Star, X, AlertTriangle, Calendar, ChevronDown, Tag, ShieldCheck, AlertCircle } from 'lucide-react';
 import { format, addMinutes, addDays, startOfDay, isSameDay, parseISO, startOfWeek, endOfWeek, eachDayOfInterval, addWeeks, subWeeks, isToday, startOfMonth, endOfMonth, eachMonthOfInterval, setMonth, getYear } from 'date-fns';
 import { fromZonedTime, toZonedTime } from 'date-fns-tz';
+import { motion, AnimatePresence } from 'framer-motion';
 import { sendAppointmentCreatedWebhook } from '@/lib/automations';
 import { getBookingStatus, getPromoValidityStatus, isSlotEligible } from '@/lib/promotion-period';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
