@@ -425,36 +425,72 @@ export function PlanDialog({
                 control={form.control}
                 name="usage_count_mode"
                 render={({ field }) => (
-                  <FormItem>
+                  <FormItem className="space-y-3">
                     <FormLabel>Como consumir créditos</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                      value={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione o modo" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="service">
-                          <div className="flex flex-col">
-                            <span>Por serviço</span>
-                            <span className="text-xs text-muted-foreground font-normal">Cada serviço consome 1 crédito. Ex: Corte + Barba = 2 créditos.</span>
-                          </div>
-                        </SelectItem>
-                        <SelectItem value="appointment">
-                          <div className="flex flex-col">
-                            <span>Por agendamento</span>
-                            <span className="text-xs text-muted-foreground font-normal">O atendimento inteiro consome 1 crédito, mesmo com vários serviços.</span>
-                          </div>
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormDescription>
-                      Define como o saldo de usos será descontado do cliente.
-                    </FormDescription>
+                    <FormControl>
+                      <RadioGroup
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                        value={field.value}
+                        className="grid grid-cols-1 md:grid-cols-2 gap-3"
+                      >
+                        <div className="relative">
+                          <RadioGroupItem
+                            value="service"
+                            id="mode-service"
+                            className="peer sr-only"
+                          />
+                          <Label
+                            htmlFor="mode-service"
+                            className={cn(
+                              "flex flex-col items-start justify-between rounded-lg border-2 border-muted bg-popover p-4 hover:bg-accent/50 cursor-pointer h-full transition-all",
+                              field.value === 'service' ? "border-primary bg-primary/[0.03]" : "hover:border-muted-foreground/20"
+                            )}
+                          >
+                            <div className="flex items-center gap-2 mb-2">
+                              <div className={cn(
+                                "h-4 w-4 rounded-full border border-primary flex items-center justify-center transition-colors",
+                                field.value === 'service' ? "bg-primary" : "bg-transparent"
+                              )}>
+                                {field.value === 'service' && <div className="h-1.5 w-1.5 rounded-full bg-white" />}
+                              </div>
+                              <span className="font-semibold text-sm">Por serviço</span>
+                            </div>
+                            <span className="text-xs text-muted-foreground font-normal leading-relaxed">
+                              Cada serviço consome 1 crédito. Ex: Corte + Barba = 2 créditos.
+                            </span>
+                          </Label>
+                        </div>
+
+                        <div className="relative">
+                          <RadioGroupItem
+                            value="appointment"
+                            id="mode-appointment"
+                            className="peer sr-only"
+                          />
+                          <Label
+                            htmlFor="mode-appointment"
+                            className={cn(
+                              "flex flex-col items-start justify-between rounded-lg border-2 border-muted bg-popover p-4 hover:bg-accent/50 cursor-pointer h-full transition-all",
+                              field.value === 'appointment' ? "border-primary bg-primary/[0.03]" : "hover:border-muted-foreground/20"
+                            )}
+                          >
+                            <div className="flex items-center gap-2 mb-2">
+                              <div className={cn(
+                                "h-4 w-4 rounded-full border border-primary flex items-center justify-center transition-colors",
+                                field.value === 'appointment' ? "bg-primary" : "bg-transparent"
+                              )}>
+                                {field.value === 'appointment' && <div className="h-1.5 w-1.5 rounded-full bg-white" />}
+                              </div>
+                              <span className="font-semibold text-sm">Por agendamento</span>
+                            </div>
+                            <span className="text-xs text-muted-foreground font-normal leading-relaxed">
+                              O atendimento inteiro consome 1 crédito, mesmo com vários serviços.
+                            </span>
+                          </Label>
+                        </div>
+                      </RadioGroup>
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
