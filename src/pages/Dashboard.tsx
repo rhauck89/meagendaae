@@ -751,14 +751,16 @@ const Dashboard = () => {
     } else {
       const grossPrice = customAmount ?? Number(apt?.original_price || apt?.total_price || 0);
       const originalPrice = grossPrice;
+      const finalPrice = Math.max(0, grossPrice - totalDiscount);
       
       await supabase.from('appointments').update({ 
         status: status as any,
         manual_discount: manualDiscount,
         promotion_discount: promoDiscount,
         cashback_used: cashbackUsed,
-        final_price: grossPrice - totalDiscount,
-        original_price: originalPrice
+        final_price: finalPrice,
+        original_price: originalPrice,
+        total_price: finalPrice // Keep compatibility
       }).eq('id', id);
     }
 
