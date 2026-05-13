@@ -592,8 +592,93 @@ export function PlanDialog({
 
             <div className="space-y-4 border rounded-md p-4 bg-muted/20">
               <h3 className="text-sm font-semibold flex items-center gap-2">
-                ⚙️ Regras de Uso e Consumo
+                👥 Profissionais participantes
               </h3>
+              
+              <FormField
+                control={form.control}
+                name="all_professionals"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4 bg-background">
+                    <div className="space-y-0.5">
+                      <FormLabel className="text-base">Todos os profissionais</FormLabel>
+                      <FormDescription>
+                        Qualquer profissional ativo da empresa pode atender clientes deste plano.
+                      </FormDescription>
+                    </div>
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+
+              {!allProfessionals && (
+                <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Buscar profissional..."
+                      value={professionalSearch}
+                      onChange={(e) => setProfessionalSearch(e.target.value)}
+                      className="pl-10 h-9 bg-background"
+                    />
+                  </div>
+                  <ScrollArea className="h-[150px] border rounded-md p-2 bg-background">
+                    {fetchingProfessionals ? (
+                      <div className="flex items-center justify-center h-full">
+                        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                        {filteredProfessionals.map((prof) => (
+                          <FormField
+                            key={prof.id}
+                            control={form.control}
+                            name="participant_professionals"
+                            render={({ field }) => (
+                              <FormItem
+                                key={prof.id}
+                                className="flex flex-row items-center space-x-3 space-y-0 rounded-md border p-2 hover:bg-muted/50 cursor-pointer"
+                              >
+                                <FormControl>
+                                  <Checkbox
+                                    checked={field.value?.includes(prof.id)}
+                                    onCheckedChange={(checked) => {
+                                      return checked
+                                        ? field.onChange([...(field.value || []), prof.id])
+                                        : field.onChange(
+                                            field.value?.filter((v) => v !== prof.id)
+                                          );
+                                    }}
+                                  />
+                                </FormControl>
+                                <div className="space-y-0.5">
+                                  <FormLabel className="text-xs font-medium cursor-pointer">
+                                    {prof.full_name}
+                                  </FormLabel>
+                                  {prof.professional_type && (
+                                    <p className="text-[10px] text-muted-foreground">
+                                      {prof.professional_type}
+                                    </p>
+                                  )}
+                                </div>
+                              </FormItem>
+                            )}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </ScrollArea>
+                  <FormMessage />
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-4 border rounded-md p-4 bg-muted/20">
               
               <FormField
                 control={form.control}
