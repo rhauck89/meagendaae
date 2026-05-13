@@ -268,24 +268,6 @@ const Team = () => {
     },
   });
 
-  const [form, setForm] = useState({
-    name: '',
-    email: '',
-    whatsapp: '',
-    role_title: 'Barbeiro',
-    booking_mode: 'hybrid' as string,
-    grid_interval: 15 as number,
-    break_time: 0 as number,
-    selectedServiceIds: [] as string[],
-    has_system_access: true,
-    is_admin_self: false,
-    use_company_banner: true,
-    schedule_from_company: true,
-    system_role: 'collaborator' as string,
-    is_service_provider: true,
-    permissions: PERMISSION_PRESETS.collaborator as any,
-  });
-
   const activeCollaborators = collaborators.filter((c) => c.active !== false);
   const disabledCollaborators = collaborators.filter((c) => c.active === false);
 
