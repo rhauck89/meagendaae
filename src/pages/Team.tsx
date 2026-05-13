@@ -1157,19 +1157,6 @@ const Team = () => {
                         )}
                       </>
                     )}
-                          <div className="space-y-2">
-                            <Label className="text-xs">Valor por serviço (R$)</Label>
-                            <Input
-                              type="number"
-                              step="0.01"
-                              value={wizardBM.commission_value || ''}
-                              onChange={(e) => setWizardBM({ ...wizardBM, commission_value: Number(e.target.value) || 0 })}
-                              placeholder="Ex: 25.00"
-                            />
-                          </div>
-                        )}
-                      </div>
-                    )}
 
                     {/* Parceiro com comissÃ£o */}
                     {wizardBM.business_model === 'partner_commission' && (
