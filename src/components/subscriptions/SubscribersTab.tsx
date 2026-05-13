@@ -382,7 +382,7 @@ export function SubscribersTab({ companyId, onEditSubscriber, onViewDetails }: S
                           </>
                         ) : (
                           <>
-                            <span className="font-medium">{cycleUsage.length} / {plan?.usage_limit || 0}</span>
+                            <span className="font-medium">{cycleUsage.reduce((acc: number, u: any) => acc + (u.usage_count || 1), 0)} / {plan?.usage_limit || 0}</span>
                             <p className="text-muted-foreground">usos</p>
                           </>
                         )}
