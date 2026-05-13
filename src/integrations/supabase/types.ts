@@ -6309,7 +6309,11 @@ export type Database = {
           price_yearly: number | null
           type: string
           updated_at: string
+          usage_count_mode: string | null
           usage_limit: number | null
+          valid_days: number[] | null
+          valid_end_time: string | null
+          valid_start_time: string | null
         }
         Insert: {
           company_id: string
@@ -6324,7 +6328,11 @@ export type Database = {
           price_yearly?: number | null
           type: string
           updated_at?: string
+          usage_count_mode?: string | null
           usage_limit?: number | null
+          valid_days?: number[] | null
+          valid_end_time?: string | null
+          valid_start_time?: string | null
         }
         Update: {
           company_id?: string
@@ -6339,7 +6347,11 @@ export type Database = {
           price_yearly?: number | null
           type?: string
           updated_at?: string
+          usage_count_mode?: string | null
           usage_limit?: number | null
+          valid_days?: number[] | null
+          valid_end_time?: string | null
+          valid_start_time?: string | null
         }
         Relationships: [
           {
@@ -6386,7 +6398,10 @@ export type Database = {
           created_at: string
           id: string
           service_id: string
+          service_ids: string[] | null
           subscription_id: string
+          usage_count: number | null
+          usage_count_mode: string | null
           usage_date: string
         }
         Insert: {
@@ -6395,7 +6410,10 @@ export type Database = {
           created_at?: string
           id?: string
           service_id: string
+          service_ids?: string[] | null
           subscription_id: string
+          usage_count?: number | null
+          usage_count_mode?: string | null
           usage_date?: string
         }
         Update: {
@@ -6404,7 +6422,10 @@ export type Database = {
           created_at?: string
           id?: string
           service_id?: string
+          service_ids?: string[] | null
           subscription_id?: string
+          usage_count?: number | null
+          usage_count_mode?: string | null
           usage_date?: string
         }
         Relationships: [
