@@ -2241,6 +2241,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
     setSelectedTime(null);
     setAvailableSlots([]);
     setGeneratedSlots([]);
+    setProfessionalHours([]);
     setSelectedSlotPromo(null);
     setSelectedSlotIncentivePromo(null);
     setStep('professional');
