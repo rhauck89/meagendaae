@@ -82,11 +82,17 @@ export const MembershipSection = ({ companyId, professionalId }: MembershipSecti
 
   if (loading || plans.length === 0) return null;
 
-  const handlePlanClick = (planName: string) => {
+  const handlePlanClick = (plan: any) => {
+    setSelectedPlan(plan);
+    setIsModalOpen(true);
+  };
+
+  const handleWhatsAppClick = () => {
+    if (!selectedPlan) return;
     const targetWhatsApp = contacts.professional || contacts.company;
     if (!targetWhatsApp) return;
 
-    const message = `Olá! Vi o plano de assinatura ${planName} no perfil e quero saber mais sobre como funciona.`;
+    const message = `Olá! Vi o plano de assinatura ${selectedPlan.name} no perfil e quero saber mais sobre como funciona.`;
     const url = buildWhatsAppUrl(targetWhatsApp, message);
     trackWhatsAppClick('public-profile');
     window.open(url, '_blank', 'noopener,noreferrer');
