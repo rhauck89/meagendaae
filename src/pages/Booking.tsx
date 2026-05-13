@@ -1132,7 +1132,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
     if (rebookTriggered.current) return;
     const rebookParam = searchParams.get('rebook');
     if (rebookParam !== '1' && rebookParam !== 'true') return;
-    if (!company?.id || services.length === 0) return;
+    if (!company?.id || services.length === 0 || !clientLoaded) return;
 
     rebookTriggered.current = true;
     (async () => {
