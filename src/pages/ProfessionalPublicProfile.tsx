@@ -1040,7 +1040,7 @@ export default function ProfessionalPublicProfile() {
                     nav_button_next: "absolute right-1",
                     table: "w-full border-collapse space-y-1",
                     head_row: "flex justify-between",
-                    head_cell: "text-muted-foreground rounded-md w-9 font-bold text-[0.7rem] uppercase tracking-wider opacity-60",
+                    head_cell: "rounded-md w-9 font-bold text-[0.7rem] uppercase tracking-wider text-[var(--calendar-text)] opacity-70",
                     row: "flex w-full mt-2 justify-between",
                     cell: "h-10 w-10 text-center text-sm p-0 relative focus-within:relative focus-within:z-20",
                     day: cn(
