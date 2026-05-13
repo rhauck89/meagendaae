@@ -515,7 +515,7 @@ export default function ProfessionalPublicProfile() {
       .eq('company_id', comp.id)
       .maybeSingle();
 
-    const tz = settingsData?.timezone || DEFAULT_TZ;
+    const tz = (settingsData as any)?.timezone || DEFAULT_TZ;
     const avgDur = services.length > 0 ? Math.round(services.reduce((s, sv) => s + (sv.duration_minutes || 30), 0) / services.length) : 30;
 
     const now = new Date();
