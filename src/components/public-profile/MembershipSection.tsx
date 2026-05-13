@@ -120,7 +120,7 @@ export const MembershipSection = ({ companyId, professionalId }: MembershipSecti
             <motion.button
               key={plan.id}
               type="button"
-              onClick={() => handlePlanClick(plan.name)}
+              onClick={() => handlePlanClick(plan)}
               whileHover={{ y: -2 }}
               transition={{ type: 'spring', stiffness: 300, damping: 22 }}
               className={cn(
