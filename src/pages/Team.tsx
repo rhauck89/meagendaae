@@ -40,7 +40,71 @@ const SYSTEM_ROLES = {
   admin: { label: 'Admin', icon: Shield, color: 'bg-blue-100 text-blue-800 border-blue-300' },
   admin_financeiro: { label: 'Admin Financeiro', icon: DollarSign, color: 'bg-green-100 text-green-800 border-green-300' },
   manager: { label: 'Gerente', icon: Briefcase, color: 'bg-purple-100 text-purple-800 border-purple-300' },
-  collaborator: { label: 'Funcionário', icon: Users, color: 'bg-slate-100 text-slate-800 border-slate-300' },
+  receptionist: { label: 'Recepcionista', icon: Users, color: 'bg-orange-100 text-orange-800 border-orange-300' },
+  collaborator: { label: 'Profissional', icon: Users, color: 'bg-slate-100 text-slate-800 border-slate-300' },
+};
+
+const PERMISSION_PRESETS: Record<string, any> = {
+  admin: {
+    agenda: { view: true, create: true, edit: true, delete: true },
+    services: { view: true, create: true, edit: true, delete: true },
+    team: { view: true, create: true, edit: true, delete: true },
+    clients: { view: true, create: true, edit: true, delete: true },
+    whatsapp: { view: true },
+    subscriptions: { view: true, create: true, edit: true, delete: true },
+    events: { view: true, create: true, edit: true, delete: true },
+    promotions: { view: true, create: true, edit: true, delete: true },
+    loyalty: { view: true, create: true, edit: true, delete: true },
+    requests: { view: true, create: true, edit: true, delete: true },
+    finance: { view: true, create: true, edit: true, delete: true, view_values: true },
+    settings: { view: true, edit: true },
+    reports: { view: true }
+  },
+  manager: {
+    agenda: { view: true, create: true, edit: true, delete: true },
+    services: { view: true, create: true, edit: true, delete: true },
+    team: { view: true, create: true, edit: true, delete: false },
+    clients: { view: true, create: true, edit: true, delete: true },
+    whatsapp: { view: true },
+    subscriptions: { view: true, create: true, edit: true, delete: false },
+    events: { view: true, create: true, edit: true, delete: true },
+    promotions: { view: true, create: true, edit: true, delete: true },
+    loyalty: { view: true, create: true, edit: true, delete: true },
+    requests: { view: true, create: true, edit: true, delete: true },
+    finance: { view: true, create: false, edit: false, delete: false, view_values: true },
+    settings: { view: true, edit: false },
+    reports: { view: true }
+  },
+  receptionist: {
+    agenda: { view: true, create: true, edit: true, delete: false },
+    services: { view: true, create: false, edit: false, delete: false },
+    team: { view: true, create: false, edit: false, delete: false },
+    clients: { view: true, create: true, edit: true, delete: false },
+    whatsapp: { view: true },
+    subscriptions: { view: false },
+    events: { view: true, create: true, edit: true, delete: false },
+    promotions: { view: true },
+    loyalty: { view: true },
+    requests: { view: true, create: true, edit: true, delete: false },
+    finance: { view: false },
+    settings: { view: false },
+    reports: { view: false }
+  },
+  collaborator: {
+    agenda: { view: true, create: false, edit: false, delete: false },
+    services: { view: false },
+    team: { view: false },
+    clients: { view: true, create: false, edit: false, delete: false },
+    whatsapp: { view: false },
+    subscriptions: { view: false },
+    events: { view: false },
+    promotions: { view: false },
+    loyalty: { view: false },
+    requests: { view: true },
+    finance: { view: false },
+    settings: { view: false },
+    reports: { view: false }
+  }
 };
 const WIZARD_STEPS = 5;
 
@@ -117,6 +181,8 @@ const Team = () => {
     use_company_banner: true,
     schedule_from_company: true,
     system_role: 'collaborator' as string,
+    is_service_provider: true,
+    permissions: PERMISSION_PRESETS.collaborator as any,
   });
 
   // Fetch company services for step 3
@@ -1228,10 +1294,14 @@ const Team = () => {
                             </div>
                             
                             <div className="space-y-2">
-                              <Label>NÃ­vel de permissÃ£o</Label>
+                              <Label>Nível de permissão</Label>
                               <Select 
                                 value={form.system_role} 
-                                onValueChange={(v) => setForm({ ...form, system_role: v })}
+                                onValueChange={(v) => setForm({ 
+                                  ...form, 
+                                  system_role: v,
+                                  permissions: PERMISSION_PRESETS[v] || form.permissions
+                                })}
                               >
                                 <SelectTrigger><SelectValue /></SelectTrigger>
                                 <SelectContent>
@@ -1250,6 +1320,60 @@ const Team = () => {
                             </div>
                           </div>
                         )}
+                        
+                        <div className="space-y-4 mt-6 border-t pt-4">
+                          <Label className="text-base font-bold">Permissões de acesso</Label>
+                          <p className="text-xs text-muted-foreground mb-4">
+                            Configure o que este membro pode acessar no painel administrativo.
+                          </p>
+                          
+                          <div className="space-y-6 max-h-[400px] overflow-y-auto pr-2">
+                            {Object.entries(form.permissions || {}).map(([module, perms]: [string, any]) => (
+                              <div key={module} className="space-y-3 p-3 rounded-lg border bg-muted/30">
+                                <div className="flex items-center justify-between border-b pb-2 mb-2">
+                                  <span className="font-bold text-sm uppercase tracking-wider">{module}</span>
+                                  <Switch 
+                                    checked={perms.view}
+                                    onCheckedChange={(checked) => {
+                                      const newPerms = { ...form.permissions };
+                                      newPerms[module] = { ...newPerms[module], view: checked };
+                                      setForm({ ...form, permissions: newPerms });
+                                    }}
+                                  />
+                                </div>
+                                {perms.view && (
+                                  <div className="grid grid-cols-2 gap-4">
+                                    {['create', 'edit', 'delete', 'view_values'].map((action) => {
+                                      if (action === 'view_values' && module !== 'finance') return null;
+                                      if (['whatsapp', 'reports', 'settings'].includes(module) && action !== 'edit' && action !== 'view_values') return null;
+                                      
+                                      const label = action === 'create' ? 'Criar' : 
+                                                    action === 'edit' ? 'Editar' : 
+                                                    action === 'delete' ? 'Excluir' : 'Ver valores';
+                                      
+                                      return (
+                                        <div key={action} className="flex items-center gap-2">
+                                          <Checkbox 
+                                            id={`perm-${module}-${action}`}
+                                            checked={perms[action] || false}
+                                            onCheckedChange={(checked) => {
+                                              const newPerms = { ...form.permissions };
+                                              newPerms[module] = { ...newPerms[module], [action]: !!checked };
+                                              setForm({ ...form, permissions: newPerms });
+                                            }}
+                                          />
+                                          <Label htmlFor={`perm-${module}-${action}`} className="text-xs font-medium cursor-pointer">
+                                            {label}
+                                          </Label>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
                       </>
                     )}
 
