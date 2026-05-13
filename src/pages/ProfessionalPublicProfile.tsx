@@ -9,7 +9,7 @@ import { SEOHead } from '@/components/SEOHead';
 import { format, addDays, startOfDay, isToday, isTomorrow, differenceInYears, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
-import { buildWhatsAppUrl, trackWhatsAppClick } from '@/lib/whatsapp';
+import { buildWhatsAppUrl, trackWhatsAppClick, normalizePhone } from '@/lib/whatsapp';
 import { type ExistingAppointment } from '@/lib/availability-engine';
 import { getAvailableSlots } from '@/lib/availability-service';
 import { formatWhatsApp } from '@/lib/whatsapp';
