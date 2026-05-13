@@ -311,22 +311,52 @@ export function PlanDialog({
         valid_end_time: values.valid_end_time || null,
         observations: values.observations,
         is_active: values.is_active,
+        all_professionals: values.all_professionals,
         company_id: companyId,
       };
 
-      if (plan?.id) {
+      let planId = plan?.id;
+
+      if (planId) {
         const { error } = await supabase
           .from('subscription_plans')
           .update(payload)
-          .eq('id', plan.id);
+          .eq('id', planId);
         if (error) throw error;
         toast.success('Plano atualizado com sucesso!');
       } else {
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from('subscription_plans')
-          .insert(payload);
+          .insert(payload)
+          .select()
+          .single();
         if (error) throw error;
+        planId = data.id;
         toast.success('Plano criado com sucesso!');
+      }
+
+      // Handle participants
+      if (planId) {
+        // First delete all
+        await supabase
+          .from('subscription_plan_professionals')
+          .delete()
+          .eq('plan_id', planId);
+
+        // Then insert if not all_professionals
+        if (!values.all_professionals && values.participant_professionals.length > 0) {
+          const participantPayload = values.participant_professionals.map(profId => ({
+            plan_id: planId,
+            professional_id: profId,
+            company_id: companyId
+          }));
+
+          const { error: participantError } = await supabase
+            .from('subscription_plan_professionals')
+            .insert(participantPayload);
+          
+          if (participantError) throw participantError;
+        }
       }
 
       onSuccess();
