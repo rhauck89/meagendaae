@@ -1001,7 +1001,21 @@ export default function ProfessionalPublicProfile() {
                 <p className="text-xs opacity-60 mt-1" style={{ color: T.textSec }}>Selecione o melhor dia para você</p>
               </div>
 
-              <div className="relative z-10">
+              <div 
+                className="relative z-10"
+                style={{
+                  '--calendar-text': T.text,
+                  '--calendar-muted-text': T.textSec,
+                  '--calendar-disabled-text': T.textSec,
+                  '--calendar-selected-bg': T.accent,
+                  '--calendar-selected-text': getContrastColor(T.accent),
+                  '--calendar-today-border': T.accent,
+                  '--calendar-hover-bg': `${T.accent}20`,
+                  '--calendar-day-opacity': '0.95',
+                  '--calendar-disabled-opacity': '0.4',
+                  '--calendar-outside-opacity': '0.3',
+                } as React.CSSProperties}
+              >
                 <CalendarUI
                   mode="single"
                   selected={selectedDate}
@@ -1026,33 +1040,15 @@ export default function ProfessionalPublicProfile() {
                     nav_button_next: "absolute right-1",
                     table: "w-full border-collapse space-y-1",
                     head_row: "flex justify-between",
-                    head_cell: "text-muted-foreground rounded-md w-9 font-bold text-[0.7rem] uppercase tracking-wider opacity-50",
+                    head_cell: "text-muted-foreground rounded-md w-9 font-bold text-[0.7rem] uppercase tracking-wider opacity-60",
                     row: "flex w-full mt-2 justify-between",
                     cell: "h-10 w-10 text-center text-sm p-0 relative focus-within:relative focus-within:z-20",
                     day: cn(
-                      "h-10 w-10 p-0 font-semibold transition-all duration-200 rounded-xl hover:scale-110 active:scale-90 flex items-center justify-center",
-                      "hover:bg-accent/10"
+                      "h-10 w-10 p-0 font-bold transition-all hover:scale-110 active:scale-95 rounded-xl flex items-center justify-center",
+                      "text-[var(--calendar-text)]"
                     ),
-                    day_selected: "scale-110 shadow-lg",
+                    day_selected: "opacity-100 scale-110",
                     day_today: "border-2",
-                    day_outside: "opacity-20 pointer-events-none",
-                    day_disabled: "opacity-20 pointer-events-none",
-                    ...({} as any)
-                  }}
-                  modifiersStyles={{
-                    selected: { 
-                      backgroundColor: T.accent, 
-                      color: '#1a1a1a',
-                      fontWeight: '900',
-                      boxShadow: `0 8px 20px ${T.accent}40`,
-                      borderRadius: '12px'
-                    },
-                    today: {
-                      borderColor: T.accent,
-                      color: T.accent,
-                      fontWeight: 'bold',
-                      borderRadius: '12px'
-                    }
                   }}
                   style={{ backgroundColor: 'transparent' }}
                 />
