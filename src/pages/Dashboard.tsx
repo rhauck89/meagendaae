@@ -782,7 +782,9 @@ const Dashboard = () => {
         .eq('company_id', companyId)
         .maybeSingle();
 
-      if (collab) {
+      const isSubscriptionCovered = apt.is_subscription_covered || String(apt.notes || '').toLowerCase().includes('assinatura');
+
+      if (collab && !isSubscriptionCovered) {
         const serviceCount = apt.appointment_services?.length || 1;
         const { calculateFinancials } = await import('@/lib/financial-engine');
         // Commission calculated on GROSS price (before discounts/cashback/subscription)
@@ -797,6 +799,11 @@ const Dashboard = () => {
         commissionAmount = breakdown.professionalValue;
         // Company profit is based on net cash received minus professional payout
         companyProfit = netPrice - professionalEarning;
+      } else if (isSubscriptionCovered) {
+        // Skip individual commission for subscription-covered appointments
+        commissionAmount = 0;
+        professionalEarning = 0;
+        companyProfit = netPrice;
       }
 
       const noteParts = [];
@@ -807,8 +814,8 @@ const Dashboard = () => {
         
         // Subscription check based on notes/appointment data
         const appointmentNotes = String(apt.notes || '').toLowerCase();
-        if (appointmentNotes.includes('assinatura') || appointmentNotes.includes('plano') || manualDiscount > 0) {
-          noteParts.push('Coberto por assinatura/plano');
+        if (isSubscriptionCovered || appointmentNotes.includes('assinatura') || appointmentNotes.includes('plano')) {
+          noteParts.push('Coberto por assinatura/plano (Comissão individual ignorada)');
         }
       }
       if (commissionAmount > 0) noteParts.push(`Comissão: R$ ${commissionAmount.toFixed(2)} (Base: R$ ${grossPrice.toFixed(2)}) | Lucro Líquido: R$ ${companyProfit.toFixed(2)}`);

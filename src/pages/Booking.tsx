@@ -566,7 +566,8 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         p_whatsapp: targetWhatsapp || null,
         p_professional_id: selectedProfessional || null,
         p_service_ids: selectedServices || [],
-        p_date: selectedDate ? format(selectedDate, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd')
+        p_date: selectedDate ? format(selectedDate, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'),
+        p_time: selectedTime || null
       } as any);
 
       if (error) {
@@ -2550,7 +2551,8 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         p_original_price: subtotalGross,
         p_promotion_discount: promoDiscountAmount || 0,
         p_cashback_used: cashbackDiscount || 0,
-        p_manual_discount: Number(subscriptionDiscount || 0)
+        p_manual_discount: Number(subscriptionDiscount || 0),
+        p_is_subscription_covered: !!subBenefit?.benefit_applied
       };
 
       console.warn('[DOUBLE_BENEFIT_BOOKING_DEBUG_VISIBLE] appointment payload', {
@@ -3065,6 +3067,8 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                            subBenefit.reason === 'payment_overdue' ? 'Benefício suspenso (Atraso)' :
                            subBenefit.reason === 'limit_reached' ? 'Limite mensal atingido' :
                            subBenefit.reason === 'services_not_included' ? 'Serviço não incluso no plano' :
+                           subBenefit.reason === 'invalid_day' ? 'Plano não permitido hoje' :
+                           subBenefit.reason === 'invalid_time' ? `Horário não permitido (${subBenefit.valid_start_time?.substring(0, 5)} - ${subBenefit.valid_end_time?.substring(0, 5)})` :
                            'Nenhum benefício aplicado'}
                         </p>
                       )}

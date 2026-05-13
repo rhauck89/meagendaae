@@ -6309,7 +6309,11 @@ export type Database = {
           price_yearly: number | null
           type: string
           updated_at: string
+          usage_count_mode: string | null
           usage_limit: number | null
+          valid_days: number[] | null
+          valid_end_time: string | null
+          valid_start_time: string | null
         }
         Insert: {
           company_id: string
@@ -6324,7 +6328,11 @@ export type Database = {
           price_yearly?: number | null
           type: string
           updated_at?: string
+          usage_count_mode?: string | null
           usage_limit?: number | null
+          valid_days?: number[] | null
+          valid_end_time?: string | null
+          valid_start_time?: string | null
         }
         Update: {
           company_id?: string
@@ -6339,7 +6347,11 @@ export type Database = {
           price_yearly?: number | null
           type?: string
           updated_at?: string
+          usage_count_mode?: string | null
           usage_limit?: number | null
+          valid_days?: number[] | null
+          valid_end_time?: string | null
+          valid_start_time?: string | null
         }
         Relationships: [
           {
@@ -6386,7 +6398,10 @@ export type Database = {
           created_at: string
           id: string
           service_id: string
+          service_ids: string[] | null
           subscription_id: string
+          usage_count: number | null
+          usage_count_mode: string | null
           usage_date: string
         }
         Insert: {
@@ -6395,7 +6410,10 @@ export type Database = {
           created_at?: string
           id?: string
           service_id: string
+          service_ids?: string[] | null
           subscription_id: string
+          usage_count?: number | null
+          usage_count_mode?: string | null
           usage_date?: string
         }
         Update: {
@@ -6404,7 +6422,10 @@ export type Database = {
           created_at?: string
           id?: string
           service_id?: string
+          service_ids?: string[] | null
           subscription_id?: string
+          usage_count?: number | null
+          usage_count_mode?: string | null
           usage_date?: string
         }
         Relationships: [
@@ -8022,17 +8043,30 @@ export type Database = {
             Args: { p_company_id?: string; p_email: string; p_whatsapp: string }
             Returns: Json
           }
-      check_subscription_benefit: {
-        Args: {
-          p_client_id?: string
-          p_company_id: string
-          p_date?: string
-          p_professional_id?: string
-          p_service_ids?: string[]
-          p_whatsapp?: string
-        }
-        Returns: Json
-      }
+      check_subscription_benefit:
+        | {
+            Args: {
+              p_client_id?: string
+              p_company_id: string
+              p_date?: string
+              p_professional_id?: string
+              p_service_ids?: string[]
+              p_whatsapp?: string
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
+              p_client_id?: string
+              p_company_id: string
+              p_date?: string
+              p_professional_id?: string
+              p_service_ids?: string[]
+              p_time?: string
+              p_whatsapp?: string
+            }
+            Returns: Json
+          }
       cleanup_expired_otp: { Args: never; Returns: undefined }
       complete_client_signup: {
         Args: {
@@ -8068,55 +8102,31 @@ export type Database = {
         Args: { p_appointment_id: string; p_services: Json }
         Returns: undefined
       }
-      create_appointment_v2:
-        | {
-            Args: {
-              p_booking_origin?: string
-              p_cashback_ids?: string[]
-              p_cashback_used?: number
-              p_client_email?: string
-              p_client_id: string
-              p_client_name?: string
-              p_client_whatsapp?: string
-              p_company_id: string
-              p_end_time: string
-              p_manual_discount?: number
-              p_notes?: string
-              p_original_price?: number
-              p_professional_id: string
-              p_promotion_discount?: number
-              p_promotion_id?: string
-              p_services?: Json
-              p_start_time: string
-              p_total_price: number
-              p_user_id?: string
-            }
-            Returns: string
-          }
-        | {
-            Args: {
-              p_booking_origin?: string
-              p_cashback_ids?: string[]
-              p_client_email?: string
-              p_client_id: string
-              p_client_name: string
-              p_client_whatsapp: string
-              p_company_id: string
-              p_end_time: string
-              p_extra_fee?: number
-              p_extra_fee_type?: string
-              p_extra_fee_value?: number
-              p_notes?: string
-              p_professional_id: string
-              p_promotion_id?: string
-              p_services?: Json
-              p_special_schedule?: boolean
-              p_start_time: string
-              p_total_price: number
-              p_user_id?: string
-            }
-            Returns: string
-          }
+      create_appointment_v2: {
+        Args: {
+          p_booking_origin?: string
+          p_cashback_ids?: string[]
+          p_cashback_used?: number
+          p_client_email?: string
+          p_client_id: string
+          p_client_name?: string
+          p_client_whatsapp?: string
+          p_company_id: string
+          p_end_time: string
+          p_is_subscription_covered?: boolean
+          p_manual_discount?: number
+          p_notes?: string
+          p_original_price?: number
+          p_professional_id: string
+          p_promotion_discount?: number
+          p_promotion_id?: string
+          p_services?: Json
+          p_start_time: string
+          p_total_price: number
+          p_user_id?: string
+        }
+        Returns: string
+      }
       create_client: {
         Args: {
           p_birth_date?: string

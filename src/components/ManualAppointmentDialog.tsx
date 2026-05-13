@@ -104,8 +104,9 @@ export function ManualAppointmentDialog({
         p_client_id: selectedClient.id,
         p_professional_id: selectedProfessional,
         p_service_ids: selectedServices,
-        p_date: selectedDate ? format(selectedDate, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd')
-      });
+        p_date: selectedDate ? format(selectedDate, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'),
+        p_time: selectedSlot || null
+      } as any);
       if (error) throw error;
       setSubBenefit(data);
     } catch (err) {
@@ -283,7 +284,8 @@ export function ManualAppointmentDialog({
         p_original_price: originalTotalPrice,
         p_promotion_discount: 0,
         p_cashback_used: 0,
-        p_manual_discount: originalTotalPrice - totalPrice // If subscription benefit applied, this is the discount
+        p_manual_discount: originalTotalPrice - totalPrice, // If subscription benefit applied, this is the discount
+        p_is_subscription_covered: !!subBenefit?.benefit_applied
       } as any);
 
       if (rpcError) throw rpcError;
@@ -422,6 +424,8 @@ export function ManualAppointmentDialog({
                        subBenefit.reason === 'payment_overdue' ? 'Benefício suspenso por atraso no pagamento' :
                        subBenefit.reason === 'limit_reached' ? 'Limite de uso mensal atingido' :
                        subBenefit.reason === 'services_not_included' ? 'Nenhum dos serviços está incluso no plano' :
+                       subBenefit.reason === 'invalid_day' ? 'Plano não é permitido para este dia da semana' :
+                       subBenefit.reason === 'invalid_time' ? `Horário não permitido (${subBenefit.valid_start_time?.substring(0, 5)} - ${subBenefit.valid_end_time?.substring(0, 5)})` :
                        'Sem benefício de assinatura'}
                     </p>
                   )}

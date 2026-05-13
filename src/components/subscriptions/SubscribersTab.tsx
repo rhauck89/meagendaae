@@ -72,7 +72,7 @@ export function SubscribersTab({ companyId, onEditSubscriber, onViewDetails }: S
           subscription_plans(id, name, price_monthly, price_yearly, type, usage_limit, included_services),
           professional:profiles(full_name),
           charges:subscription_charges(status, due_date, amount),
-          usage:subscription_usage(id, usage_date, appointment_id, service_id, appointments!subscription_usage_appointment_id_fkey(status, start_time), services!subscription_usage_service_id_fkey(name))
+          usage:subscription_usage(id, usage_date, appointment_id, service_id, usage_count, appointments!subscription_usage_appointment_id_fkey(status, start_time), services!subscription_usage_service_id_fkey(name))
         `)
         .eq('company_id', companyId)
         .order('created_at', { ascending: false });
@@ -382,7 +382,7 @@ export function SubscribersTab({ companyId, onEditSubscriber, onViewDetails }: S
                           </>
                         ) : (
                           <>
-                            <span className="font-medium">{cycleUsage.length} / {plan?.usage_limit || 0}</span>
+                            <span className="font-medium">{cycleUsage.reduce((acc: number, u: any) => acc + (u.usage_count || 1), 0)} / {plan?.usage_limit || 0}</span>
                             <p className="text-muted-foreground">usos</p>
                           </>
                         )}
