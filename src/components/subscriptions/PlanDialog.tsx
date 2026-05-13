@@ -626,66 +626,76 @@ export function PlanDialog({
                 )}
               />
 
-              {!allProfessionals && (
-                <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      placeholder="Buscar profissional..."
-                      value={professionalSearch}
-                      onChange={(e) => setProfessionalSearch(e.target.value)}
-                      className="pl-10 h-9 bg-background"
-                    />
-                  </div>
-                  <ScrollArea className="h-[150px] border rounded-md p-2 bg-background">
-                    {fetchingProfessionals ? (
-                      <div className="flex items-center justify-center h-full">
-                        <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                      </div>
-                    ) : (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                        {filteredProfessionals.map((prof) => (
-                          <FormField
-                            key={prof.id}
-                            control={form.control}
-                            name="participant_professionals"
-                            render={({ field }) => (
-                              <FormItem
-                                key={prof.id}
-                                className="flex flex-row items-center space-x-3 space-y-0 rounded-md border p-2 hover:bg-muted/50 cursor-pointer"
-                              >
-                                <FormControl>
-                                  <Checkbox
-                                    checked={field.value?.includes(prof.id)}
-                                    onCheckedChange={(checked) => {
-                                      return checked
-                                        ? field.onChange([...(field.value || []), prof.id])
-                                        : field.onChange(
-                                            field.value?.filter((v) => v !== prof.id)
-                                          );
-                                    }}
-                                  />
-                                </FormControl>
-                                <div className="space-y-0.5">
-                                  <FormLabel className="text-xs font-medium cursor-pointer">
-                                    {prof.full_name}
-                                  </FormLabel>
-                                  {prof.professional_type && (
-                                    <p className="text-[10px] text-muted-foreground">
-                                      {prof.professional_type}
-                                    </p>
-                                  )}
-                                </div>
-                              </FormItem>
-                            )}
-                          />
-                        ))}
-                      </div>
-                    )}
-                  </ScrollArea>
-                  <FormMessage />
+              <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Buscar profissional por nome ou e-mail..."
+                    value={professionalSearch}
+                    onChange={(e) => setProfessionalSearch(e.target.value)}
+                    className="pl-10 h-9 bg-background"
+                  />
                 </div>
-              )}
+                <ScrollArea className="h-[200px] border rounded-md p-2 bg-background">
+                  {fetchingProfessionals ? (
+                    <div className="flex items-center justify-center h-full py-8">
+                      <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                    </div>
+                  ) : filteredProfessionals.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center h-full py-8 text-center">
+                      <p className="text-sm text-muted-foreground">Nenhum profissional encontrado</p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                      {filteredProfessionals.map((prof) => (
+                        <FormField
+                          key={prof.id}
+                          control={form.control}
+                          name="participant_professionals"
+                          render={({ field }) => (
+                            <FormItem
+                              key={prof.id}
+                              className={cn(
+                                "flex flex-row items-center space-x-3 space-y-0 rounded-md border p-2 hover:bg-muted/50 transition-colors",
+                                allProfessionals ? "opacity-70 cursor-default" : "cursor-pointer"
+                              )}
+                            >
+                              <FormControl>
+                                <Checkbox
+                                  checked={allProfessionals ? true : field.value?.includes(prof.id)}
+                                  disabled={allProfessionals}
+                                  onCheckedChange={(checked) => {
+                                    if (allProfessionals) return;
+                                    return checked
+                                      ? field.onChange([...(field.value || []), prof.id])
+                                      : field.onChange(
+                                          field.value?.filter((v) => v !== prof.id)
+                                        );
+                                  }}
+                                />
+                              </FormControl>
+                              <div className="space-y-0.5 overflow-hidden">
+                                <FormLabel className={cn(
+                                  "text-xs font-medium block truncate",
+                                  allProfessionals ? "cursor-default" : "cursor-pointer"
+                                )}>
+                                  {prof.full_name}
+                                </FormLabel>
+                                {prof.email && (
+                                  <p className="text-[10px] text-muted-foreground truncate">
+                                    {prof.email}
+                                  </p>
+                                )}
+                              </div>
+                            </FormItem>
+                          )}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </ScrollArea>
+                <FormMessage />
+              </div>
             </div>
 
             <div className="space-y-4 border rounded-md p-4 bg-muted/20">
