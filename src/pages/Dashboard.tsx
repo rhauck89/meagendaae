@@ -161,14 +161,7 @@ const Dashboard = () => {
     const finalPrice = Number(apt.final_price || apt.total_price || 0);
     const cashbackUsed = Number(apt.cashback_used || 0);
     const manualDiscount = Number(apt.manual_discount || 0);
-    
-    // Determine the promotion discount automatically
-    let promoDiscount = Number(apt.promotion_discount || 0);
-    if (apt.promotion_id && promoDiscount === 0) {
-      // If we have a promotion but discount is not recorded, calculate it
-      // promotion_discount = gross - final - cashback - manual
-      promoDiscount = Math.max(0, calculatedGross - finalPrice - cashbackUsed - manualDiscount);
-    }
+    const promoDiscount = Number(apt.promotion_discount || 0);
 
     setCompleteCustomAmount(calculatedGross.toString());
     setCompletePromoDiscount(promoDiscount > 0 ? promoDiscount.toString() : '');
@@ -431,8 +424,8 @@ const Dashboard = () => {
 
       setStats({
         total: selectedAppts.length,
-        revenue: selectedAppts.filter((a) => validStatuses.includes(a.status)).reduce((sum, a) => sum + Number(a.total_price), 0),
-        revenueCompleted: selectedAppts.filter((a) => a.status === 'completed').reduce((sum, a) => sum + Number(a.total_price), 0),
+        revenue: selectedAppts.filter((a) => validStatuses.includes(a.status)).reduce((sum, a) => sum + Number(a.final_price || a.total_price), 0),
+        revenueCompleted: selectedAppts.filter((a) => a.status === 'completed').reduce((sum, a) => sum + Number(a.final_price || a.total_price), 0),
         clients: dailyClients,
       });
     }
@@ -447,7 +440,7 @@ const Dashboard = () => {
       (() => {
         let query = supabase
           .from('appointments')
-          .select('status, total_price, client_id, start_time, client:clients!appointments_client_id_fkey(name)')
+          .select('status, total_price, final_price, client_id, start_time, client:clients!appointments_client_id_fkey(name)')
           .eq('company_id', companyId!)
           .gte('start_time', toSpStart(monthStart))
           .lte('start_time', toSpEnd(monthEnd));
@@ -492,8 +485,8 @@ const Dashboard = () => {
 
 
     const safeNum = (v: any) => isNaN(Number(v)) ? 0 : Number(v);
-    const revenue = safeNum(confirmed.reduce((sum, a) => sum + Number(a.total_price), 0));
-    const revenueCompleted = safeNum(completed.reduce((sum, a) => sum + Number(a.total_price), 0));
+    const revenue = safeNum(confirmed.reduce((sum, a) => sum + Number(a.final_price || a.total_price), 0));
+    const revenueCompleted = safeNum(completed.reduce((sum, a) => sum + Number(a.final_price || a.total_price), 0));
     
     // Calculate REAL capacity
     const slotDuration = companyRes.data?.fixed_slot_interval || 30;
@@ -548,7 +541,7 @@ const Dashboard = () => {
       (() => {
         let query = supabase
           .from('appointments')
-          .select('start_time, status, total_price')
+          .select('start_time, status, total_price, final_price')
           .eq('company_id', companyId)
           .gte('start_time', `${startDateStr}T00:00:00`)
           .order('start_time', { ascending: true });
@@ -612,7 +605,7 @@ const Dashboard = () => {
       if (!map[d]) continue;
       if (['confirmed', 'completed', 'in_progress'].includes(a.status)) {
         map[d].confirmed++;
-        map[d].revenue += Number(a.total_price) || 0;
+        map[d].revenue += Number(a.final_price || a.total_price) || 0;
         map[d].clients++;
       } else if (a.status === 'cancelled' || a.status === 'no_show') {
         map[d].cancellations++;
@@ -758,14 +751,16 @@ const Dashboard = () => {
     } else {
       const grossPrice = customAmount ?? Number(apt?.original_price || apt?.total_price || 0);
       const originalPrice = grossPrice;
+      const finalPrice = Math.max(0, grossPrice - totalDiscount);
       
       await supabase.from('appointments').update({ 
         status: status as any,
         manual_discount: manualDiscount,
         promotion_discount: promoDiscount,
         cashback_used: cashbackUsed,
-        final_price: grossPrice - totalDiscount,
-        original_price: originalPrice
+        final_price: finalPrice,
+        original_price: originalPrice,
+        total_price: finalPrice // Keep compatibility
       }).eq('id', id);
     }
 
@@ -812,8 +807,8 @@ const Dashboard = () => {
         
         // Subscription check based on notes/appointment data
         const appointmentNotes = String(apt.notes || '').toLowerCase();
-        if (appointmentNotes.includes('assinatura') || appointmentNotes.includes('plano')) {
-          noteParts.push('Coberto por assinatura');
+        if (appointmentNotes.includes('assinatura') || appointmentNotes.includes('plano') || manualDiscount > 0) {
+          noteParts.push('Coberto por assinatura/plano');
         }
       }
       if (commissionAmount > 0) noteParts.push(`Comissão: R$ ${commissionAmount.toFixed(2)} (Base: R$ ${grossPrice.toFixed(2)}) | Lucro Líquido: R$ ${companyProfit.toFixed(2)}`);
@@ -2437,7 +2432,6 @@ const Dashboard = () => {
               </div>
     </div>
 
-            {/* Net amount preview */}
             {completeTarget && (() => {
               const gross = parseFloat(completeCustomAmount) || Number(completeTarget.original_price || completeTarget.total_price);
               const discM = parseFloat(completeManualDiscount) || 0;
@@ -2500,17 +2494,22 @@ const Dashboard = () => {
                     const autoNotes = [];
                     if (dPromo > 0) autoNotes.push("Promoção aplicada");
                     if (dCashback > 0) autoNotes.push(`Cashback utilizado: R$ ${dCashback.toFixed(2)}`);
+                    if (dManual > 0) autoNotes.push(`Desconto manual: R$ ${dManual.toFixed(2)}`);
+                    
+                    const appointmentNotes = String(completeTarget.notes || '').toLowerCase();
+                    const isSubscription = appointmentNotes.includes('assinatura') || appointmentNotes.includes('plano');
+                    if (isSubscription) autoNotes.push("Coberto por assinatura/plano");
+
                     const finalObs = [
                       completeObservation,
                       autoNotes.length > 0 ? autoNotes.join(" | ") : null
                     ].filter(Boolean).join(" | ");
 
                     if (finalObs) {
+                      const existingNotes = completeTarget.notes || '';
+                      const separator = existingNotes && finalObs ? ' | ' : '';
                       supabase.from('appointments').update({ 
-                        notes: [
-                          completeTarget.notes,
-                          finalObs
-                        ].filter(Boolean).join(' | ')
+                        notes: `${existingNotes}${separator}${finalObs}`
                       }).eq('id', completeTarget.id).then(() => {});
                     }
                     toast.success('Serviço concluído com sucesso');

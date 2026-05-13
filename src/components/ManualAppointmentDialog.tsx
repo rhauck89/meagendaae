@@ -279,7 +279,11 @@ export function ManualAppointmentDialog({
         p_notes: subBenefit?.benefit_applied ? `Agendamento com benefício de assinatura: ${subBenefit.plan_name}` : 'Agendamento manual',
         p_services: servicesJson,
         p_booking_origin: 'manual',
-        p_user_id: selectedClient.user_id || null
+        p_user_id: selectedClient.user_id || null,
+        p_original_price: originalTotalPrice,
+        p_promotion_discount: 0,
+        p_cashback_used: 0,
+        p_manual_discount: originalTotalPrice - totalPrice // If subscription benefit applied, this is the discount
       } as any);
 
       if (rpcError) throw rpcError;

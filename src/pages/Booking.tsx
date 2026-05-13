@@ -2526,6 +2526,11 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         };
       });
 
+      const subtotalGross = selectedServices.reduce((sum, sid) => {
+        const svc = services.find((s) => s.id === sid);
+        return sum + (svc ? Number(svc.price) : 0);
+      }, 0);
+
       const appointmentPayloadV2 = {
         p_company_id: company.id,
         p_professional_id: selectedProfessional,
@@ -2542,6 +2547,10 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         p_user_id: user?.id ?? null,
         p_booking_origin: 'public_booking',
         p_client_email: clientForm.email || null,
+        p_original_price: subtotalGross,
+        p_promotion_discount: promoDiscountAmount || 0,
+        p_cashback_used: cashbackDiscount || 0,
+        p_manual_discount: Number(subscriptionDiscount || 0)
       };
 
       console.warn('[DOUBLE_BENEFIT_BOOKING_DEBUG_VISIBLE] appointment payload', {
