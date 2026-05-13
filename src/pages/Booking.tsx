@@ -2592,7 +2592,8 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
           professionalAvatar: professionalProfile?.avatar_url || null,
           totalPrice: finalPrice,
           totalDuration,
-           bookedAt: new Date().toISOString(),
+          bookedAt: new Date().toISOString(),
+          notes: rebookedNotes || null, // Keep existing rebooked notes if any, or null
         };
         localStorage.setItem(`last_booking_${company.id}`, JSON.stringify(lastBooking));
       } catch { /* non-critical */ }
