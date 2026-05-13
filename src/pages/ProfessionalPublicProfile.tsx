@@ -923,19 +923,21 @@ export default function ProfessionalPublicProfile() {
             >
               <div className="flex items-center gap-2 mb-4">
                 <Sparkles className="w-4 h-4" style={{ color: T.accent }} />
-                <h3 className="text-sm font-bold" style={{ color: T.text }}>Seu último atendimento com {firstName}</h3>
+                <h3 className="text-sm font-bold" style={{ color: T.text }}>Seu último atendimento</h3>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-[auto,1fr,auto] gap-4 items-center">
                 <div className="flex items-center gap-3">
                   <div className="w-14 h-14 rounded-full overflow-hidden border-2" style={{ borderColor: T.accent }}>
-                    {avatarUrl ? <img src={avatarUrl} className="w-full h-full object-cover" alt="" /> : <div className="w-full h-full" style={{ background: T.accent }} />}
+                    {(lastBooking.professionalAvatar || avatarUrl) ? <img src={lastBooking.professionalAvatar || avatarUrl} className="w-full h-full object-cover" alt="" /> : <div className="w-full h-full" style={{ background: T.accent }} />}
                   </div>
                   <div>
-                    <p className="text-sm font-bold" style={{ color: T.text }}>{lastBooking.serviceNames?.join(' + ') || lastBooking.serviceName || 'Serviço'}</p>
-                    <p className="text-xs opacity-70" style={{ color: T.textSec }}>
+                    <p className="text-sm font-bold" style={{ color: T.text }}>{lastBooking.serviceNames?.join(' + ') || 'Serviço'}</p>
+                    <p className="text-xs opacity-70 mb-1" style={{ color: T.textSec }}>
+                      com {lastBooking.professionalName || firstName}
+                    </p>
+                    <p className="text-[10px] opacity-60" style={{ color: T.textSec }}>
                       {format(parseISO(lastBooking.start_time), "dd 'de' MMMM 'de' yyyy 'às' HH:mm", { locale: ptBR })}
                     </p>
-                    <span className="inline-block mt-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-500/15 text-emerald-500">Concluído</span>
                   </div>
                 </div>
                 <div className="px-4 sm:border-l" style={{ borderColor: T.border }}>
