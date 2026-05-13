@@ -136,6 +136,97 @@ export function PlanDialog({
     }
   }, [open, plan, form]);
 
+  const [hasManualEdit, setHasManualEdit] = useState(false);
+
+  useEffect(() => {
+    if (!open) {
+      setHasManualEdit(false);
+      return;
+    }
+
+    const subscription = form.watch((value, { name }) => {
+      if (name === 'observations') {
+        setHasManualEdit(true);
+      }
+      
+      if (name !== 'observations' && !hasManualEdit) {
+        const name = value.name || '';
+        const mode = value.usage_count_mode;
+        const limit = value.usage_limit;
+        const type = value.type;
+        const days = value.valid_days as number[];
+        const start = value.valid_start_time;
+        const end = value.valid_end_time;
+        const monthly = value.price_monthly;
+        const yearly = value.price_yearly;
+        const includedIds = value.included_services as string[];
+        
+        const includedNames = services
+          .filter(s => includedIds.includes(s.id))
+          .map(s => s.name);
+
+        let text = `Plano: ${name || 'Novo Plano'}\n\n`;
+        
+        text += `Serviços incluídos:\n`;
+        if (includedNames.length > 0) {
+          includedNames.forEach(n => text += `- ${n}\n`);
+        } else {
+          text += `- Nenhum serviço selecionado\n`;
+        }
+        text += `\n`;
+
+        text += `Quantidade de créditos:\n`;
+        if (type === 'unlimited') {
+          text += `Este plano possui uso ilimitado por mês.\n`;
+        } else {
+          text += `Este plano possui ${limit || 0} créditos por mês.\n`;
+        }
+        text += `\n`;
+
+        text += `Forma de consumo:\n`;
+        if (mode === 'service') {
+          text += `Por serviço: cada serviço realizado consome 1 crédito. Exemplo: se o cliente agendar Corte + Barba no mesmo atendimento, serão consumidos 2 créditos.\n`;
+        } else {
+          text += `Por agendamento: cada atendimento realizado consome 1 crédito, mesmo que tenha vários serviços juntos. Exemplo: se o cliente agendar Corte + Barba + Sobrancelha no mesmo atendimento, será consumido apenas 1 crédito.\n`;
+        }
+        text += `\n`;
+
+        text += `Dias permitidos:\n`;
+        if (!days || days.length === 0 || days.length === 7) {
+          text += `[Válido todos os dias]\n`;
+        } else {
+          const dayLabels: Record<number, string> = { 1: 'segunda', 2: 'terça', 3: 'quarta', 4: 'quinta', 5: 'sexta', 6: 'sábado', 0: 'domingo' };
+          const labels = days.map(d => dayLabels[d]).join(', ');
+          text += `[Válido somente em: ${labels}]\n`;
+        }
+        text += `\n`;
+
+        text += `Horários permitidos:\n`;
+        if (!start && !end) {
+          text += `[Válido em qualquer horário]\n`;
+        } else {
+          text += `[Válido somente ${start ? `das ${start}` : ''} ${end ? `até as ${end}` : ''}]\n`;
+        }
+        text += `\n`;
+
+        text += `Valor:\n`;
+        text += `Mensal: R$ ${Number(monthly || 0).toFixed(2)}\n`;
+        if (yearly) {
+          text += `Anual: R$ ${Number(yearly).toFixed(2)}\n`;
+        }
+
+        form.setValue('observations', text);
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, [open, form, services, hasManualEdit]);
+
+  const updateObservationsAutomatically = () => {
+    setHasManualEdit(false);
+    // This will trigger the effect above
+    form.setValue('name', form.getValues('name'));
+  };
+
   const fetchServices = async () => {
     setFetchingServices(true);
     try {
