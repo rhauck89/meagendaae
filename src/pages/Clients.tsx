@@ -14,361 +14,21 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calendar as DateCalendar } from '@/components/ui/calendar';
-import { Search, MessageCircle, Users, ArrowLeft, Calendar, DollarSign, Star, Scissors, Cake, Pencil, UserPlus, Ban, ShieldCheck, ArrowUpDown, ArrowUp, ArrowDown, CalendarCheck, Crown, Info, CreditCard, Activity, CheckCircle2, AlertCircle, Clock } from 'lucide-react';
+import { Search, MessageCircle, Users, ArrowLeft, Calendar, DollarSign, Star, Scissors, Cake, Pencil, UserPlus, Ban, ShieldCheck, ArrowUpDown, ArrowUp, ArrowDown, CalendarCheck, Crown, Info, CreditCard, Activity, CheckCircle2, AlertCircle, Clock, Upload } from 'lucide-react';
 import { format, parseISO, isSameMonth, isSameDay, differenceInCalendarDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { displayWhatsApp, formatWhatsApp, openWhatsApp, normalizePhone } from '@/lib/whatsapp';
 import { toast } from 'sonner';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { ClientImportModal } from '@/components/clients/ClientImportModal';
 
-interface ClientRow {
-  id: string;
-  name: string;
-  whatsapp: string | null;
-  email: string | null;
-  birth_date: string | null;
-  next_recommended_visit: string | null;
-  created_at: string;
-  is_blocked: boolean;
-}
-
-interface AppointmentRow {
-  id: string;
-  start_time: string;
-  total_price: number;
-  status: string;
-  professional_id: string;
-  professional_name?: string;
-  services: { name: string; price: number }[];
-}
-
-type SortColumn = 'name' | 'lastVisit' | 'totalVisits' | 'totalSpent';
-type SortDirection = 'asc' | 'desc';
-
-const Clients = () => {
-  const { companyId } = useAuth();
-  const { isAdmin, profileId } = useUserRole();
-  const queryClient = useQueryClient();
-  const { refresh } = useRefreshData();
-  const [search, setSearch] = useState('');
-  const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
-  const [showAllBirthdays, setShowAllBirthdays] = useState(false);
-  const [sortColumn, setSortColumn] = useState<SortColumn>('name');
-  const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
-  const [profFilter, setProfFilter] = useState<string>('all');
-
-  // Manual client registration state
-  const [addClientOpen, setAddClientOpen] = useState(false);
-  const [addClientSaving, setAddClientSaving] = useState(false);
-  const [addClientForm, setAddClientForm] = useState({ name: '', whatsapp: '', email: '', birth_date: '', notes: '' });
+// ... keep existing code
   const [duplicateClient, setDuplicateClient] = useState<any>(null);
   const [duplicateDialogOpen, setDuplicateDialogOpen] = useState(false);
+  const [importModalOpen, setImportModalOpen] = useState(false);
 
   const handleAddClient = async () => {
-    const name = addClientForm.name.trim();
-    const whatsapp = addClientForm.whatsapp.trim();
-    if (!name || !whatsapp) {
-      toast.error('Nome e WhatsApp são obrigatórios');
-      return;
-    }
-    if (name.length > 100) { toast.error('Nome deve ter no máximo 100 caracteres'); return; }
-    if (whatsapp.length > 20) { toast.error('WhatsApp inválido'); return; }
-
-    setAddClientSaving(true);
-    try {
-      const normalizedWa = normalizePhone(whatsapp);
-      const { data: existing } = await supabase
-        .from('clients')
-        .select('id, name, whatsapp')
-        .eq('company_id', companyId!)
-        .or(`whatsapp.eq.${normalizedWa},whatsapp.eq.55${normalizedWa},whatsapp.ilike.%${normalizedWa}%`)
-        .limit(1);
-
-      if (existing && existing.length > 0) {
-        setDuplicateClient(existing[0]);
-        setDuplicateDialogOpen(true);
-        setAddClientSaving(false);
-        return;
-      }
-
-      await insertClient();
-    } catch (err) {
-      toast.error('Erro ao cadastrar cliente');
-    } finally {
-      setAddClientSaving(false);
-    }
-  };
-
-  const insertClient = async () => {
-    const { error } = await supabase.from('clients').insert({
-      company_id: companyId!,
-      name: addClientForm.name.trim(),
-      whatsapp: formatWhatsApp(addClientForm.whatsapp.trim()),
-      email: addClientForm.email.trim() || null,
-      birth_date: addClientForm.birth_date || null,
-    });
-    if (error) throw error;
-    refresh('clients');
-    toast.success('Cliente cadastrado com sucesso!');
-    setAddClientOpen(false);
-    setAddClientForm({ name: '', whatsapp: '', email: '', birth_date: '', notes: '' });
-  };
-
-  // Fetch all appointments for stats (professional-scoped if not admin)
-  const { data: appointments = [] } = useQuery({
-    queryKey: ['client-appointments-stats', companyId, isAdmin, profileId],
-    queryFn: async () => {
-      if (!companyId) return [];
-      let query = supabase
-        .from('appointments')
-        .select('id, client_id, professional_id, start_time, total_price, status')
-        .eq('company_id', companyId)
-        .in('status', ['completed', 'confirmed', 'pending', 'cancelled']);
-      if (!isAdmin && profileId) {
-        query = query.eq('professional_id', profileId);
-      }
-      const { data, error } = await query;
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!companyId,
-  });
-
-  // Derive client IDs from appointments for professional view
-  // Matches the logic in the RPC 'get_company_dashboard_stats'
-  const professionalClientIds = useMemo(() => {
-    if (isAdmin) return null;
-    return new Set(
-      appointments
-        .filter(a => ['completed', 'confirmed', 'pending'].includes(a.status))
-        .map(a => a.client_id)
-        .filter(Boolean)
-    );
-  }, [isAdmin, appointments]);
-
-  // Fetch subscriber statuses
-  const { data: subscriberStatuses = {} } = useQuery({
-    queryKey: ['client-subscriber-statuses', companyId],
-    queryFn: async () => {
-      if (!companyId) return {};
-      const { data, error } = await supabase
-        .from('client_subscriptions')
-        .select('client_id, status')
-        .eq('company_id', companyId);
-      if (error) throw error;
-      
-      const statusMap: Record<string, string> = {};
-      data?.forEach(sub => {
-        statusMap[sub.client_id] = sub.status;
-      });
-      return statusMap;
-    },
-    enabled: !!companyId,
-  });
-
-  // Fetch all clients
-  const { data: clients = [], isLoading } = useQuery({
-    queryKey: ['clients', companyId],
-    queryFn: async () => {
-      if (!companyId) return [];
-      const { data, error } = await supabase
-        .from('clients')
-        .select('*')
-        .eq('company_id', companyId)
-        .order('name');
-      if (error) throw error;
-      return data as ClientRow[];
-    },
-    enabled: !!companyId,
-  });
-
-  // Filter clients for professionals (only those they served)
-  const visibleClients = useMemo(() => {
-    if (isAdmin || !professionalClientIds) return clients;
-    return clients.filter(c => professionalClientIds.has(c.id));
-  }, [clients, isAdmin, professionalClientIds]);
-
-  // Fetch profiles for professional names
-  const { data: profiles = [] } = useQuery({
-    queryKey: ['profiles-for-clients', companyId],
-    queryFn: async () => {
-      if (!companyId) return [];
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('id, full_name')
-        .eq('company_id', companyId);
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!companyId,
-  });
-
-  const profileMap = Object.fromEntries(profiles.map(p => [p.id, p.full_name]));
-
-  // Calculate stats per client - respects filter
-  const clientStatsMap = useMemo(() => {
-    const map: Record<string, { totalVisits: number; totalSpent: number; lastVisit: string | null; favProfName: string; favProfId: string | null; cancelledCount: number }> = {};
-    
-    // Filter appointments for stats calculation if filter is active
-    const filteredApptsForStats = (isAdmin && profFilter !== 'all')
-      ? appointments.filter(a => a.professional_id === profFilter)
-      : appointments;
-
-    visibleClients.forEach(client => {
-      const clientAppts = filteredApptsForStats.filter(a => a.client_id === client.id);
-      const completedAppts = clientAppts.filter(a => a.status === 'completed' || a.status === 'confirmed');
-      const totalVisits = completedAppts.length;
-      const totalSpent = completedAppts.reduce((sum, a) => sum + Number(a.total_price), 0);
-      const lastVisit = completedAppts.length > 0
-        ? completedAppts.sort((a, b) => b.start_time.localeCompare(a.start_time))[0]?.start_time
-        : null;
-
-      const profCount: Record<string, number> = {};
-      completedAppts.forEach(a => {
-        profCount[a.professional_id] = (profCount[a.professional_id] || 0) + 1;
-      });
-      const favProfId = Object.entries(profCount).sort((a, b) => b[1] - a[1])[0]?.[0] || null;
-      const favProfName = favProfId ? profileMap[favProfId] || 'Desconhecido' : '-';
-      
-      const cancelledCount = clientAppts.filter(a => a.status === 'cancelled').length;
-
-      map[client.id] = { totalVisits, totalSpent, lastVisit, favProfName, favProfId, cancelledCount };
-    });
-    
-    return map;
-  }, [visibleClients, appointments, profileMap, isAdmin, profFilter]);
-
-  // Analytics metrics - respects professional filter
-  const { data: serverMetrics, isLoading: loadingMetrics } = useQuery({
-    queryKey: ['client-dashboard-stats', companyId, isAdmin, profileId, profFilter],
-    queryFn: async () => {
-      if (!companyId) return null;
-      const { data, error } = await supabase.rpc('get_company_dashboard_stats', {
-        p_company_id: companyId,
-        p_professional_id: !isAdmin ? profileId : (profFilter === 'all' ? null : profFilter)
-      });
-      if (error) throw error;
-      return data[0];
-    },
-    enabled: !!companyId,
-  });
-
-  const metrics = useMemo(() => {
-    const totalClients = Number(serverMetrics?.total_clients || 0);
-    const newClientsMonth = Number(serverMetrics?.new_clients_month || 0);
-    const totalAppointments = Number(serverMetrics?.total_appointments || 0);
-    const topClientMonth = serverMetrics?.top_client_name 
-      ? { name: serverMetrics.top_client_name, count: Number(serverMetrics.top_client_count) }
-      : null;
-
-    // We still need filteredClientIds for the UI table filtering
-    const filteredClientIds = new Set<string>();
-    if (isAdmin && profFilter !== 'all') {
-      appointments
-        .filter(a => a.professional_id === profFilter && (a.status === 'completed' || a.status === 'confirmed'))
-        .forEach(a => { if (a.client_id) filteredClientIds.add(a.client_id); });
-    }
-
-    return { totalClients, newClientsMonth, totalAppointments, topClientMonth, filteredClientIds };
-  }, [serverMetrics, isAdmin, profFilter, appointments]);
-
-  // Unique professionals for filter
-  const uniqueProfessionals = useMemo(() => {
-    const profIds = new Set<string>();
-    appointments.forEach(a => { if (a.professional_id) profIds.add(a.professional_id); });
-    return Array.from(profIds).map(id => ({ id, name: profileMap[id] || 'Desconhecido' })).sort((a, b) => a.name.localeCompare(b.name));
-  }, [appointments, profileMap]);
-
-  // Filter and sort for the Table
-  const filtered = useMemo(() => {
-    // Start with visible clients (already filtered if not admin)
-    let result = visibleClients;
-
-    // Filter by Search
-    if (search) {
-      const searchLower = search.toLowerCase();
-      result = result.filter(c =>
-        c.name.toLowerCase().includes(searchLower) ||
-        (c.whatsapp && c.whatsapp.includes(search))
-      );
-    }
-
-    // Filter by professional (Synchronized with metrics.totalClients)
-    if (isAdmin && profFilter !== 'all') {
-      result = result.filter(c => metrics.filteredClientIds.has(c.id));
-    }
-
-    // Sort
-    result.sort((a, b) => {
-      const statsA = clientStatsMap[a.id] || { totalVisits: 0, totalSpent: 0, lastVisit: null, favProfName: '-' };
-      const statsB = clientStatsMap[b.id] || { totalVisits: 0, totalSpent: 0, lastVisit: null, favProfName: '-' };
-      
-      let cmp = 0;
-      switch (sortColumn) {
-        case 'name':
-          cmp = a.name.localeCompare(b.name);
-          break;
-        case 'lastVisit':
-          cmp = (statsA.lastVisit || '').localeCompare(statsB.lastVisit || '');
-          break;
-        case 'totalVisits':
-          cmp = statsA.totalVisits - statsB.totalVisits;
-          break;
-        case 'totalSpent':
-          cmp = statsA.totalSpent - statsB.totalSpent;
-          break;
-      }
-      return sortDirection === 'asc' ? cmp : -cmp;
-    });
-
-    return result;
-  }, [visibleClients, search, sortColumn, sortDirection, profFilter, clientStatsMap, metrics.filteredClientIds, isAdmin]);
-
-  const toggleSort = (col: SortColumn) => {
-    if (sortColumn === col) {
-      setSortDirection(d => d === 'asc' ? 'desc' : 'asc');
-    } else {
-      setSortColumn(col);
-      setSortDirection(col === 'name' ? 'asc' : 'desc');
-    }
-  };
-
-  const SortIcon = ({ col }: { col: SortColumn }) => {
-    if (sortColumn !== col) return <ArrowUpDown className="h-3 w-3 ml-1 opacity-40" />;
-    return sortDirection === 'asc'
-      ? <ArrowUp className="h-3 w-3 ml-1 text-primary" />
-      : <ArrowDown className="h-3 w-3 ml-1 text-primary" />;
-  };
-
-  // Birthday calculations - respects professional filter
-  const clientsWithBirthdays = (isAdmin && profFilter !== 'all' 
-    ? visibleClients.filter(c => metrics.filteredClientIds.has(c.id))
-    : visibleClients)
-    .filter(c => c.birth_date)
-    .map(c => {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const birth = parseISO(c.birth_date!);
-      let nextBirthday = new Date(today.getFullYear(), birth.getMonth(), birth.getDate());
-      if (nextBirthday < today) {
-        nextBirthday = new Date(today.getFullYear() + 1, birth.getMonth(), birth.getDate());
-      }
-      const diffTime = nextBirthday.getTime() - today.getTime();
-      const daysRemaining = Math.round(diffTime / (1000 * 60 * 60 * 24));
-      return { ...c, daysRemaining, nextBirthday };
-    })
-    .sort((a, b) => a.daysRemaining - b.daysRemaining);
-
-  const displayBirthdays = showAllBirthdays ? clientsWithBirthdays : clientsWithBirthdays.slice(0, 5);
-
-  const daysLabel = (days: number) => {
-    if (days === 0) return 'Hoje 🎂';
-    if (days === 1) return 'Amanhã';
-    return `${days} dias`;
-  };
-
-  const selectedClient = visibleClients.find(c => c.id === selectedClientId);
-
+// ... keep existing code
   if (selectedClient) {
     return (
       <ClientProfile
@@ -387,12 +47,26 @@ const Clients = () => {
           <h2 className="text-xl sm:text-2xl font-display font-bold">Clientes</h2>
           <p className="text-muted-foreground text-sm">{filtered.length} {filtered.length === 1 ? 'cliente encontrado' : 'clientes encontrados'}</p>
         </div>
-        {isAdmin && (
-          <Button className="gap-2 w-full sm:w-auto" onClick={() => setAddClientOpen(true)}>
-            <UserPlus className="h-4 w-4" /> Cadastrar cliente
-          </Button>
-        )}
+        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+          {isAdmin && (
+            <>
+              <Button variant="outline" className="gap-2" onClick={() => setImportModalOpen(true)}>
+                <Upload className="h-4 w-4" /> Importar clientes
+              </Button>
+              <Button className="gap-2" onClick={() => setAddClientOpen(true)}>
+                <UserPlus className="h-4 w-4" /> Cadastrar cliente
+              </Button>
+            </>
+          )}
+        </div>
       </div>
+
+      <ClientImportModal 
+        open={importModalOpen} 
+        onOpenChange={setImportModalOpen} 
+        companyId={companyId || ''} 
+        onImportSuccess={() => queryClient.invalidateQueries({ queryKey: ['clients'] })}
+      />
 
       {/* Add Client Dialog */}
       <Dialog open={addClientOpen} onOpenChange={(v) => { setAddClientOpen(v); if (!v) setAddClientForm({ name: '', whatsapp: '', email: '', birth_date: '', notes: '' }); }}>
