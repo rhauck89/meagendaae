@@ -2548,9 +2548,9 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         p_booking_origin: 'public_booking',
         p_client_email: clientForm.email || null,
         p_original_price: subtotalGross,
-        p_promotion_discount: promotionDiscount || 0,
-        p_cashback_used: cashbackUsed || 0,
-        p_manual_discount: 0
+        p_promotion_discount: promoDiscountAmount || 0,
+        p_cashback_used: cashbackDiscount || 0,
+        p_manual_discount: Number(subscriptionDiscount || 0)
       };
 
       console.warn('[DOUBLE_BENEFIT_BOOKING_DEBUG_VISIBLE] appointment payload', {
