@@ -104,7 +104,7 @@ export function PlanDialog({
           price_yearly: plan.price_yearly ? Number(plan.price_yearly) : null,
           type: plan.type as 'limited' | 'unlimited',
           usage_limit: plan.usage_limit,
-          usage_count_mode: (plan.usage_count_mode as any) || 'service',
+          usage_count_mode: plan.usage_count_mode === 'day' ? 'appointment' : (plan.usage_count_mode as any) || 'service',
           included_services: plan.included_services || [],
           valid_days: plan.valid_days || [],
           valid_start_time: plan.valid_start_time || '',
@@ -205,16 +205,19 @@ export function PlanDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>{plan ? 'Editar Plano' : 'Novo Plano'}</DialogTitle>
-          <DialogDescription>
-            Configure os detalhes do plano de assinatura para seus clientes.
-          </DialogDescription>
-        </DialogHeader>
+      <DialogContent className="max-w-2xl max-h-[calc(100vh-48px)] flex flex-col p-0 overflow-hidden">
+        <div className="p-6 pb-2">
+          <DialogHeader>
+            <DialogTitle>{plan ? 'Editar Plano' : 'Novo Plano'}</DialogTitle>
+            <DialogDescription>
+              Configure os detalhes do plano de assinatura para seus clientes.
+            </DialogDescription>
+          </DialogHeader>
+        </div>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col flex-1 overflow-hidden">
+            <div className="flex-1 overflow-y-auto p-6 pt-2 space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField
                 control={form.control}
@@ -430,9 +433,18 @@ export function PlanDialog({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="service">Por serviço (Corte + Barba = 2 créditos)</SelectItem>
-                        <SelectItem value="appointment">Por agendamento (Corte + Barba = 1 crédito)</SelectItem>
-                        <SelectItem value="day">Por dia (Vários agendamentos no dia = 1 crédito)</SelectItem>
+                        <SelectItem value="service">
+                          <div className="flex flex-col">
+                            <span>Por serviço</span>
+                            <span className="text-xs text-muted-foreground font-normal">Cada serviço consome 1 crédito. Ex: Corte + Barba = 2 créditos.</span>
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="appointment">
+                          <div className="flex flex-col">
+                            <span>Por agendamento</span>
+                            <span className="text-xs text-muted-foreground font-normal">O atendimento inteiro consome 1 crédito, mesmo com vários serviços.</span>
+                          </div>
+                        </SelectItem>
                       </SelectContent>
                     </Select>
                     <FormDescription>
@@ -555,7 +567,7 @@ export function PlanDialog({
                   summary += ", qualquer horário";
                 }
                 
-                const modeLabel = mode === 'service' ? 'por serviço' : mode === 'appointment' ? 'por agendamento' : 'por dia';
+                const modeLabel = mode === 'service' ? 'por serviço' : 'por agendamento';
                 summary += `. Consumo ${modeLabel}.`;
                 
                 return (
@@ -604,8 +616,10 @@ export function PlanDialog({
                 </FormItem>
               )}
             />
+          </div>
 
-            <DialogFooter>
+          <div className="p-6 pt-4 border-t bg-muted/20">
+            <DialogFooter className="gap-2 sm:gap-0">
               <Button
                 type="button"
                 variant="outline"
@@ -618,9 +632,10 @@ export function PlanDialog({
                 {plan ? 'Atualizar Plano' : 'Criar Plano'}
               </Button>
             </DialogFooter>
-          </form>
-        </Form>
-      </DialogContent>
+          </div>
+        </form>
+      </Form>
+    </DialogContent>
     </Dialog>
   );
 }
