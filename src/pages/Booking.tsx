@@ -1146,7 +1146,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
           if (session?.user) {
             const { data: appt } = await supabase
               .from('appointments')
-              .select('id, start_time, total_price, professional_id')
+              .select('id, start_time, total_price, professional_id, notes')
               .eq('company_id', company.id)
               .eq('user_id', session.user.id)
               .in('status', ['completed', 'confirmed'])
@@ -1182,6 +1182,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                     totalPrice: Number(appt.total_price || 0),
                     totalDuration: (apptSvcs || []).filter(s => activeSvcIds.includes(s.service_id)).reduce((sum: number, s: any) => sum + (s.duration_minutes || 0), 0),
                     bookedAt: appt.start_time,
+                    notes: appt.notes,
                   };
                 }
               }
@@ -1193,6 +1194,11 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
           console.warn('[REBOOK] No booking data found to repeat.');
           setRebookingLoading(false);
           return;
+        }
+
+        // Store rebooked notes if any
+        if (bookingToUse.notes) {
+          setRebookedNotes(bookingToUse.notes);
         }
 
         // Final validation of services
@@ -1214,7 +1220,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         // Professional validation
         const profStillActive = professionals.length > 0 
           ? professionals.find(p => p.id === bookingToUse!.professionalId && p.active !== false)
-          : true; // If not loaded yet, we'll check properly after loading services-professional link
+          : true; 
 
         if (!profStillActive) {
           toast.info('O profissional do seu último atendimento não está mais disponível. Por favor, selecione um novo profissional.');
