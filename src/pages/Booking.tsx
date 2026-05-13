@@ -171,6 +171,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
   const { slug: paramSlug, professionalSlug } = useParams<{ slug: string; professionalSlug?: string }>();
   const slug = customSlug || paramSlug;
   const [searchParams] = useSearchParams();
+  const location = useLocation();
   const preselected = usePreselectedSlot();
   const promoIdRef = useRef(searchParams.get('promo'));
   const [company, setCompany] = useState<any>(null);
