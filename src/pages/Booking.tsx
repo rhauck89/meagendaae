@@ -3066,6 +3066,8 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                            subBenefit.reason === 'payment_overdue' ? 'Benefício suspenso (Atraso)' :
                            subBenefit.reason === 'limit_reached' ? 'Limite mensal atingido' :
                            subBenefit.reason === 'services_not_included' ? 'Serviço não incluso no plano' :
+                           subBenefit.reason === 'invalid_day' ? 'Plano não permitido hoje' :
+                           subBenefit.reason === 'invalid_time' ? `Horário não permitido (${subBenefit.valid_start_time?.substring(0, 5)} - ${subBenefit.valid_end_time?.substring(0, 5)})` :
                            'Nenhum benefício aplicado'}
                         </p>
                       )}
