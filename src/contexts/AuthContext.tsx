@@ -63,6 +63,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     companyId: null as string | null,
     roles: [] as string[],
     loginMode: null as LoginMode,
+    permissions: {} as any,
     hasContext: false
   });
 
@@ -456,6 +457,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       isOwner,
       loginMode, 
       setLoginMode, 
+      permissions,
       isAlsoCollaborator, 
       signOut, 
       refreshProfile,
