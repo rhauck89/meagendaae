@@ -266,6 +266,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
   }, []);
 
   const [hasBenefitsActive, setHasBenefitsActive] = useState(false);
+  const [rebookingLoading, setRebookingLoading] = useState(false);
   const [lastBooking, setLastBooking] = useState<{
     serviceIds: string[]; serviceNames: string[]; serviceDurations: number[];
     professionalId: string; professionalName: string; professionalAvatar: string | null;
