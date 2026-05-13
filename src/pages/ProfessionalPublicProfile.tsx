@@ -866,7 +866,7 @@ export default function ProfessionalPublicProfile() {
                     {avatarUrl ? <img src={avatarUrl} className="w-full h-full object-cover" alt="" /> : <div className="w-full h-full" style={{ background: T.accent }} />}
                   </div>
                   <div>
-                    <p className="text-sm font-bold" style={{ color: T.text }}>{lastBooking.serviceName || 'Serviço'}</p>
+                    <p className="text-sm font-bold" style={{ color: T.text }}>{lastBooking.serviceNames?.join(' + ') || lastBooking.serviceName || 'Serviço'}</p>
                     <p className="text-xs opacity-70" style={{ color: T.textSec }}>
                       {format(parseISO(lastBooking.start_time), "dd 'de' MMMM 'de' yyyy 'às' HH:mm", { locale: ptBR })}
                     </p>
