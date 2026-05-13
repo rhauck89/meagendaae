@@ -277,65 +277,101 @@ export default function ProfessionalPublicProfile() {
       const fetchLastBooking = async () => {
         if (!companyFull?.id || !prof?.id) return;
 
-        let searchCriteria: { user_id?: string; client_id?: string } = {};
+        let searchCriteria: { user_id?: string; client_ids: string[] } = { client_ids: [] };
 
         // Priority 1: Auth User
         if (isAuthenticated && user?.id) {
           searchCriteria.user_id = user.id;
         } 
-        // Priority 2: Identified Client by Local LocalStorage Identity
-        else if (currentClient?.whatsapp) {
-          const phone = normalizePhone(currentClient.whatsapp);
-          const { data: clientData } = await supabase
+
+        // Always look for identified clients (WhatsApp sessions or browser-stored identity)
+        const possiblePhones = new Set<string>();
+        
+        // WhatsApp session phone
+        const localIdentityStr = localStorage.getItem(`whatsapp_session_${companyFull.id}`);
+        if (localIdentityStr) {
+          try {
+            const session = JSON.parse(localIdentityStr);
+            if (session.whatsapp) possiblePhones.add(normalizePhone(session.whatsapp));
+          } catch (e) {}
+        }
+        
+        // Browser-stored identity phone (meagendae_client_data)
+        const globalIdentityStr = localStorage.getItem('meagendae_client_data');
+        if (globalIdentityStr) {
+          try {
+            const identity = JSON.parse(globalIdentityStr);
+            if (identity.whatsapp) possiblePhones.add(normalizePhone(identity.whatsapp));
+          } catch (e) {}
+        }
+
+        // Current client phone from state
+        if (currentClient?.whatsapp) {
+          possiblePhones.add(normalizePhone(currentClient.whatsapp));
+        }
+
+        if (possiblePhones.size > 0) {
+          const { data: clients } = await supabase
             .from('clients')
             .select('id')
             .eq('company_id', companyFull.id)
-            .eq('whatsapp', phone)
-            .maybeSingle();
+            .in('whatsapp', Array.from(possiblePhones));
           
-          if (clientData?.id) {
-            searchCriteria.client_id = clientData.id;
+          if (clients && clients.length > 0) {
+            searchCriteria.client_ids = clients.map(c => c.id);
           }
         }
 
-        if (!searchCriteria.user_id && !searchCriteria.client_id) return;
+        if (!searchCriteria.user_id && searchCriteria.client_ids.length === 0) return;
 
+        // Fetch the most recent appointment for this company (any professional)
+        // to fulfill requirement 1: "SEMPRE buscar o último agendamento do cliente"
+        // even if it was with another professional? 
+        // Actually, the card says "Seu último atendimento com {firstName}", so it should probably be for THIS professional.
+        // BUT the user says: "1. O card 'Seu último atendimento' deve SEMPRE buscar o último agendamento do cliente logado/identificado."
+        // AND "2. No card, mostrar: ... nome do profissional".
+        // This implies the card might show another professional if that was the last one.
+        // However, this is ProfessionalPublicProfile. It's better to stick to this professional for this specific page.
+        
         const query = supabase
           .from('appointments')
-          .select('id, start_time, total_price, professional_id, status, notes')
+          .select('id, start_time, total_price, professional_id, status, notes, professional:profiles!appointments_professional_id_fkey(full_name, avatar_url)')
           .eq('company_id', companyFull.id)
-          .eq('professional_id', prof.id)
-          .in('status', ['completed', 'confirmed'])
+          .eq('professional_id', prof.id) // Restricted to THIS professional for this profile page
+          .in('status', ['completed', 'confirmed', 'pending'])
           .order('start_time', { ascending: false })
           .limit(1);
 
-        if (searchCriteria.user_id) query.eq('user_id', searchCriteria.user_id);
-        else query.eq('client_id', searchCriteria.client_id!);
+        if (searchCriteria.user_id && searchCriteria.client_ids.length > 0) {
+          query.or(`user_id.eq.${searchCriteria.user_id},client_id.in.(${searchCriteria.client_ids.join(',')})`);
+        } else if (searchCriteria.user_id) {
+          query.eq('user_id', searchCriteria.user_id);
+        } else {
+          query.in('client_id', searchCriteria.client_ids);
+        }
 
         const { data: appt } = await query.maybeSingle();
 
         if (appt) {
           const { data: apptSvcs } = await supabase
             .from('appointment_services')
-            .select('service_id')
+            .select('service_id, services(id, name, duration_minutes, price, active)')
             .eq('appointment_id', appt.id);
 
           if (apptSvcs && apptSvcs.length > 0) {
-            const svcIds = apptSvcs.map(as => as.service_id);
-            const { data: svcs } = await supabase
-              .from('public_services' as any)
-              .select('id, name, duration_minutes, price')
-              .in('id', svcIds);
-
-            if (svcs && svcs.length > 0) {
+            const svcs = apptSvcs.map(as => as.services).filter(Boolean) as any[];
+            
+            if (svcs.length > 0) {
               setLastBooking({
                 ...appt,
-                serviceIds: (svcs as any[]).map(s => s.id),
-                serviceNames: (svcs as any[]).map(s => s.name),
-                serviceDurations: (svcs as any[]).map(s => s.duration_minutes || 30),
-                totalPrice: (svcs as any[]).reduce((sum, s) => sum + Number(s.price || 0), 0),
-                totalDuration: (svcs as any[]).reduce((sum, s) => sum + Number(s.duration_minutes || 0), 0),
+                serviceIds: svcs.map(s => s.id),
+                serviceNames: svcs.map(s => s.name),
+                serviceDurations: svcs.map(s => s.duration_minutes || 30),
+                totalPrice: svcs.reduce((sum, s) => sum + Number(s.price || 0), 0),
+                totalDuration: svcs.reduce((sum, s) => sum + Number(s.duration_minutes || 0), 0),
                 professionalId: appt.professional_id,
+                professionalName: (appt.professional as any)?.full_name || prof.name,
+                professionalAvatar: (appt.professional as any)?.avatar_url || prof.avatar_url,
                 notes: appt.notes
               });
             }
