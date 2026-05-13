@@ -271,7 +271,7 @@ const Team = () => {
   const activeCollaborators = collaborators.filter((c) => c.active !== false);
   const disabledCollaborators = collaborators.filter((c) => c.active === false);
 
-  // Aggregated appointments query â€” fetch today's appointments for all professionals at once
+  // Aggregated appointments query — fetch today's appointments for all professionals at once
   const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
   const todayEnd = new Date(); todayEnd.setHours(23, 59, 59, 999);
   const professionalIds = collaborators.map((c) => c.profile_id).filter(Boolean);
@@ -713,7 +713,7 @@ const Team = () => {
       setAbsenceDialogOpen(false);
       await refreshTeam();
     } catch (err: any) {
-      toast.error(err.message || 'Erro ao salvar ausÃªncia');
+      toast.error(err.message || 'Erro ao salvar ausência');
     }
   };
 
@@ -951,7 +951,7 @@ const Team = () => {
   const bookingModeLabel = (mode: string) => {
     if (mode === 'intelligent') return 'Inteligente';
     if (mode === 'fixed_grid') return 'Grade fixa';
-    return 'HÃ­brida';
+    return 'Híbrida';
   };
 
   return (
@@ -976,7 +976,7 @@ const Team = () => {
           <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>
-                {createdCredentials ? 'Profissional Criado!' : `Novo Profissional â€” Etapa ${wizardStep} de ${WIZARD_STEPS}`}
+                {createdCredentials ? 'Profissional Criado!' : `Novo Profissional — Etapa ${wizardStep} de ${WIZARD_STEPS}`}
               </DialogTitle>
             </DialogHeader>
 
@@ -1158,7 +1158,7 @@ const Team = () => {
                       </>
                     )}
                           <div className="space-y-2">
-                            <Label className="text-xs">Valor por serviÃ§o (R$)</Label>
+                            <Label className="text-xs">Valor por serviço (R$)</Label>
                             <Input
                               type="number"
                               step="0.01"
@@ -1219,16 +1219,16 @@ const Team = () => {
                           </div>
                         </div>
                         <p className="text-xs text-muted-foreground">
-                          A receita dos serviÃ§os fica 100% com o profissional. O aluguel deve ser lanÃ§ado manualmente em Contas a Receber.
+                          A receita dos serviços fica 100% com o profissional. O aluguel deve ser lançado manualmente em Contas a Receber.
                         </p>
                       </div>
                     )}
 
-                    {/* SÃ³cio Investidor */}
+                    {/* Sócio Investidor */}
                     {wizardBM.business_model === 'investor_partner' && (
                       <div className="space-y-3 rounded-lg border p-4">
                         <div className="space-y-2">
-                          <Label className="text-sm font-medium">% de participaÃ§Ã£o societÃ¡ria</Label>
+                          <Label className="text-sm font-medium">% de participação societária</Label>
                           <Input
                             type="number"
                             step="0.01"
@@ -1240,7 +1240,7 @@ const Team = () => {
                       </div>
                     )}
 
-                    {/* SÃ³cio Operacional */}
+                    {/* Sócio Operacional */}
                     {wizardBM.business_model === 'operating_partner' && (
                       <div className="space-y-3 rounded-lg border p-4">
                         <div className="space-y-2">
@@ -1297,7 +1297,7 @@ const Team = () => {
                       if (!form.name.trim()) return toast.error('Preencha o nome');
                       setWizardStep(2);
                     }}>
-                      PrÃ³ximo <ChevronRight className="ml-2 h-4 w-4" />
+                      Próximo <ChevronRight className="ml-2 h-4 w-4" />
                     </Button>
                   </div>
                 )}
@@ -1325,8 +1325,8 @@ const Team = () => {
                           if (alreadyLinked) {
                             return (
                               <div className="p-3 rounded-lg border bg-amber-50/50 border-amber-200">
-                                <p className="text-sm font-medium text-amber-800">Seu login jÃ¡ estÃ¡ vinculado ao profissional {alreadyLinked.profile?.full_name}</p>
-                                <p className="text-xs text-amber-700 mt-1">Para criar outro administrador, convide um novo usuÃ¡rio informando o e-mail dele abaixo.</p>
+                                <p className="text-sm font-medium text-amber-800">Seu login já está vinculado ao profissional {alreadyLinked.profile?.full_name}</p>
+                                <p className="text-xs text-amber-700 mt-1">Para criar outro administrador, convide um novo usuário informando o e-mail dele abaixo.</p>
                               </div>
                             );
                           }
@@ -1452,7 +1452,7 @@ const Team = () => {
                         }
                         setWizardStep(3);
                       }}>
-                        PrÃ³ximo <ChevronRight className="ml-2 h-4 w-4" />
+                        Próximo <ChevronRight className="ml-2 h-4 w-4" />
                       </Button>
                     </div>
                   </div>
@@ -1461,12 +1461,12 @@ const Team = () => {
                 {/* Step 3: Schedule Config */}
                 {wizardStep === 3 && (
                   <div className="space-y-4">
-                    <p className="text-sm text-muted-foreground">Configure como a agenda do profissional irÃ¡ funcionar.</p>
+                    <p className="text-sm text-muted-foreground">Configure como a agenda do profissional irá funcionar.</p>
                     
                      <div className="flex items-center justify-between p-3 rounded-lg border">
                       <div>
-                        <p className="text-sm font-medium">Usar padrÃ£o da empresa</p>
-                        <p className="text-xs text-muted-foreground">Aplica as configuraÃ§Ãµes de agenda da empresa</p>
+                        <p className="text-sm font-medium">Usar padrão da empresa</p>
+                        <p className="text-xs text-muted-foreground">Aplica as configurações de agenda da empresa</p>
                       </div>
                       <Switch
                         checked={form.schedule_from_company}
@@ -1493,7 +1493,7 @@ const Team = () => {
                                 <SelectItem value="intelligent">
                                   <div className="flex flex-col items-start">
                                     <span>Inteligente</span>
-                                    <span className="text-xs text-muted-foreground">HorÃ¡rios calculados dinamicamente</span>
+                                    <span className="text-xs text-muted-foreground">Horários calculados dinamicamente</span>
                                   </div>
                                 </SelectItem>
                                 <SelectItem value="fixed_grid">
@@ -1504,7 +1504,7 @@ const Team = () => {
                                 </SelectItem>
                                 <SelectItem value="hybrid">
                                   <div className="flex flex-col items-start">
-                                    <span>HÃ­brida (recomendado)</span>
+                                    <span>Híbrida (recomendado)</span>
                                     <span className="text-xs text-muted-foreground">Grade fixa com validaÃ§Ã£o de duraÃ§Ã£o</span>
                                   </div>
                                 </SelectItem>
@@ -1548,7 +1548,7 @@ const Team = () => {
                               {showsGrid ? (
                                 <p className="text-sm">Grade da agenda: <span className="font-medium">{(company as any)?.fixed_slot_interval || 15} min</span></p>
                               ) : (
-                                <p className="text-sm">HorÃ¡rios dinÃ¢micos por serviÃ§o</p>
+                                <p className="text-sm">Horários dinâmicos por serviço</p>
                               )}
                             </div>
                           );
@@ -1574,7 +1574,7 @@ const Team = () => {
                         <ChevronLeft className="mr-2 h-4 w-4" /> Voltar
                       </Button>
                       <Button className="flex-1" onClick={() => setWizardStep(4)}>
-                        PrÃ³ximo <ChevronRight className="ml-2 h-4 w-4" />
+                        Próximo <ChevronRight className="ml-2 h-4 w-4" />
                       </Button>
                     </div>
                   </div>
@@ -1880,7 +1880,7 @@ const Team = () => {
               {/* SECTION 2: Modelo Comercial (unificado) */}
               <TabsContent value="model" className="mt-0 space-y-5">
                 <div className="space-y-2">
-                  <Label>Tipo de relaÃ§Ã£o com a empresa</Label>
+                  <Label>Tipo de relação com a empresa</Label>
                   <Select
                     value={editBM.business_model}
                     onValueChange={(v) => setEditBM({ ...editBM, business_model: v as BusinessModel })}
@@ -1908,13 +1908,13 @@ const Team = () => {
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="none">SalÃ¡rio fixo (controlado fora do sistema)</SelectItem>
-                        <SelectItem value="percentage">ComissÃ£o %</SelectItem>
-                        <SelectItem value="fixed">Valor fixo por serviÃ§o</SelectItem>
+                        <SelectItem value="percentage">Comissão %</SelectItem>
+                        <SelectItem value="fixed">Valor fixo por serviço</SelectItem>
                       </SelectContent>
                     </Select>
                     {editBM.commission_type === 'percentage' && (
                       <div className="space-y-2">
-                        <Label className="text-xs">ComissÃ£o do profissional (%)</Label>
+                        <Label className="text-xs">Comissão do profissional (%)</Label>
                         <Input
                           type="number"
                           value={editBM.commission_value || ''}
@@ -1925,7 +1925,7 @@ const Team = () => {
                     )}
                     {editBM.commission_type === 'fixed' && (
                       <div className="space-y-2">
-                        <Label className="text-xs">Valor por serviÃ§o (R$)</Label>
+                        <Label className="text-xs">Valor por serviço (R$)</Label>
                         <Input
                           type="number"
                           step="0.01"
@@ -1986,16 +1986,16 @@ const Team = () => {
                       </div>
                     </div>
                     <p className="text-xs text-muted-foreground">
-                      A receita dos serviÃ§os fica 100% com o profissional. O aluguel deve ser lanÃ§ado manualmente em Contas a Receber.
+                      A receita dos serviços fica 100% com o profissional. O aluguel deve ser lançado manualmente em Contas a Receber.
                     </p>
                   </div>
                 )}
 
-                {/* SÃ³cio Investidor */}
+                {/* Sócio Investidor */}
                 {editBM.business_model === 'investor_partner' && (
                   <div className="space-y-3 rounded-lg border p-4">
                     <div className="space-y-2">
-                      <Label className="text-sm font-medium">% de participaÃ§Ã£o societÃ¡ria</Label>
+                      <Label className="text-sm font-medium">% de participação societária</Label>
                       <Input
                         type="number"
                         step="0.01"
@@ -2007,7 +2007,7 @@ const Team = () => {
                   </div>
                 )}
 
-                {/* SÃ³cio Operacional */}
+                {/* Sócio Operacional */}
                 {editBM.business_model === 'operating_partner' && (
                   <div className="space-y-3 rounded-lg border p-4">
                     <div className="space-y-2">
@@ -2091,7 +2091,7 @@ const Team = () => {
                       <SelectContent>
                         <SelectItem value="intelligent">Inteligente</SelectItem>
                         <SelectItem value="fixed_grid">Grade fixa</SelectItem>
-                        <SelectItem value="hybrid">HÃ­brida (recomendado)</SelectItem>
+                        <SelectItem value="hybrid">Híbrida (recomendado)</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -2131,7 +2131,7 @@ const Team = () => {
                       </div>
                     ) : (
                       <div className="p-3 rounded-lg bg-muted/50 border">
-                        <p className="text-sm">HorÃ¡rios dinÃ¢micos por serviÃ§o</p>
+                        <p className="text-sm">Horários dinâmicos por serviço</p>
                         <p className="text-xs text-muted-foreground">A grade nÃ£o se aplica no modo Inteligente.</p>
                       </div>
                     );
@@ -2146,7 +2146,7 @@ const Team = () => {
                           Grade da agenda: <span className="font-medium">{(company as any)?.fixed_slot_interval || 15} min</span>
                         </p>
                       ) : (
-                        <p className="text-sm">HorÃ¡rios dinÃ¢micos por serviÃ§o</p>
+                        <p className="text-sm">Horários dinâmicos por serviço</p>
                       )}
                     </div>
                   );
@@ -2191,7 +2191,7 @@ const Team = () => {
                   <div className="relative flex-1">
                     <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                     <Input
-                      placeholder="Buscar serviÃ§o..."
+                      placeholder="Buscar serviço..."
                       value={editServiceSearch}
                       onChange={(e) => setEditServiceSearch(e.target.value)}
                       className="pl-9 pr-8 h-9"
@@ -2225,7 +2225,7 @@ const Team = () => {
                               .delete()
                               .eq('professional_id', editTarget.profile_id);
                             setEditAssignedServiceIds([]);
-                            toast.success('Todos os serviÃ§os removidos');
+                            toast.success('Todos os serviços removidos');
                           } else {
                             // Select all (only those not already assigned)
                             const toAdd = allIds.filter(id => !editAssignedServiceIds.includes(id));
@@ -2238,10 +2238,10 @@ const Team = () => {
                               await supabase.from('service_professionals').insert(inserts as any);
                             }
                             setEditAssignedServiceIds(allIds);
-                            toast.success('Todos os serviÃ§os vinculados');
+                            toast.success('Todos os serviços vinculados');
                           }
                         } catch (err) {
-                          toast.error('Erro ao atualizar serviÃ§os');
+                          toast.error('Erro ao atualizar serviços');
                         }
                       }}
                     >
@@ -2263,8 +2263,8 @@ const Team = () => {
                       return (
                         <p className="text-sm text-muted-foreground text-center py-6">
                           {companyServices.length === 0
-                            ? 'Nenhum serviÃ§o cadastrado. Crie serviÃ§os primeiro em ServiÃ§os.'
-                            : 'Nenhum serviÃ§o encontrado.'}
+                            ? 'Nenhum serviço cadastrado. Crie serviços primeiro em ServiÃ§os.'
+                            : 'Nenhum serviço encontrado.'}
                         </p>
                       );
                     }
