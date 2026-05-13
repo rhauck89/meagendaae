@@ -38,7 +38,7 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Loader2, Search } from 'lucide-react';
+import { Loader2, Search, Users } from 'lucide-react';
 
 const planSchema = z.object({
   name: z.string().min(1, 'Nome é obrigatório'),
@@ -264,20 +264,40 @@ export function PlanDialog({
     setFetchingProfessionals(true);
     try {
       console.log('Fetching professionals for company:', companyId);
+      
+      // We fetch collaborators and profiles joined via profile_id
+      // This matches the logic in Team.tsx to find people linked to the company
       const { data, error } = await supabase
-        .from('profiles')
-        .select('id, full_name, email, role')
+        .from('collaborators')
+        .select(`
+          id,
+          profile_id,
+          active,
+          profile:profiles!collaborators_profile_id_fkey (
+            id,
+            full_name,
+            email
+          )
+        `)
         .eq('company_id', companyId)
-        .eq('role', 'professional')
-        .order('full_name');
+        .eq('active', true);
 
       if (error) {
         console.error('Supabase error fetching professionals:', error);
         throw error;
       }
       
-      console.log('Professionals found:', data?.length || 0);
-      setProfessionals(data || []);
+      // Transform the data to the expected format
+      const formattedProfessionals = (data || [])
+        .map((c: any) => ({
+          id: c.profile_id,
+          full_name: c.profile?.full_name || 'Sem nome',
+          email: c.profile?.email || '',
+        }))
+        .filter(p => p.id); // Ensure we have an ID
+
+      console.log('Professionals found and formatted:', formattedProfessionals.length);
+      setProfessionals(formattedProfessionals);
     } catch (error: any) {
       console.error('Error fetching professionals:', error);
       toast.error('Erro ao buscar profissionais');
@@ -630,7 +650,7 @@ export function PlanDialog({
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
-                    placeholder="Buscar profissional por nome ou e-mail..."
+                    placeholder="Buscar profissional por nome ou email..."
                     value={professionalSearch}
                     onChange={(e) => setProfessionalSearch(e.target.value)}
                     className="pl-10 h-9 bg-background"
@@ -638,12 +658,22 @@ export function PlanDialog({
                 </div>
                 <ScrollArea className="h-[200px] border rounded-md p-2 bg-background">
                   {fetchingProfessionals ? (
-                    <div className="flex items-center justify-center h-full py-8">
+                    <div className="flex flex-col items-center justify-center h-full space-y-2 py-8">
                       <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                      <p className="text-sm text-muted-foreground">Carregando profissionais...</p>
+                    </div>
+                  ) : professionals.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center h-full py-8 text-center">
+                      <Users className="h-8 w-8 text-muted-foreground mb-2 opacity-20" />
+                      <p className="text-sm text-muted-foreground font-medium">Nenhum profissional ativo encontrado</p>
+                      <p className="text-xs text-muted-foreground mt-1 px-4">
+                        Certifique-se de que existem colaboradores cadastrados e ativos na empresa.
+                      </p>
                     </div>
                   ) : filteredProfessionals.length === 0 ? (
                     <div className="flex flex-col items-center justify-center h-full py-8 text-center">
-                      <p className="text-sm text-muted-foreground">Nenhum profissional encontrado</p>
+                      <Search className="h-8 w-8 text-muted-foreground mb-2 opacity-20" />
+                      <p className="text-sm text-muted-foreground">Nenhum profissional encontrado para essa busca</p>
                     </div>
                   ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
