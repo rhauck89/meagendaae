@@ -285,7 +285,6 @@ const Clients = () => {
         </div>
       </div>
 
-      {/* Manual Add Dialog */}
       <Dialog open={addClientOpen} onOpenChange={setAddClientOpen}>
         <DialogContent>
           <DialogHeader><DialogTitle>Novo Cliente</DialogTitle></DialogHeader>
@@ -296,6 +295,18 @@ const Clients = () => {
           <DialogFooter>
             <Button variant="outline" onClick={() => setAddClientOpen(false)}>Cancelar</Button>
             <Button onClick={handleAddClient} disabled={addClientSaving}>Cadastrar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      <Dialog open={duplicateDialogOpen} onOpenChange={setDuplicateDialogOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Cliente já cadastrado</DialogTitle></DialogHeader>
+          <p className="text-sm text-muted-foreground">Já existe um cliente cadastrado com este número de WhatsApp:</p>
+          {duplicateClient && <div className="p-3 rounded-lg border bg-muted/30"><p className="font-medium">{duplicateClient.name}</p><p className="text-sm text-muted-foreground">{duplicateClient.whatsapp}</p></div>}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDuplicateDialogOpen(false)}>Cancelar</Button>
+            <Button onClick={() => { setDuplicateDialogOpen(false); setAddClientOpen(false); setSelectedClientId(duplicateClient.id); }}>Usar cliente existente</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
