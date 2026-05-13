@@ -263,13 +263,20 @@ export function PlanDialog({
   const fetchProfessionals = async () => {
     setFetchingProfessionals(true);
     try {
+      console.log('Fetching professionals for company:', companyId);
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, full_name, professional_type')
+        .select('id, full_name, email, role')
         .eq('company_id', companyId)
+        .eq('role', 'professional')
         .order('full_name');
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase error fetching professionals:', error);
+        throw error;
+      }
+      
+      console.log('Professionals found:', data?.length || 0);
       setProfessionals(data || []);
     } catch (error: any) {
       console.error('Error fetching professionals:', error);
