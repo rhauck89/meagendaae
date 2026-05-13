@@ -191,18 +191,19 @@ export function ClientImportModal({ open, onOpenChange, companyId, onImportSucce
     setStep('importing');
 
     try {
-      const { error } = await supabase.from('clients').insert(
-        toImport.map(p => ({
-          company_id: companyId,
-          name: p.name,
-          whatsapp: p.whatsapp,
-          email: p.email || null,
-          birth_date: p.birth_date || null,
-          notes: p.notes || null,
-          opt_in_whatsapp: true,
-          registration_complete: !!(p.email && p.birth_date)
-        }))
-      );
+      // Cast the insert data to avoid TS errors with missing/new columns
+      const insertData = toImport.map(p => ({
+        company_id: companyId,
+        name: p.name,
+        whatsapp: p.whatsapp,
+        email: p.email || null,
+        birth_date: p.birth_date || null,
+        notes: p.notes || null,
+        opt_in_whatsapp: true,
+        registration_complete: !!(p.email && p.birth_date)
+      }));
+
+      const { error } = await supabase.from('clients').insert(insertData as any);
 
       if (error) throw error;
 
