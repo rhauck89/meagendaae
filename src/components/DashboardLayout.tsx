@@ -35,16 +35,16 @@ import RoleSelectorDialog from './RoleSelectorDialog';
 
 const SIDEBAR_COLLAPSED_KEY = 'sidebar-collapsed';
 
-const adminNavItems = [
-  { href: '/dashboard', icon: Calendar, label: 'Agenda' },
-  { href: '/dashboard/services', icon: Scissors, label: 'Serviços' },
-  { href: '/dashboard/team', icon: Users, label: 'Equipe' },
-  { href: '/dashboard/clients', icon: UserCheck, label: 'Clientes' },
-  { href: '/dashboard/whatsapp', icon: MessageSquare, label: 'WhatsApp Center' },
-  { href: '/dashboard/events', icon: PartyPopper, label: 'Agenda Aberta' },
-  { href: '/dashboard/promotions', icon: Megaphone, label: 'Promoções' },
-  { href: '/dashboard/loyalty', icon: Star, label: 'Fidelidade' },
-  { href: '/dashboard/solicitacoes', icon: Inbox, label: 'Solicitações' },
+const allAdminNavItems = [
+  { href: '/dashboard', icon: Calendar, label: 'Agenda', permKey: 'agenda' },
+  { href: '/dashboard/services', icon: Scissors, label: 'Serviços', permKey: 'services' },
+  { href: '/dashboard/team', icon: Users, label: 'Equipe', permKey: 'team' },
+  { href: '/dashboard/clients', icon: UserCheck, label: 'Clientes', permKey: 'clients' },
+  { href: '/dashboard/whatsapp', icon: MessageSquare, label: 'WhatsApp Center', permKey: 'whatsapp' },
+  { href: '/dashboard/events', icon: PartyPopper, label: 'Agenda Aberta', permKey: 'events' },
+  { href: '/dashboard/promotions', icon: Megaphone, label: 'Promoções', permKey: 'promotions' },
+  { href: '/dashboard/loyalty', icon: Star, label: 'Fidelidade', permKey: 'loyalty' },
+  { href: '/dashboard/solicitacoes', icon: Inbox, label: 'Solicitações', permKey: 'requests' },
 ];
 
 
@@ -151,8 +151,14 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
 
   const professionalNavItems = allProfessionalNavItems.filter(item => {
     if (!item.permKey) return true;
-    return profPerms[item.permKey];
+    return (profPerms as any)[item.permKey];
   });
+  
+  const adminNavItems = allAdminNavItems.filter(item => {
+    if (!item.permKey) return true;
+    return (profPerms as any)[item.permKey];
+  });
+
   const navItems = isAdmin ? adminNavItems : professionalNavItems;
 
   const handleRoleSelect = (mode: 'admin' | 'professional') => {
