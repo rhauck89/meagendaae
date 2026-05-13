@@ -330,11 +330,11 @@ export default function ProfessionalPublicProfile() {
             if (svcs && svcs.length > 0) {
               setLastBooking({
                 ...appt,
-                serviceIds: svcs.map(s => s.id),
-                serviceNames: svcs.map(s => s.name),
-                serviceDurations: svcs.map(s => s.duration_minutes || 30),
-                totalPrice: svcs.reduce((sum, s) => sum + Number(s.price || 0), 0),
-                totalDuration: svcs.reduce((sum, s) => sum + Number(s.duration_minutes || 0), 0),
+                serviceIds: (svcs as any[]).map(s => s.id),
+                serviceNames: (svcs as any[]).map(s => s.name),
+                serviceDurations: (svcs as any[]).map(s => s.duration_minutes || 30),
+                totalPrice: (svcs as any[]).reduce((sum, s) => sum + Number(s.price || 0), 0),
+                totalDuration: (svcs as any[]).reduce((sum, s) => sum + Number(s.duration_minutes || 0), 0),
                 professionalId: appt.professional_id,
                 notes: appt.notes
               });
