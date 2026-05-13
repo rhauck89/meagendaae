@@ -193,8 +193,11 @@ export function resolveWorkingHours(
   if (exception?.is_closed) return null;
 
   const dayOfWeek = date.getDay();
-  const activeHours = (professionalHours && professionalHours.length > 0) ? professionalHours : businessHours;
-  const hours = activeHours.find((h) => h.day_of_week === dayOfWeek);
+  const profDay = professionalHours?.find((h) => h.day_of_week === dayOfWeek);
+  const companyDay = businessHours.find((h) => h.day_of_week === dayOfWeek);
+  
+  // Rule: Professional-specific day record wins. If none, fallback to company.
+  const hours = profDay || companyDay;
   if (!hours || hours.is_closed) return null;
 
   return {

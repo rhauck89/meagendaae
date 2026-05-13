@@ -506,15 +506,16 @@ export default function ProfessionalPublicProfile() {
 
   const fetchNextSlots = async (comp: any, prof: any) => {
     setSlotsLoading(true);
-    const [, , , settingsRes] = await Promise.all([
-      supabase.from('business_hours').select('*').eq('company_id', comp.id),
-      supabase.from('business_exceptions').select('*').eq('company_id', comp.id),
-      supabase.from('public_company' as any).select('buffer_minutes').eq('id', comp.id).single(),
-      supabase.from('public_company_settings' as any).select('timezone, booking_buffer_minutes').eq('company_id', comp.id).single(),
-      supabase.from('professional_working_hours' as any).select('*').eq('professional_id', prof.id),
-    ]);
+    // getAvailableSlots handles all necessary data fetching internally
+    // We only need company settings for the timezone if we were doing more complex local logic,
+    // but the engine uses America/Sao_Paulo by default.
+    const { data: settingsData } = await supabase
+      .from('public_company_settings' as any)
+      .select('timezone')
+      .eq('company_id', comp.id)
+      .maybeSingle();
 
-    const tz = (settingsRes.data as any)?.timezone || DEFAULT_TZ;
+    const tz = (settingsData as any)?.timezone || DEFAULT_TZ;
     const avgDur = services.length > 0 ? Math.round(services.reduce((s, sv) => s + (sv.duration_minutes || 30), 0) / services.length) : 30;
 
     const now = new Date();
