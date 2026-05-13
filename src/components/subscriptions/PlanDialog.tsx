@@ -44,7 +44,7 @@ const planSchema = z.object({
   price_yearly: z.coerce.number().optional().nullable(),
   type: z.enum(['limited', 'unlimited']),
   usage_limit: z.coerce.number().optional().nullable(),
-  usage_count_mode: z.enum(['service', 'appointment', 'day']).default('service'),
+  usage_count_mode: z.enum(['service', 'appointment']).default('service'),
   included_services: z.array(z.string()).min(1, 'Selecione pelo menos um serviço'),
   valid_days: z.array(z.number()).default([]),
   valid_start_time: z.string().optional().nullable(),
