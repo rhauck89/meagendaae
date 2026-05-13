@@ -108,7 +108,7 @@ export function PlanDialog({
           price_yearly: plan.price_yearly ? Number(plan.price_yearly) : null,
           type: plan.type as 'limited' | 'unlimited',
           usage_limit: plan.usage_limit,
-          usage_count_mode: plan.usage_count_mode === 'day' ? 'appointment' : (plan.usage_count_mode as any) || 'service',
+          usage_count_mode: plan.usage_count_mode === 'day' ? 'appointment' : (plan.usage_count_mode || 'service'),
           included_services: plan.included_services || [],
           valid_days: plan.valid_days || [],
           valid_start_time: plan.valid_start_time || '',
