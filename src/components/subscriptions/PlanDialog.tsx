@@ -374,6 +374,12 @@ export function PlanDialog({
   );
 
   const planType = form.watch('type');
+  const allProfessionals = form.watch('all_professionals');
+
+  const filteredProfessionals = professionals.filter((p) =>
+    p.full_name?.toLowerCase().includes(professionalSearch.toLowerCase()) ||
+    p.professional_type?.toLowerCase().includes(professionalSearch.toLowerCase())
+  );
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
