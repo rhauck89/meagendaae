@@ -7,6 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
 import { DollarSign, TrendingUp, Users, Target, Percent } from 'lucide-react';
 import { useFinancialPrivacy } from '@/contexts/FinancialPrivacyContext';
 import FinancialPrivacyToggle from '@/components/FinancialPrivacyToggle';
