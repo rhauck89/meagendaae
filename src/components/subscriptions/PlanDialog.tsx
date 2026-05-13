@@ -490,12 +490,18 @@ export function PlanDialog({
                             </span>
                           </Label>
                         </div>
-                      </RadioGroup>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                    </RadioGroup>
+                    <p className="text-[11px] text-muted-foreground mt-2 px-1 italic">
+                      {field.value === 'service' 
+                        ? "* Cada serviço do agendamento consumirá 1 crédito do saldo." 
+                        : "* O atendimento completo consumirá apenas 1 crédito, independente do número de serviços."
+                      }
+                    </p>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
               <div className="space-y-3">
                 <FormLabel>Dias da semana permitidos</FormLabel>
