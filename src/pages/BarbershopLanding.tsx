@@ -10,7 +10,7 @@ import { SEOHead, buildLocalBusinessJsonLd } from '@/components/SEOHead';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
-import { buildWhatsAppUrl, trackWhatsAppClick } from '@/lib/whatsapp';
+import { buildWhatsAppUrl, trackWhatsAppClick, normalizePhone } from '@/lib/whatsapp';
 import { formatWhatsApp } from '@/lib/whatsapp';
 import { PlatformBranding } from '@/components/PlatformBranding';
 import { getCompanyBranding, buildThemeFromBranding, useApplyBranding } from '@/hooks/useCompanyBranding';
