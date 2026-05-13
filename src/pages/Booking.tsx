@@ -1259,7 +1259,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         setTimeout(() => setRebookingLoading(false), 800);
       }
     })();
-  }, [lastBooking, company?.id, services, professionals, searchParams, isAuthenticated, hasValidClient]);
+  }, [lastBooking, company?.id, services, professionals, searchParams, isAuthenticated, hasValidClient, clientLoaded]);
 
   useEffect(() => {
     if (!company?.id) return;
