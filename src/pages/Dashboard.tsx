@@ -2498,11 +2498,10 @@ const Dashboard = () => {
                     ].filter(Boolean).join(" | ");
 
                     if (finalObs) {
+                      const existingNotes = completeTarget.notes || '';
+                      const separator = existingNotes && finalObs ? ' | ' : '';
                       supabase.from('appointments').update({ 
-                        notes: [
-                          completeTarget.notes,
-                          finalObs
-                        ].filter(Boolean).join(' | ')
+                        notes: `${existingNotes}${separator}${finalObs}`
                       }).eq('id', completeTarget.id).then(() => {});
                     }
                     toast.success('Serviço concluído com sucesso');
