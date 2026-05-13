@@ -23,6 +23,8 @@ interface MembershipSectionProps {
 export const MembershipSection = ({ companyId, professionalId }: MembershipSectionProps) => {
   const [plans, setPlans] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedPlan, setSelectedPlan] = useState<any>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [contacts, setContacts] = useState<{ company?: string; professional?: string }>({});
 
   useEffect(() => {
