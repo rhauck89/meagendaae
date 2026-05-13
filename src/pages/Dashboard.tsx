@@ -2492,6 +2492,12 @@ const Dashboard = () => {
                     const autoNotes = [];
                     if (dPromo > 0) autoNotes.push("Promoção aplicada");
                     if (dCashback > 0) autoNotes.push(`Cashback utilizado: R$ ${dCashback.toFixed(2)}`);
+                    if (dManual > 0) autoNotes.push(`Desconto manual: R$ ${dManual.toFixed(2)}`);
+                    
+                    const appointmentNotes = String(completeTarget.notes || '').toLowerCase();
+                    const isSubscription = appointmentNotes.includes('assinatura') || appointmentNotes.includes('plano');
+                    if (isSubscription) autoNotes.push("Coberto por assinatura/plano");
+
                     const finalObs = [
                       completeObservation,
                       autoNotes.length > 0 ? autoNotes.join(" | ") : null
