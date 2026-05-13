@@ -3305,7 +3305,9 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
             </div>
             {/* Debug removido */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {professionals.map((p, idx) => {
+              {professionals
+                .filter(p => !allowedProfessionalIds || allowedProfessionalIds.includes(p.id))
+                .map((p, idx) => {
                 const sel = selectedProfessional === p.id;
                 const rating = professionalRatings[p.id];
                 return (
