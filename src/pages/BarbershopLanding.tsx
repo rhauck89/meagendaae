@@ -167,77 +167,95 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
     restoreSession();
   }, [company?.id, isAuthenticated, user]);
 
-  // Load last booking for smart rebooking on landing
+  // Load last booking (non-blocking)
   useEffect(() => {
     if (!company?.id) return;
-    try {
-      const dismissed = localStorage.getItem(`rebook_dismissed_${company.id}`) === '1';
-      setRebookDismissed(dismissed);
-    } catch { /* ignore */ }
+    
+    const restoreLastBooking = async () => {
+      try {
+        const dismissed = localStorage.getItem(`rebook_dismissed_${company.id}`) === '1';
+        setRebookDismissed(dismissed);
+      } catch { /* ignore */ }
 
-    if (!isAuthenticated) {
+      let searchCriteria: { user_id?: string; client_id?: string } = {};
+
+      // Priority 1: Auth User
+      if (isAuthenticated && user?.id) {
+        searchCriteria.user_id = user.id;
+      } 
+      // Priority 2: Identified Client by Local LocalStorage Identity
+      else if (currentClient?.whatsapp) {
+        const phone = normalizePhone(currentClient.whatsapp);
+        const { data: clientData } = await supabase
+          .from('clients')
+          .select('id')
+          .eq('company_id', company.id)
+          .eq('whatsapp', phone)
+          .maybeSingle();
+        
+        if (clientData?.id) {
+          searchCriteria.client_id = clientData.id;
+        }
+      }
+
+      // If we have search criteria, fetch from database
+      if (searchCriteria.user_id || searchCriteria.client_id) {
+        try {
+          const query = supabase
+            .from('appointments')
+            .select('id, start_time, total_price, professional_id, status, notes')
+            .eq('company_id', company.id)
+            .in('status', ['completed', 'confirmed'])
+            .order('start_time', { ascending: false })
+            .limit(1);
+
+          if (searchCriteria.user_id) query.eq('user_id', searchCriteria.user_id);
+          else query.eq('client_id', searchCriteria.client_id!);
+
+          const { data: appt } = await query.maybeSingle();
+
+          if (appt) {
+            const [{ data: apptSvcs }, { data: prof }] = await Promise.all([
+              supabase.from('appointment_services').select('service_id, duration_minutes, price').eq('appointment_id', appt.id),
+              supabase.from('public_professionals' as any).select('id, name, avatar_url').eq('id', appt.professional_id).maybeSingle(),
+            ]);
+
+            if (apptSvcs && apptSvcs.length > 0) {
+              const svcIds = apptSvcs.map((s: any) => s.service_id);
+              const { data: svcs } = await supabase.from('public_services' as any).select('id, name').in('id', svcIds);
+              
+              const svcNames = svcIds.map((id: string) => (svcs as any[])?.find((s: any) => s.id === id)?.name).filter(Boolean);
+              const totalDuration = (apptSvcs || []).reduce((sum: number, s: any) => sum + (s.duration_minutes || 0), 0);
+
+              setLastBooking({
+                serviceIds: svcIds,
+                serviceNames: svcNames,
+                serviceDurations: (apptSvcs || []).map((s: any) => s.duration_minutes),
+                professionalId: appt.professional_id,
+                professionalName: (prof as any)?.name || 'Profissional',
+                professionalAvatar: (prof as any)?.avatar_url || null,
+                totalPrice: Number(appt.total_price || 0),
+                totalDuration,
+                bookedAt: appt.start_time,
+                notes: appt.notes,
+              });
+              return;
+            }
+          }
+        } catch (dbErr) {
+          console.error('[LANDING] Error fetching last booking from DB:', dbErr);
+        }
+      }
+
+      // Fallback: LocalStorage (for non-authenticated/unidentified users)
       try {
         const stored = localStorage.getItem(`last_booking_${company.id}`);
         if (stored) setLastBooking(JSON.parse(stored));
       } catch { /* ignore */ }
-      return;
-    }
+    };
 
-    (async () => {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
-        const { data: profile } = await supabase
-          .from('clients')
-          .select('id')
-          .eq('user_id', user.id)
-          .eq('company_id', company.id)
-          .maybeSingle();
-        if (!profile?.id) {
-          const stored = localStorage.getItem(`last_booking_${company.id}`);
-          if (stored) setLastBooking(JSON.parse(stored));
-          return;
-        }
-        const { data: appt } = await supabase
-          .from('appointments')
-          .select('id, start_time, total_price, professional_id, notes')
-          .eq('company_id', company.id)
-          .eq('user_id', user.id)
-          .in('status', ['completed', 'confirmed', 'pending'])
-          .order('start_time', { ascending: false })
-          .limit(1)
-          .maybeSingle();
-        if (!appt) {
-          const stored = localStorage.getItem(`last_booking_${company.id}`);
-          if (stored) setLastBooking(JSON.parse(stored));
-          return;
-        }
-        const [{ data: apptSvcs }, { data: prof }] = await Promise.all([
-          supabase.from('appointment_services').select('service_id, duration_minutes, price').eq('appointment_id', appt.id),
-          supabase.from('public_professionals' as any).select('id, name, avatar_url').eq('id', appt.professional_id).maybeSingle(),
-        ]);
-        const svcIds = (apptSvcs || []).map((s: any) => s.service_id);
-        let svcNames: string[] = [];
-        if (svcIds.length) {
-          const { data: svcs } = await supabase.from('public_services' as any).select('id, name').in('id', svcIds);
-          svcNames = svcIds.map((id: string) => (svcs as any[])?.find((s: any) => s.id === id)?.name).filter(Boolean);
-        }
-        const totalDuration = (apptSvcs || []).reduce((sum: number, s: any) => sum + (s.duration_minutes || 0), 0);
-        setLastBooking({
-          serviceIds: svcIds,
-          serviceNames: svcNames,
-          serviceDurations: (apptSvcs || []).map((s: any) => s.duration_minutes),
-          professionalId: appt.professional_id,
-          professionalName: (prof as any)?.name || 'Profissional',
-          professionalAvatar: (prof as any)?.avatar_url || null,
-          totalPrice: Number(appt.total_price || 0),
-          totalDuration,
-          bookedAt: appt.start_time,
-          notes: appt.notes,
-        });
-      } catch { /* ignore */ }
-    })();
-  }, [company?.id, isAuthenticated]);
+    restoreLastBooking();
+  }, [company?.id, isAuthenticated, user, currentClient]);
 
   const handleDismissRebook = () => {
     if (!company?.id) return;
