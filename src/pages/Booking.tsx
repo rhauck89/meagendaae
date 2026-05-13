@@ -2235,6 +2235,18 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
     }
   }, [selectedProfessional, professionalHours, businessHours, totalDuration, currentWeekStart, selectedDate]);
 
+  const handleProfessionalChange = () => {
+    setSelectedProfessional(null);
+    setSelectedDate(undefined);
+    setSelectedTime(null);
+    setAvailableSlots([]);
+    setGeneratedSlots([]);
+    setProfessionalHours([]);
+    setSelectedSlotPromo(null);
+    setSelectedSlotIncentivePromo(null);
+    setStep('professional');
+  };
+
   const handleQuickSlot = (date: Date, time: string) => {
     skipTimeResetRef.current = true;
     setSelectedDate(date);
@@ -2913,13 +2925,15 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
                   </span>
                 </div>
               </div>
-              <button 
-                onClick={() => setStep('professional')}
-                className="p-4 rounded-2xl bg-white/5 hover:bg-amber-500/20 transition-all border border-white/10 active:scale-90 shadow-lg group-hover:rotate-12"
-                style={{ color: T.accent }}
-              >
-                <RotateCcw className="h-5 w-5" />
-              </button>
+              {professionals.length > 1 && (
+                <button 
+                  onClick={handleProfessionalChange}
+                  className="p-4 rounded-2xl bg-white/5 hover:bg-amber-500/20 transition-all border border-white/10 active:scale-90 shadow-lg group-hover:rotate-12"
+                  style={{ color: T.accent }}
+                >
+                  <RotateCcw className="h-5 w-5" />
+                </button>
+              )}
             </div>
           </div>
         );
