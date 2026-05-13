@@ -716,11 +716,22 @@ export function PlanDialog({
               name="observations"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Observações / Regras Adicionais</FormLabel>
+                  <div className="flex items-center justify-between">
+                    <FormLabel>Observações / Regras Adicionais</FormLabel>
+                    <Button 
+                      type="button" 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={updateObservationsAutomatically}
+                      className="h-7 text-[10px] text-primary"
+                    >
+                      Atualizar regras automaticamente
+                    </Button>
+                  </div>
                   <FormControl>
                     <Textarea
                       placeholder="Ex: Válido apenas de terça a quinta."
-                      className="resize-none"
+                      className="resize-none min-h-[200px] text-xs font-mono"
                       {...field}
                     />
                   </FormControl>
