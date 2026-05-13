@@ -284,7 +284,8 @@ export function ManualAppointmentDialog({
         p_original_price: originalTotalPrice,
         p_promotion_discount: 0,
         p_cashback_used: 0,
-        p_manual_discount: originalTotalPrice - totalPrice // If subscription benefit applied, this is the discount
+        p_manual_discount: originalTotalPrice - totalPrice, // If subscription benefit applied, this is the discount
+        p_is_subscription_covered: !!subBenefit?.benefit_applied
       } as any);
 
       if (rpcError) throw rpcError;
