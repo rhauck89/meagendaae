@@ -1546,6 +1546,12 @@ export type Database = {
           profile_id: string
           rent_amount: number
           rent_cycle: string | null
+          salary_amount: number | null
+          salary_auto_expense: boolean
+          salary_expense_category_id: string | null
+          salary_next_due_date: string | null
+          salary_payment_method: string | null
+          salary_recurrence: string | null
           slug: string | null
           system_role: string | null
           use_company_banner: boolean
@@ -1574,6 +1580,12 @@ export type Database = {
           profile_id: string
           rent_amount?: number
           rent_cycle?: string | null
+          salary_amount?: number | null
+          salary_auto_expense?: boolean
+          salary_expense_category_id?: string | null
+          salary_next_due_date?: string | null
+          salary_payment_method?: string | null
+          salary_recurrence?: string | null
           slug?: string | null
           system_role?: string | null
           use_company_banner?: boolean
@@ -1602,6 +1614,12 @@ export type Database = {
           profile_id?: string
           rent_amount?: number
           rent_cycle?: string | null
+          salary_amount?: number | null
+          salary_auto_expense?: boolean
+          salary_expense_category_id?: string | null
+          salary_next_due_date?: string | null
+          salary_payment_method?: string | null
+          salary_recurrence?: string | null
           slug?: string | null
           system_role?: string | null
           use_company_banner?: boolean
