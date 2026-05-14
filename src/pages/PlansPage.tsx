@@ -73,6 +73,12 @@ const financialLabels: Record<string, string> = {
   full: 'Financeiro completo',
 };
 
+const alwaysIncludedFeatures = [
+  'Assinaturas',
+  'Migração de clientes',
+  'Funções de membros',
+];
+
 const formatBRL = (n: number) => `R$${Number(n || 0).toFixed(2).replace('.', ',')}`;
 const formatDate = (iso: string | null) => iso ? format(new Date(iso), "dd/MM/yyyy", { locale: ptBR }) : null;
 
@@ -182,15 +188,23 @@ const PlansPage = () => {
   };
 
   const planAccent = (plan: Plan) => {
+    if (plan.slug === 'black') return 'border-slate-900/50 bg-gradient-to-br from-slate-900/5 to-transparent ring-1 ring-slate-900/20';
     if (plan.slug === 'elite') return 'border-amber-500/40 bg-gradient-to-br from-amber-500/5 to-transparent';
     if (plan.slug === 'studio') return 'border-primary/50 bg-gradient-to-br from-primary/5 to-transparent ring-1 ring-primary/20';
     return '';
   };
 
   const planIcon = (plan: Plan) => {
+    if (plan.slug === 'black') return <Crown className="h-5 w-5 text-slate-900" />;
     if (plan.slug === 'elite') return <Crown className="h-5 w-5 text-amber-500" />;
     if (plan.slug === 'studio') return <Star className="h-5 w-5 text-primary" />;
     return <CreditCard className="h-5 w-5 text-muted-foreground" />;
+  };
+
+  const memberLimitLabel = (plan: Plan) => {
+    if (plan.slug === 'elite' || plan.slug === 'black') return '4 ou mais membros';
+    if (plan.members_limit === 0) return 'Membros ilimitados';
+    return `Até ${plan.members_limit} membro${plan.members_limit !== 1 ? 's' : ''}`;
   };
 
   if (loading || currentPlan.loading) {
@@ -248,7 +262,7 @@ const PlansPage = () => {
         </div>
 
         {/* Plans grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
           {plans.map((plan) => {
             const isCurrent = plan.id === currentPlan.planId;
             const isPending = plan.id === currentPlan.pendingPlanId;
@@ -292,7 +306,7 @@ const PlansPage = () => {
                 </CardHeader>
                 <CardContent className="space-y-3 flex-1">
                   <div className="text-sm text-center text-muted-foreground">
-                    {plan.members_limit === 0 ? 'Membros ilimitados' : `Até ${plan.members_limit} membro${plan.members_limit !== 1 ? 's' : ''}`}
+                    {memberLimitLabel(plan)}
                   </div>
                   <div className="space-y-1.5 pt-3 border-t">
                     {featureRows.map(({ key, label }) => {
@@ -311,6 +325,18 @@ const PlansPage = () => {
                         ? <Check className="h-4 w-4 text-success shrink-0" />
                         : <X className="h-4 w-4 text-muted-foreground/30 shrink-0" />}
                       <span className={plan.feature_financial_level !== 'none' ? '' : 'text-muted-foreground/50'}>{finLabel}</span>
+                    </div>
+                    {alwaysIncludedFeatures.map((label) => (
+                      <div key={label} className="flex items-center gap-2 text-sm">
+                        <Check className="h-4 w-4 text-success shrink-0" />
+                        <span>{label}</span>
+                      </div>
+                    ))}
+                    <div className="flex items-center gap-2 text-sm">
+                      {plan.slug === 'black'
+                        ? <Check className="h-4 w-4 text-success shrink-0" />
+                        : <X className="h-4 w-4 text-muted-foreground/30 shrink-0" />}
+                      <span className={plan.slug === 'black' ? '' : 'text-muted-foreground/50'}>Marketplace incluso</span>
                     </div>
                   </div>
                 </CardContent>

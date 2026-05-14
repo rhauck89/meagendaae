@@ -47,6 +47,12 @@ interface Plan {
   multi_location_ready: boolean;
   active: boolean;
   sort_order: number;
+  paddle_product_id?: string | null;
+  paddle_monthly_price_id?: string | null;
+  paddle_yearly_price_id?: string | null;
+  stripe_product_id?: string | null;
+  stripe_monthly_price_id?: string | null;
+  stripe_yearly_price_id?: string | null;
 }
 
 const emptyPlan: Omit<Plan, 'id'> = {
@@ -80,6 +86,12 @@ const emptyPlan: Omit<Plan, 'id'> = {
   multi_location_ready: false,
   active: true,
   sort_order: 0,
+  paddle_product_id: null,
+  paddle_monthly_price_id: null,
+  paddle_yearly_price_id: null,
+  stripe_product_id: null,
+  stripe_monthly_price_id: null,
+  stripe_yearly_price_id: null,
 };
 
 const featureGroups: Array<{ title: string; items: Array<{ key: keyof Plan; label: string }> }> = [
@@ -229,6 +241,9 @@ const SuperAdminPlans = () => {
   };
 
   const planAccent = (plan: Plan) => {
+    if (plan.slug === 'black') {
+      return 'border-slate-900/50 bg-gradient-to-br from-slate-900/5 to-transparent ring-1 ring-slate-900/20';
+    }
     if (plan.slug === 'elite' || plan.badge?.toUpperCase().includes('PREMIUM')) {
       return 'border-amber-500/40 bg-gradient-to-br from-amber-500/5 to-transparent';
     }
@@ -239,6 +254,7 @@ const SuperAdminPlans = () => {
   };
 
   const planIcon = (plan: Plan) => {
+    if (plan.slug === 'black') return <Crown className="h-5 w-5 text-slate-900" />;
     if (plan.slug === 'elite') return <Crown className="h-5 w-5 text-amber-500" />;
     if (plan.slug === 'studio') return <Star className="h-5 w-5 text-primary" />;
     return <CreditCard className="h-5 w-5 text-muted-foreground" />;
@@ -269,7 +285,7 @@ const SuperAdminPlans = () => {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
           {plans.map((plan, idx) => {
             const features = getEnabledFeatures(plan);
             return (
@@ -435,6 +451,38 @@ const SuperAdminPlans = () => {
                   <SelectItem value="full">Financeiro completo</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+
+            <div className="space-y-3 pt-2 border-t">
+              <Label className="text-xs text-muted-foreground uppercase tracking-wide">Checkout</Label>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div className="space-y-1">
+                  <Label className="text-xs">Paddle produto</Label>
+                  <Input value={form.paddle_product_id ?? ''} onChange={(e) => setForm(f => ({ ...f, paddle_product_id: e.target.value || null }))} placeholder="plan_black" />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Paddle mensal</Label>
+                  <Input value={form.paddle_monthly_price_id ?? ''} onChange={(e) => setForm(f => ({ ...f, paddle_monthly_price_id: e.target.value || null }))} placeholder="plan_black_monthly" />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Paddle anual</Label>
+                  <Input value={form.paddle_yearly_price_id ?? ''} onChange={(e) => setForm(f => ({ ...f, paddle_yearly_price_id: e.target.value || null }))} placeholder="plan_black_yearly" />
+                </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div className="space-y-1">
+                  <Label className="text-xs">Stripe produto</Label>
+                  <Input value={form.stripe_product_id ?? ''} onChange={(e) => setForm(f => ({ ...f, stripe_product_id: e.target.value || null }))} placeholder="prod_..." />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Stripe mensal</Label>
+                  <Input value={form.stripe_monthly_price_id ?? ''} onChange={(e) => setForm(f => ({ ...f, stripe_monthly_price_id: e.target.value || null }))} placeholder="price_..." />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Stripe anual</Label>
+                  <Input value={form.stripe_yearly_price_id ?? ''} onChange={(e) => setForm(f => ({ ...f, stripe_yearly_price_id: e.target.value || null }))} placeholder="price_..." />
+                </div>
+              </div>
             </div>
 
             {featureGroups.map(g => (

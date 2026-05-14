@@ -33,6 +33,8 @@ const featureLabels: Array<{ key: string; label: string }> = [
   { key: 'whitelabel', label: 'Whitelabel' },
 ];
 
+const alwaysIncludedFeatures = ['Assinaturas', 'Migração de clientes', 'Funções de membros'];
+
 const formatBRL = (n: number) => `R$${Number(n || 0).toFixed(2).replace('.', ',')}`;
 const formatDate = (iso: string | null) => iso ? format(new Date(iso), "dd 'de' MMMM 'de' yyyy", { locale: ptBR }) : '—';
 
@@ -236,10 +238,18 @@ const CurrentPlanCard = () => {
                   </div>
                 );
               })}
+              {alwaysIncludedFeatures.map((label) => (
+                <div key={label} className="flex items-center gap-1.5 text-sm">
+                  <Check className="h-3.5 w-3.5 text-success shrink-0" />
+                  <span>{label}</span>
+                </div>
+              ))}
               <div className="flex items-center gap-1.5 text-sm col-span-2 pt-1">
                 <Check className="h-3.5 w-3.5 text-success shrink-0" />
                 <span>
-                  {plan.features.members_limit === 0
+                  {plan.planSlug === 'elite' || plan.planSlug === 'black'
+                    ? '4 ou mais membros'
+                    : plan.features.members_limit === 0
                     ? 'Membros ilimitados'
                     : `Até ${plan.features.members_limit} membro${plan.features.members_limit !== 1 ? 's' : ''}`}
                 </span>

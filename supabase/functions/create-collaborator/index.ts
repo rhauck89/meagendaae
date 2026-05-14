@@ -137,6 +137,40 @@ Deno.serve(async (req) => {
       });
     }
 
+    const { data: companyPlan } = await supabaseAdmin
+      .from("companies")
+      .select("plan_id, trial_plan_id, trial_active")
+      .eq("id", companyId)
+      .maybeSingle();
+
+    const effectivePlanId = companyPlan?.trial_active && companyPlan?.trial_plan_id
+      ? companyPlan.trial_plan_id
+      : companyPlan?.plan_id;
+
+    if (effectivePlanId) {
+      const { data: planLimit } = await supabaseAdmin
+        .from("plans")
+        .select("name, members_limit")
+        .eq("id", effectivePlanId)
+        .maybeSingle();
+
+      const membersLimit = Number(planLimit?.members_limit ?? 0);
+      if (membersLimit > 0) {
+        const { count } = await supabaseAdmin
+          .from("collaborators")
+          .select("id", { count: "exact", head: true })
+          .eq("company_id", companyId)
+          .or("active.is.null,active.eq.true");
+
+        if ((count ?? 0) >= membersLimit) {
+          return jsonResponse({
+            success: false,
+            error: `Limite do plano atingido. O plano ${planLimit?.name || "atual"} permite ate ${membersLimit} membro${membersLimit === 1 ? "" : "s"} da equipe.`,
+          });
+        }
+      }
+    }
+
     let userId: string;
     let profileId: string;
 
