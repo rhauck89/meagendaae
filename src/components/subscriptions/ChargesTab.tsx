@@ -144,8 +144,10 @@ export function ChargesTab({ companyId }: ChargesTabProps) {
           professional_id: professionalId,
           professional_name: charge.subscription?.professional?.full_name,
           service_name: 'Assinatura',
-          notes: `Cobrança Ref: ${charge.id}`
-        });
+          notes: `Cobrança Ref: ${charge.id}`,
+          commission_amount: commissionAmount,
+          commission_paid: false
+        } as any);
 
       if (revenueError) throw revenueError;
       

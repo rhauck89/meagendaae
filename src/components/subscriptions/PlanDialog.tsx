@@ -38,7 +38,7 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Loader2, Search, Users } from 'lucide-react';
+import { Loader2, Search } from 'lucide-react';
 
 const planSchema = z.object({
   name: z.string().min(1, 'Nome é obrigatório'),
@@ -54,8 +54,6 @@ const planSchema = z.object({
   valid_end_time: z.string().optional().nullable(),
   observations: z.string().optional(),
   is_active: z.boolean().default(true),
-  all_professionals: z.boolean().default(true),
-  participant_professionals: z.array(z.string()).default([]),
 });
 
 type PlanFormValues = z.infer<typeof planSchema>;
@@ -79,9 +77,6 @@ export function PlanDialog({
   const [services, setServices] = useState<any[]>([]);
   const [serviceSearch, setServiceSearch] = useState('');
   const [fetchingServices, setFetchingServices] = useState(false);
-  const [professionals, setProfessionals] = useState<any[]>([]);
-  const [fetchingProfessionals, setFetchingProfessionals] = useState(false);
-  const [professionalSearch, setProfessionalSearch] = useState('');
 
   const form = useForm<PlanFormValues>({
     resolver: zodResolver(planSchema),
@@ -99,17 +94,15 @@ export function PlanDialog({
       valid_end_time: '',
       observations: '',
       is_active: true,
-      all_professionals: true,
-      participant_professionals: [],
     },
   });
 
   useEffect(() => {
     if (open) {
       fetchServices();
-      fetchProfessionals();
+      
       if (plan) {
-        fetchPlanParticipants(plan.id);
+        
         form.reset({
           name: plan.name,
           description: plan.description || '',
@@ -124,8 +117,6 @@ export function PlanDialog({
           valid_end_time: plan.valid_end_time || '',
           observations: plan.observations || '',
           is_active: plan.is_active,
-          all_professionals: plan.all_professionals ?? true,
-          participant_professionals: [], // Will be updated by fetchPlanParticipants
         });
       } else {
         form.reset({
@@ -142,8 +133,6 @@ export function PlanDialog({
           valid_end_time: '',
           observations: '',
           is_active: true,
-          all_professionals: true,
-          participant_professionals: [],
         });
       }
     }
@@ -260,67 +249,7 @@ export function PlanDialog({
     }
   };
 
-  const fetchProfessionals = async () => {
-    setFetchingProfessionals(true);
-    try {
-      console.log('Fetching professionals for company:', companyId);
-      
-      // We fetch collaborators and profiles joined via profile_id
-      // This matches the logic in Team.tsx to find people linked to the company
-      const { data, error } = await supabase
-        .from('collaborators')
-        .select(`
-          id,
-          profile_id,
-          active,
-          profile:profiles!collaborators_profile_id_fkey (
-            id,
-            full_name,
-            email
-          )
-        `)
-        .eq('company_id', companyId)
-        .eq('is_service_provider', true)
-        .eq('active', true);
 
-      if (error) {
-        console.error('Supabase error fetching professionals:', error);
-        throw error;
-      }
-      
-      // Transform the data to the expected format
-      const formattedProfessionals = (data || [])
-        .map((c: any) => ({
-          id: c.profile_id,
-          full_name: c.profile?.full_name || 'Sem nome',
-          email: c.profile?.email || '',
-        }))
-        .filter(p => p.id); // Ensure we have an ID
-
-      console.log('Professionals found and formatted:', formattedProfessionals.length);
-      setProfessionals(formattedProfessionals);
-    } catch (error: any) {
-      console.error('Error fetching professionals:', error);
-      toast.error('Erro ao buscar profissionais');
-    } finally {
-      setFetchingProfessionals(false);
-    }
-  };
-
-  const fetchPlanParticipants = async (planId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('subscription_plan_professionals')
-        .select('professional_id')
-        .eq('plan_id', planId);
-
-      if (error) throw error;
-      const participantIds = data?.map(p => p.professional_id) || [];
-      form.setValue('participant_professionals', participantIds);
-    } catch (error: any) {
-      console.error('Error fetching plan participants:', error);
-    }
-  };
 
   const onSubmit = async (values: PlanFormValues) => {
     setLoading(true);
@@ -339,7 +268,7 @@ export function PlanDialog({
         valid_end_time: values.valid_end_time || null,
         observations: values.observations,
         is_active: values.is_active,
-        all_professionals: values.all_professionals,
+        
         company_id: companyId,
       };
 
@@ -363,29 +292,6 @@ export function PlanDialog({
         toast.success('Plano criado com sucesso!');
       }
 
-      // Handle participants
-      if (planId) {
-        // First delete all
-        await supabase
-          .from('subscription_plan_professionals')
-          .delete()
-          .eq('plan_id', planId);
-
-        // Then insert if not all_professionals
-        if (!values.all_professionals && values.participant_professionals.length > 0) {
-          const participantPayload = values.participant_professionals.map(profId => ({
-            plan_id: planId,
-            professional_id: profId,
-            company_id: companyId
-          }));
-
-          const { error: participantError } = await supabase
-            .from('subscription_plan_professionals')
-            .insert(participantPayload);
-          
-          if (participantError) throw participantError;
-        }
-      }
 
       onSuccess();
       onOpenChange(false);
@@ -402,15 +308,6 @@ export function PlanDialog({
   );
 
   const planType = form.watch('type');
-  const allProfessionals = form.watch('all_professionals');
-
-  const filteredProfessionals = professionals.filter((p) => {
-    const search = professionalSearch.toLowerCase();
-    return (
-      p.full_name?.toLowerCase().includes(search) ||
-      p.email?.toLowerCase().includes(search)
-    );
-  });
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -622,190 +519,6 @@ export function PlanDialog({
             />
 
             <div className="space-y-4 border rounded-md p-4 bg-muted/20">
-              <h3 className="text-sm font-semibold flex items-center gap-2">
-                👥 Profissionais participantes
-              </h3>
-              
-              <FormField
-                control={form.control}
-                name="all_professionals"
-                render={({ field }) => (
-                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4 bg-background">
-                    <div className="space-y-0.5">
-                      <FormLabel className="text-base">Todos os profissionais</FormLabel>
-                      <FormDescription>
-                        Qualquer profissional ativo da empresa pode atender clientes deste plano.
-                      </FormDescription>
-                    </div>
-                    <FormControl>
-                      <Checkbox
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
-
-              <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Buscar profissional por nome ou email..."
-                    value={professionalSearch}
-                    onChange={(e) => setProfessionalSearch(e.target.value)}
-                    className="pl-10 h-9 bg-background"
-                  />
-                </div>
-                <ScrollArea className="h-[200px] border rounded-md p-2 bg-background">
-                  {fetchingProfessionals ? (
-                    <div className="flex flex-col items-center justify-center h-full space-y-2 py-8">
-                      <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                      <p className="text-sm text-muted-foreground">Carregando profissionais...</p>
-                    </div>
-                  ) : professionals.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center h-full py-8 text-center">
-                      <Users className="h-8 w-8 text-muted-foreground mb-2 opacity-20" />
-                      <p className="text-sm text-muted-foreground font-medium">Nenhum profissional ativo encontrado</p>
-                      <p className="text-xs text-muted-foreground mt-1 px-4">
-                        Certifique-se de que existem colaboradores cadastrados e ativos na empresa.
-                      </p>
-                    </div>
-                  ) : filteredProfessionals.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center h-full py-8 text-center">
-                      <Search className="h-8 w-8 text-muted-foreground mb-2 opacity-20" />
-                      <p className="text-sm text-muted-foreground">Nenhum profissional encontrado para essa busca</p>
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                      {filteredProfessionals.map((prof) => (
-                        <FormField
-                          key={prof.id}
-                          control={form.control}
-                          name="participant_professionals"
-                          render={({ field }) => (
-                            <FormItem
-                              key={prof.id}
-                              className={cn(
-                                "flex flex-row items-center space-x-3 space-y-0 rounded-md border p-2 hover:bg-muted/50 transition-colors",
-                                allProfessionals ? "opacity-70 cursor-default" : "cursor-pointer"
-                              )}
-                            >
-                              <FormControl>
-                                <Checkbox
-                                  checked={allProfessionals ? true : field.value?.includes(prof.id)}
-                                  disabled={allProfessionals}
-                                  onCheckedChange={(checked) => {
-                                    if (allProfessionals) return;
-                                    return checked
-                                      ? field.onChange([...(field.value || []), prof.id])
-                                      : field.onChange(
-                                          field.value?.filter((v) => v !== prof.id)
-                                        );
-                                  }}
-                                />
-                              </FormControl>
-                              <div className="space-y-0.5 overflow-hidden">
-                                <FormLabel className={cn(
-                                  "text-xs font-medium block truncate",
-                                  allProfessionals ? "cursor-default" : "cursor-pointer"
-                                )}>
-                                  {prof.full_name}
-                                </FormLabel>
-                                {prof.email && (
-                                  <p className="text-[10px] text-muted-foreground truncate">
-                                    {prof.email}
-                                  </p>
-                                )}
-                              </div>
-                            </FormItem>
-                          )}
-                        />
-                      ))}
-                    </div>
-                  )}
-                </ScrollArea>
-                <FormMessage />
-              </div>
-            </div>
-
-            <div className="space-y-4 border rounded-md p-4 bg-muted/20">
-              
-              <FormField
-                control={form.control}
-                name="usage_count_mode"
-                render={({ field }) => (
-                  <FormItem className="space-y-3">
-                    <FormLabel>Como consumir créditos</FormLabel>
-                    <FormControl>
-                      <RadioGroup
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                        value={field.value}
-                        className="grid grid-cols-1 md:grid-cols-2 gap-3"
-                      >
-                        <div className="relative">
-                          <RadioGroupItem
-                            value="service"
-                            id="mode-service"
-                            className="peer sr-only"
-                          />
-                          <Label
-                            htmlFor="mode-service"
-                            className={cn(
-                              "flex flex-col items-start justify-between rounded-lg border-2 border-muted bg-popover p-4 hover:bg-accent/50 cursor-pointer h-full transition-all",
-                              field.value === 'service' ? "border-primary bg-primary/[0.03]" : "hover:border-muted-foreground/20"
-                            )}
-                          >
-                            <div className="flex items-center gap-2 mb-2">
-                              <div className={cn(
-                                "h-4 w-4 rounded-full border border-primary flex items-center justify-center transition-colors",
-                                field.value === 'service' ? "bg-primary" : "bg-transparent"
-                              )}>
-                                {field.value === 'service' && <div className="h-1.5 w-1.5 rounded-full bg-white" />}
-                              </div>
-                              <span className="font-semibold text-sm">Por serviço</span>
-                            </div>
-                            <span className="text-xs text-muted-foreground font-normal leading-relaxed">
-                              Cada serviço incluído no atendimento consome 1 crédito. Ex: Corte + Barba = 2 créditos.
-                            </span>
-                          </Label>
-                        </div>
-
-                        <div className="relative">
-                          <RadioGroupItem
-                            value="appointment"
-                            id="mode-appointment"
-                            className="peer sr-only"
-                          />
-                          <Label
-                            htmlFor="mode-appointment"
-                            className={cn(
-                              "flex flex-col items-start justify-between rounded-lg border-2 border-muted bg-popover p-4 hover:bg-accent/50 cursor-pointer h-full transition-all",
-                              field.value === 'appointment' ? "border-primary bg-primary/[0.03]" : "hover:border-muted-foreground/20"
-                            )}
-                          >
-                            <div className="flex items-center gap-2 mb-2">
-                              <div className={cn(
-                                "h-4 w-4 rounded-full border border-primary flex items-center justify-center transition-colors",
-                                field.value === 'appointment' ? "bg-primary" : "bg-transparent"
-                              )}>
-                                {field.value === 'appointment' && <div className="h-1.5 w-1.5 rounded-full bg-white" />}
-                              </div>
-                              <span className="font-semibold text-sm">Por agendamento</span>
-                            </div>
-                            <span className="text-xs text-muted-foreground font-normal leading-relaxed">
-                              O atendimento inteiro consome 1 crédito, mesmo que tenha vários serviços juntos. Ex: Corte + Barba + Sobrancelha = 1 crédito.
-                            </span>
-                          </Label>
-                        </div>
-                    </RadioGroup>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
               <div className="space-y-3">
                 <FormLabel>Dias da semana permitidos</FormLabel>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">

@@ -36,7 +36,7 @@ const subscriptionSchema = z.object({
   client_id: z.string().min(1, 'Cliente é obrigatório'),
   plan_id: z.string().min(1, 'Plano é obrigatório'),
   professional_id: z.string().min(1, 'Profissional responsável é obrigatório'),
-  professional_commission: z.coerce.number().min(0).max(100),
+  professional_commission: z.coerce.number().min(0, 'Comissão inválida'),
   billing_cycle: z.enum(['monthly', 'yearly']),
   start_date: z.string().min(1, 'Data de início é obrigatória'),
   end_date: z.string().optional().nullable(),
@@ -134,7 +134,7 @@ export function SubscriberDialog({
   };
 
   const fetchProfessionals = async () => {
-    const { data } = await supabase
+    const { data } = await (supabase as any)
       .from('collaborators')
       .select('profile_id, profile:profiles(full_name)')
       .eq('company_id', companyId)
