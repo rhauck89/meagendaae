@@ -221,6 +221,7 @@ export type Database = {
           booking_origin: string | null
           cashback_used: number | null
           client_id: string | null
+          client_email: string | null
           client_name: string | null
           client_whatsapp: string | null
           company_id: string
@@ -259,6 +260,7 @@ export type Database = {
           booking_origin?: string | null
           cashback_used?: number | null
           client_id?: string | null
+          client_email?: string | null
           client_name?: string | null
           client_whatsapp?: string | null
           company_id: string
@@ -297,6 +299,7 @@ export type Database = {
           booking_origin?: string | null
           cashback_used?: number | null
           client_id?: string | null
+          client_email?: string | null
           client_name?: string | null
           client_whatsapp?: string | null
           company_id?: string
@@ -1546,12 +1549,13 @@ export type Database = {
           profile_id: string
           rent_amount: number
           rent_cycle: string | null
-          salary_amount: number | null
+          salary_amount: number
           salary_auto_expense: boolean
           salary_expense_category_id: string | null
           salary_next_due_date: string | null
+          salary_payment_day: number | null
           salary_payment_method: string | null
-          salary_recurrence: string | null
+          salary_recurrence: string
           slug: string | null
           system_role: string | null
           use_company_banner: boolean
@@ -1580,12 +1584,13 @@ export type Database = {
           profile_id: string
           rent_amount?: number
           rent_cycle?: string | null
-          salary_amount?: number | null
+          salary_amount?: number
           salary_auto_expense?: boolean
           salary_expense_category_id?: string | null
           salary_next_due_date?: string | null
+          salary_payment_day?: number | null
           salary_payment_method?: string | null
-          salary_recurrence?: string | null
+          salary_recurrence?: string
           slug?: string | null
           system_role?: string | null
           use_company_banner?: boolean
@@ -1614,12 +1619,13 @@ export type Database = {
           profile_id?: string
           rent_amount?: number
           rent_cycle?: string | null
-          salary_amount?: number | null
+          salary_amount?: number
           salary_auto_expense?: boolean
           salary_expense_category_id?: string | null
           salary_next_due_date?: string | null
+          salary_payment_day?: number | null
           salary_payment_method?: string | null
-          salary_recurrence?: string | null
+          salary_recurrence?: string
           slug?: string | null
           system_role?: string | null
           use_company_banner?: boolean
@@ -2110,6 +2116,13 @@ export type Database = {
           permissions: Json
           profile_id: string
           role: Database["public"]["Enums"]["collaborator_role"]
+          salary_amount: number
+          salary_auto_expense: boolean
+          salary_expense_category_id: string | null
+          salary_next_due_date: string | null
+          salary_payment_day: number | null
+          salary_payment_method: string | null
+          salary_recurrence: string
           updated_at: string | null
         }
         Insert: {
@@ -2121,6 +2134,13 @@ export type Database = {
           permissions?: Json
           profile_id: string
           role?: Database["public"]["Enums"]["collaborator_role"]
+          salary_amount?: number
+          salary_auto_expense?: boolean
+          salary_expense_category_id?: string | null
+          salary_next_due_date?: string | null
+          salary_payment_day?: number | null
+          salary_payment_method?: string | null
+          salary_recurrence?: string
           updated_at?: string | null
         }
         Update: {
@@ -2132,6 +2152,13 @@ export type Database = {
           permissions?: Json
           profile_id?: string
           role?: Database["public"]["Enums"]["collaborator_role"]
+          salary_amount?: number
+          salary_auto_expense?: boolean
+          salary_expense_category_id?: string | null
+          salary_next_due_date?: string | null
+          salary_payment_day?: number | null
+          salary_payment_method?: string | null
+          salary_recurrence?: string
           updated_at?: string | null
         }
         Relationships: [
@@ -7991,7 +8018,6 @@ export type Database = {
           company_id: string | null
           grid_interval: number | null
           id: string | null
-          is_service_provider: boolean | null
           name: string | null
           slug: string | null
           social_links: Json | null
@@ -8457,7 +8483,6 @@ export type Database = {
           full_name: string
           is_collaborator: boolean
           is_owner: boolean
-          is_service_provider: boolean
           login_mode: string
           permissions: Json
           profile_id: string
