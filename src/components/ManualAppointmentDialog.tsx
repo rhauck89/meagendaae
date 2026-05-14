@@ -152,12 +152,12 @@ export function ManualAppointmentDialog({
   };
 
   const fetchProfessionals = async () => {
-    const { data } = await supabase
+    const { data } = await (supabase
       .from('collaborators')
       .select('profile_id, active, profile:profiles(full_name)')
       .eq('company_id', companyId)
       .eq('is_service_provider' as any, true)
-      .eq('active', true);
+      .eq('active', true) as any);
     setProfessionals(data || []);
     if (!isAdmin && profileId) {
       setSelectedProfessional(profileId);
