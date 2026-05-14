@@ -518,7 +518,7 @@ export function PlanDialog({
               )}
             />
 
-
+            <div className="space-y-4 border rounded-md p-4 bg-muted/20">
               <div className="space-y-3">
                 <FormLabel>Dias da semana permitidos</FormLabel>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
