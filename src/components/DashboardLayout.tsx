@@ -105,6 +105,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const activeFetches = useIsFetching();
+  const isDashboardHome = location.pathname === '/dashboard';
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [routeBootLoading, setRouteBootLoading] = useState(false);
   const [showDataLoader, setShowDataLoader] = useState(false);
@@ -123,7 +124,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   }, [location.pathname]);
 
   useEffect(() => {
-    const isLoadingData = routeBootLoading || activeFetches > 0;
+    const isLoadingData = !isDashboardHome && (routeBootLoading || activeFetches > 0);
     if (!isLoadingData) {
       setShowDataLoader(false);
       return;
@@ -131,7 +132,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
 
     const timer = setTimeout(() => setShowDataLoader(true), 180);
     return () => clearTimeout(timer);
-  }, [routeBootLoading, activeFetches]);
+  }, [routeBootLoading, activeFetches, isDashboardHome]);
 
   // Determine if role selection dialog is needed
   const needsRoleSelection = isProfessional && isAlsoCollaborator && !loginMode;
@@ -748,10 +749,15 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
           </header>
           <div className="relative flex-1 p-3 sm:p-4 lg:p-8 overflow-x-hidden overflow-y-auto w-full min-w-0">
             {showDataLoader && (
-              <div className="absolute inset-0 z-30 bg-background/72 backdrop-blur-[1px]">
-                <div className="sticky top-6 mx-auto mt-8 flex w-fit max-w-[calc(100%-2rem)] items-center gap-3 rounded-lg border bg-card px-4 py-3 text-sm font-medium text-foreground shadow-lg">
-                  <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                  <span>Carregando informações...</span>
+              <div className="absolute inset-0 z-30 flex min-h-[420px] items-center justify-center bg-background/72 backdrop-blur-[2px]">
+                <div className="flex min-h-36 w-44 flex-col items-center justify-center gap-3 rounded-xl border bg-card px-5 py-6 text-center shadow-xl">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-full bg-primary/10">
+                    <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-foreground">Carregando</p>
+                    <p className="mt-1 text-xs text-muted-foreground">Buscando informações...</p>
+                  </div>
                 </div>
               </div>
             )}

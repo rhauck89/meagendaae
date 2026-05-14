@@ -1514,10 +1514,17 @@ const Dashboard = () => {
   return (
     <div className="relative space-y-6">
       {dashboardDataLoading && (
-        <div className="absolute inset-0 z-20 min-h-[520px] rounded-lg bg-background/75 backdrop-blur-[1px]">
-          <div className="sticky top-6 mx-auto mt-8 flex w-fit items-center gap-3 rounded-lg border bg-card px-4 py-3 text-sm font-medium shadow-lg">
-            <Loader2 className="h-4 w-4 animate-spin text-primary" />
-            <span>Carregando agenda e indicadores...</span>
+        <div className="absolute inset-0 z-20 flex min-h-[620px] items-center justify-center rounded-lg bg-background/75 backdrop-blur-[2px]">
+          <div className="flex min-h-40 w-48 flex-col items-center justify-center gap-4 rounded-xl border bg-card px-6 py-7 text-center shadow-xl">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
+              <Loader2 className="h-6 w-6 animate-spin text-primary" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-foreground">Carregando agenda</p>
+              <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                Buscando atendimentos e indicadores...
+              </p>
+            </div>
           </div>
         </div>
       )}
