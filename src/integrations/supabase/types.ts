@@ -1539,8 +1539,10 @@ export type Database = {
           grid_interval: number
           has_system_access: boolean
           id: string
+          is_service_provider: boolean
           partner_equity_percent: number
           partner_revenue_mode: string | null
+          permissions: Json
           profile_id: string
           rent_amount: number
           rent_cycle: string | null
@@ -1565,8 +1567,10 @@ export type Database = {
           grid_interval?: number
           has_system_access?: boolean
           id?: string
+          is_service_provider?: boolean
           partner_equity_percent?: number
           partner_revenue_mode?: string | null
+          permissions?: Json
           profile_id: string
           rent_amount?: number
           rent_cycle?: string | null
@@ -1591,8 +1595,10 @@ export type Database = {
           grid_interval?: number
           has_system_access?: boolean
           id?: string
+          is_service_provider?: boolean
           partner_equity_percent?: number
           partner_revenue_mode?: string | null
+          permissions?: Json
           profile_id?: string
           rent_amount?: number
           rent_cycle?: string | null
@@ -7967,6 +7973,7 @@ export type Database = {
           company_id: string | null
           grid_interval: number | null
           id: string | null
+          is_service_provider: boolean | null
           name: string | null
           slug: string | null
           social_links: Json | null
@@ -8432,6 +8439,7 @@ export type Database = {
           full_name: string
           is_collaborator: boolean
           is_owner: boolean
+          is_service_provider: boolean
           login_mode: string
           permissions: Json
           profile_id: string
