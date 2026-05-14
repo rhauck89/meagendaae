@@ -1,4 +1,5 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useIsFetching } from '@tanstack/react-query';
 import { PaymentTestModeBanner } from './PaymentTestModeBanner';
 import { ReadOnlyBanner } from './ReadOnlyGuard';
 import { useAuth } from '@/contexts/AuthContext';
@@ -13,7 +14,7 @@ import {
   PartyPopper, Megaphone, MessageSquare, ChevronDown, Building2, Clock, Zap, Palette, Globe, CreditCard, Bell, HelpCircle, Info, AlertTriangle, Lock,
   DollarSign, ArrowUpDown, TrendingUp, TrendingDown, FolderOpen, Percent, FileBarChart, Receipt, HandCoins,
   ChevronsLeft, ChevronsRight, Inbox, Crown, Scissors as ScissorsIcon, ArrowLeftRight, Star,
-  ClipboardList, LayoutDashboard
+  ClipboardList, LayoutDashboard, Loader2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useState, useEffect, useCallback } from 'react';
@@ -103,7 +104,10 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   const brandInfo = useCompanyBrandInfo();
   const location = useLocation();
   const navigate = useNavigate();
+  const activeFetches = useIsFetching();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [routeBootLoading, setRouteBootLoading] = useState(false);
+  const [showDataLoader, setShowDataLoader] = useState(false);
   const [collapsed, setCollapsed] = useState(() => {
     try { return localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === 'true'; } catch { return false; }
   });
@@ -111,6 +115,23 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   const pendingRequests = usePendingRequestCounts();
   const { data: platformMessages, dismiss: dismissMessage } = usePlatformMessages();
   const totalNotifications = (unreadTickets || 0) + (platformMessages?.length || 0);
+
+  useEffect(() => {
+    setRouteBootLoading(true);
+    const timer = setTimeout(() => setRouteBootLoading(false), 900);
+    return () => clearTimeout(timer);
+  }, [location.pathname]);
+
+  useEffect(() => {
+    const isLoadingData = routeBootLoading || activeFetches > 0;
+    if (!isLoadingData) {
+      setShowDataLoader(false);
+      return;
+    }
+
+    const timer = setTimeout(() => setShowDataLoader(true), 180);
+    return () => clearTimeout(timer);
+  }, [routeBootLoading, activeFetches]);
 
   // Determine if role selection dialog is needed
   const needsRoleSelection = isProfessional && isAlsoCollaborator && !loginMode;
@@ -725,7 +746,15 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
               </PopoverContent>
             </Popover>
           </header>
-          <div className="flex-1 p-3 sm:p-4 lg:p-8 overflow-x-hidden overflow-y-auto w-full min-w-0">
+          <div className="relative flex-1 p-3 sm:p-4 lg:p-8 overflow-x-hidden overflow-y-auto w-full min-w-0">
+            {showDataLoader && (
+              <div className="absolute inset-0 z-30 bg-background/72 backdrop-blur-[1px]">
+                <div className="sticky top-6 mx-auto mt-8 flex w-fit max-w-[calc(100%-2rem)] items-center gap-3 rounded-lg border bg-card px-4 py-3 text-sm font-medium text-foreground shadow-lg">
+                  <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                  <span>Carregando informações...</span>
+                </div>
+              </div>
+            )}
             <div className="w-full max-w-[1400px] mx-auto min-w-0">
               {platformMessages && platformMessages.length > 0 && (
                 <div className="mb-4 space-y-2">

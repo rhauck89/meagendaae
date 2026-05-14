@@ -17,7 +17,7 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogBody, DialogFooter, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { isPromoActive } from '@/lib/promotion-period';
-import { Calendar as CalendarIcon, CalendarCheck, ChevronLeft, ChevronRight, Clock, DollarSign, Users, UserCheck, UserMinus, AlertTriangle, Bell, MailCheck, Cake, Ban, Trash2, Timer, RefreshCw, AlertCircle, TrendingUp, BarChart3, XCircle, Percent, Receipt, Send, List, LayoutGrid, ArrowLeftRight, MoreHorizontal, MessageSquare, Info, Scissors, User, CheckCircle2, Rocket, Crown } from 'lucide-react';
+import { Calendar as CalendarIcon, CalendarCheck, ChevronLeft, ChevronRight, Clock, DollarSign, Users, UserCheck, UserMinus, AlertTriangle, Bell, MailCheck, Cake, Ban, Trash2, Timer, RefreshCw, AlertCircle, TrendingUp, BarChart3, XCircle, Percent, Receipt, Send, List, LayoutGrid, ArrowLeftRight, MoreHorizontal, MessageSquare, Info, Scissors, User, CheckCircle2, Rocket, Crown, Loader2 } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { BlockTimeDialog } from '@/components/BlockTimeDialog';
 import { Calendar as DatePickerCalendar } from '@/components/ui/calendar';
@@ -207,6 +207,7 @@ const Dashboard = () => {
     return 'lista';
   });
   const [onboardingKey, setOnboardingKey] = useState(0);
+  const [dashboardDataLoading, setDashboardDataLoading] = useState(true);
 
   const reopenOnboarding = async () => {
     if (!user?.id) return;
@@ -244,15 +245,29 @@ const Dashboard = () => {
 
   useEffect(() => {
     if (!companyId) return;
-    fetchAppointments();
-    fetchDailyTrends();
-    fetchWaitlistCount();
-    fetchReminderCount();
-    fetchBirthdays();
-    fetchBlockedTimes();
-    fetchMonthlyStats();
-    fetchUpcomingAppointments();
-    fetchPremiumMetrics();
+    let cancelled = false;
+
+    const loadDashboardData = async () => {
+      setDashboardDataLoading(true);
+      await Promise.allSettled([
+        fetchAppointments(),
+        fetchDailyTrends(),
+        fetchWaitlistCount(),
+        fetchReminderCount(),
+        fetchBirthdays(),
+        fetchBlockedTimes(),
+        fetchMonthlyStats(),
+        fetchUpcomingAppointments(),
+        fetchPremiumMetrics(),
+      ]);
+      if (!cancelled) setDashboardDataLoading(false);
+    };
+
+    loadDashboardData();
+
+    return () => {
+      cancelled = true;
+    };
   }, [companyId, currentDate, viewMode, filterProfessional, isAdmin, profileId]);
 
   const fetchPremiumMetrics = async () => {
@@ -324,7 +339,7 @@ const Dashboard = () => {
       .from('collaborators')
       .select('profile_id, profile:profiles(full_name)')
       .eq('company_id', companyId!)
-      .eq('is_service_provider' as any, true);
+      .eq('is_service_provider', true);
     
     if (error) {
       console.error('[DASHBOARD] Error fetching collaborators:', error);
@@ -1497,7 +1512,15 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="relative space-y-6">
+      {dashboardDataLoading && (
+        <div className="absolute inset-0 z-20 min-h-[520px] rounded-lg bg-background/75 backdrop-blur-[1px]">
+          <div className="sticky top-6 mx-auto mt-8 flex w-fit items-center gap-3 rounded-lg border bg-card px-4 py-3 text-sm font-medium shadow-lg">
+            <Loader2 className="h-4 w-4 animate-spin text-primary" />
+            <span>Carregando agenda e indicadores...</span>
+          </div>
+        </div>
+      )}
       <TrialBanner />
       <OnboardingChecklist key={onboardingKey} />
       {isAdmin && <MarketplaceActivation />}

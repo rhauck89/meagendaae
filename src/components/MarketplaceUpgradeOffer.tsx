@@ -34,6 +34,7 @@ export const MarketplaceUpgradeOffer = ({ mode = 'popup' }: { mode?: 'popup' | '
   const { companyId, user, isOwner, isAdmin } = useAuth();
   const [modules, setModules] = useState<MarketplaceModule[]>([]);
   const [companyModules, setCompanyModules] = useState<CompanyModule[]>([]);
+  const [hasManualMarketplaceHighlight, setHasManualMarketplaceHighlight] = useState(false);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
@@ -48,7 +49,7 @@ export const MarketplaceUpgradeOffer = ({ mode = 'popup' }: { mode?: 'popup' | '
   );
 
   const availableModules = modules.filter((module) => !requestedModuleIds.has(module.id));
-  const shouldRender = canSeeOffer && modules.length > 0;
+  const shouldRender = canSeeOffer && (modules.length > 0 || hasManualMarketplaceHighlight);
 
   useEffect(() => {
     if (!canSeeOffer) {
@@ -73,22 +74,37 @@ export const MarketplaceUpgradeOffer = ({ mode = 'popup' }: { mode?: 'popup' | '
       }
 
       const moduleIds = (moduleRows || []).map((module) => module.id);
-      const { data: companyRows, error: companyError } = moduleIds.length > 0
-        ? await supabase
-            .from('company_modules')
-            .select('module_id, status')
-            .eq('company_id', companyId!)
-            .in('module_id', moduleIds)
-        : { data: [], error: null };
+      const [companyModulesResponse, manualHighlightResponse] = await Promise.all([
+        moduleIds.length > 0
+          ? supabase
+              .from('company_modules')
+              .select('module_id, status')
+              .eq('company_id', companyId!)
+              .in('module_id', moduleIds)
+          : Promise.resolve({ data: [], error: null }),
+        supabase
+          .from('marketplace_featured_items')
+          .select('id, highlight_type, status')
+          .eq('company_id', companyId!)
+          .eq('status', 'active')
+          .limit(1),
+      ]);
+
+      const { data: companyRows, error: companyError } = companyModulesResponse;
+      const { data: manualHighlightRows, error: manualHighlightError } = manualHighlightResponse;
 
       if (companyError) {
         console.error('[MarketplaceUpgradeOffer] Failed to load company modules:', companyError);
+      }
+      if (manualHighlightError) {
+        console.error('[MarketplaceUpgradeOffer] Failed to load manual marketplace highlight:', manualHighlightError);
       }
 
       if (cancelled) return;
 
       setModules((moduleRows || []) as MarketplaceModule[]);
       setCompanyModules((companyRows || []) as CompanyModule[]);
+      setHasManualMarketplaceHighlight(Boolean(manualHighlightRows && manualHighlightRows.length > 0));
       setLoading(false);
 
       if (mode === 'popup' && moduleRows && moduleRows.length > 0) {
@@ -98,7 +114,7 @@ export const MarketplaceUpgradeOffer = ({ mode = 'popup' }: { mode?: 'popup' | '
           ['active', 'pending', 'pending_checkout', 'interested'].includes(row.status)
         );
 
-        if (!alreadySeen && !hasMarketplaceUpgrade) {
+        if (!alreadySeen && !hasMarketplaceUpgrade && !manualHighlightRows?.length) {
           setOpen(true);
         }
       }
@@ -214,7 +230,13 @@ export const MarketplaceUpgradeOffer = ({ mode = 'popup' }: { mode?: 'popup' | '
           </CardContent>
         </Card>
 
-        {availableModules.length === 0 ? (
+        {hasManualMarketplaceHighlight ? (
+          <Card className="border-primary/20">
+            <CardContent className="p-5 text-sm text-muted-foreground">
+              Esta empresa já possui um destaque manual ativo no marketplace. Por isso, a oferta automática de upgrade não será exibida.
+            </CardContent>
+          </Card>
+        ) : availableModules.length === 0 ? (
           <Card>
             <CardContent className="p-5 text-sm text-muted-foreground">
               Você já demonstrou interesse ou possui um destaque de marketplace ativo.
@@ -228,6 +250,8 @@ export const MarketplaceUpgradeOffer = ({ mode = 'popup' }: { mode?: 'popup' | '
       </div>
     );
   }
+
+  if (hasManualMarketplaceHighlight || availableModules.length === 0) return null;
 
   return (
     <Dialog open={open} onOpenChange={(value) => (value ? setOpen(true) : dismiss())}>
