@@ -120,6 +120,22 @@ const PAYMENT_METHOD_OPTIONS = [
 const NON_PROVIDER_SYSTEM_ROLES = ['receptionist', 'manager', 'administrative', 'admin', 'admin_financeiro'];
 const isNonProviderSystemRole = (role?: string | null) => Boolean(role && NON_PROVIDER_SYSTEM_ROLES.includes(role));
 
+const PERMISSION_MODULE_LABELS: Record<string, string> = {
+  agenda: 'Agenda',
+  services: 'Serviços',
+  team: 'Equipe',
+  clients: 'Clientes',
+  whatsapp: 'WhatsApp Center',
+  subscriptions: 'Assinaturas',
+  events: 'Agenda Aberta',
+  promotions: 'Promoções',
+  loyalty: 'Fidelidade',
+  requests: 'Solicitações',
+  finance: 'Financeiro',
+  settings: 'Configurações',
+  reports: 'Relatórios',
+};
+
 const Team = () => {
   const { companyId, user } = useAuth();
   const queryClient = useQueryClient();
@@ -1550,7 +1566,7 @@ const Team = () => {
                             {Object.entries(form.permissions || {}).map(([module, perms]: [string, any]) => (
                               <div key={module} className="space-y-3 p-3 rounded-lg border bg-muted/30">
                                 <div className="flex items-center justify-between border-b pb-2 mb-2">
-                                  <span className="font-bold text-sm uppercase tracking-wider">{module}</span>
+                                  <span className="font-bold text-sm uppercase tracking-wider">{PERMISSION_MODULE_LABELS[module] || module}</span>
                                   <Switch 
                                     checked={perms.view}
                                     onCheckedChange={(checked) => {
@@ -2159,7 +2175,7 @@ const Team = () => {
                       {Object.entries(editForm.permissions || {}).map(([module, perms]: [string, any]) => (
                         <div key={module} className="space-y-3 p-3 rounded-lg border bg-muted/30">
                           <div className="flex items-center justify-between border-b pb-2">
-                            <span className="font-bold text-xs uppercase tracking-wider">{module}</span>
+                            <span className="font-bold text-xs uppercase tracking-wider">{PERMISSION_MODULE_LABELS[module] || module}</span>
                             <Switch
                               checked={Boolean(perms.view)}
                               onCheckedChange={(checked) => {
