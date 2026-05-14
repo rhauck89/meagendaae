@@ -229,7 +229,8 @@ export default function ProfessionalPublicProfile() {
         .from('public_professionals' as any)
         .select('*')
         .eq('company_id', comp.id)
-        .eq('slug', professionalSlug!);
+        .eq('slug', professionalSlug!)
+        .eq('is_service_provider', true);
         
       if (profError) {
         console.error('[PROFILE] Error fetching professional:', profError);

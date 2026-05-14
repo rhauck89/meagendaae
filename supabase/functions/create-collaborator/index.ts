@@ -66,7 +66,8 @@ Deno.serve(async (req) => {
     const useCompanyBanner = body.use_company_banner !== false;
     const isAdminSelf = body.is_admin_self === true;
     const systemRole = typeof body.system_role === "string" ? body.system_role : "collaborator";
-    const isServiceProvider = body.is_service_provider !== false;
+    const administrativeRoles = ["receptionist", "manager", "administrative", "admin", "admin_financeiro"];
+    const isServiceProvider = administrativeRoles.includes(systemRole) ? false : body.is_service_provider !== false;
     const permissions = body.permissions && typeof body.permissions === "object" && !Array.isArray(body.permissions)
       ? body.permissions
       : {};

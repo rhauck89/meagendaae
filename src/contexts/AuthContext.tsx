@@ -16,6 +16,7 @@ interface AuthContextType {
   setLoginMode: (mode: LoginMode) => void;
   permissions: any;
   isAlsoCollaborator: boolean;
+  isServiceProvider: boolean;
   isAdmin: boolean;
   isOwner: boolean;
   signOut: () => Promise<void>;
@@ -35,6 +36,7 @@ const AuthContext = createContext<AuthContextType>({
   setLoginMode: () => {},
   permissions: {},
   isAlsoCollaborator: false,
+  isServiceProvider: false,
   isAdmin: false,
   isOwner: false,
   signOut: async () => {},
@@ -54,6 +56,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loginMode, setLoginModeState] = useState<LoginMode>(null);
   const [permissions, setPermissions] = useState<any>({});
   const [isAlsoCollaborator, setIsAlsoCollaborator] = useState(false);
+  const [isServiceProvider, setIsServiceProvider] = useState(false);
   const [isOwner, setIsOwner] = useState(false);
   const authLockRef = useRef<Promise<void>>(Promise.resolve());
   const stateRef = useRef({
@@ -253,11 +256,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         permissions: ctx.permissions || {}
       };
 
+      const serviceProvider = ctx.is_service_provider !== false;
+      const normalizedLoginMode = serviceProvider ? (ctx.login_mode || null) : 'admin';
+
       // Comparison logic to prevent redundant state updates
       const profileChanged = JSON.stringify(stateRef.current.profile) !== JSON.stringify(mappedProfile);
       const companyChanged = stateRef.current.companyId !== ctx.company_id;
       const rolesChanged = JSON.stringify(stateRef.current.roles) !== JSON.stringify(ctx.roles || []);
-      const loginModeChanged = stateRef.current.loginMode !== (ctx.login_mode || null);
+      const loginModeChanged = stateRef.current.loginMode !== normalizedLoginMode;
       const permissionsChanged = JSON.stringify(stateRef.current.permissions) !== JSON.stringify(ctx.permissions || {});
 
       if (profileChanged) {
@@ -276,8 +282,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       
       if (loginModeChanged) {
-        setLoginModeState(ctx.login_mode || null);
-        stateRef.current.loginMode = ctx.login_mode || null;
+        setLoginModeState(normalizedLoginMode);
+        stateRef.current.loginMode = normalizedLoginMode;
       }
 
       if (permissionsChanged) {
@@ -285,7 +291,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         stateRef.current.permissions = ctx.permissions || {};
       }
       
-      setIsAlsoCollaborator(ctx.is_collaborator || false);
+      setIsAlsoCollaborator(Boolean(ctx.is_collaborator && serviceProvider));
+      setIsServiceProvider(serviceProvider);
       setIsOwner(ctx.is_company_owner || ctx.is_owner || false);
       stateRef.current.hasContext = true;
 
@@ -345,6 +352,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setLoginModeState(null);
         setPermissions({});
         setIsAlsoCollaborator(false);
+        setIsServiceProvider(false);
         setIsOwner(false);
       }
     } catch (error) {
@@ -430,6 +438,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setCompanyId(null);
     setRoles([]);
     setIsOwner(false);
+    setIsServiceProvider(false);
     
     window.location.replace('/');
   };
@@ -455,6 +464,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       roles, 
       isAdmin,
       isOwner,
+      isServiceProvider,
       loginMode, 
       setLoginMode, 
       permissions,

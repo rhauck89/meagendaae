@@ -1354,7 +1354,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         // Professional validation - ensure professionals are loaded
         let currentProfessionals = professionals;
         if (currentProfessionals.length === 0) {
-          const { data } = await supabase.from('public_professionals' as any).select('*').eq('company_id', company.id).eq('active', true);
+          const { data } = await supabase.from('public_professionals' as any).select('*').eq('company_id', company.id).eq('active', true).eq('is_service_provider', true);
           if (data) {
             currentProfessionals = data;
             setProfessionals(data);
@@ -1544,6 +1544,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         .select('id')
         .eq('company_id', comp.id)
         .eq('active', true)
+        .eq('is_service_provider', true)
         .limit(1);
       if (!allProfs || (allProfs as any[]).length === 0) {
         setNoProfessionals(true);
@@ -1556,7 +1557,8 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         .from('public_professionals' as any)
         .select('*')
         .eq('company_id', comp.id)
-        .eq('slug', professionalSlug);
+        .eq('slug', professionalSlug)
+        .eq('is_service_provider', true);
 
       if (pubProfs && (pubProfs as any[]).length > 0) {
         const prof = (pubProfs as any[])[0];
@@ -1674,6 +1676,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
             const { data: promoProfs } = await supabase.from('public_professionals' as any)
               .select('*')
               .eq('company_id', comp.id)
+              .eq('is_service_provider', true)
               .in('id', targetProfs);
             if (promoProfs) {
               setProfessionals((promoProfs as any[]).map((p: any) => ({
@@ -1757,7 +1760,8 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
       .from('public_professionals' as any)
       .select('*')
       .eq('company_id', targetCompanyId)
-      .eq('active', true);
+      .eq('active', true)
+      .eq('is_service_provider', true);
 
     let allProfs = ((pubProfs as any[]) || []).map((p: any) => ({
       id: p.id,
@@ -1829,6 +1833,7 @@ const BookingPage = ({ routeBusinessType, customSlug }: BookingPageProps) => {
         .from('public_professionals' as any)
         .select('booking_mode, grid_interval, break_time')
         .eq('id', profileId)
+        .eq('is_service_provider', true)
         .single(),
     ]);
     if (hoursRes.data && (hoursRes.data as any[]).length > 0) {

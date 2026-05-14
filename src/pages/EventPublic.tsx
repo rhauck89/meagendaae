@@ -142,9 +142,10 @@ const EventPublic = () => {
     // Get professional names
     const profIds = [...new Set((slotsData || []).map((s: any) => s.professional_id))];
     const { data: profsData } = await supabase
-      .from('public_professionals')
+      .from('public_professionals' as any)
       .select('id, name, avatar_url')
       .eq('company_id', eventData.company_id)
+      .eq('is_service_provider', true)
       .in('id', profIds);
 
     const profMap = new Map((profsData || []).map((p: any) => [p.id, p]));

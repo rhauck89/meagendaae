@@ -37,23 +37,23 @@ export const useProfessionalPermissions = (): ProfessionalPermissions => {
     loading: authLoading
   };
 
-  // If owner, has all permissions
+  // If owner, has all permissions. Professional mode is only for service providers.
   if (isOwner || loginMode === 'professional') {
     return fullProfessionalPanel;
   }
 
   // Map backend permissions to frontend keys
   return {
-    agenda: permissions?.agenda?.view ?? true,
-    services: permissions?.services?.view ?? true,
-    team: permissions?.team?.view ?? true,
-    clients: permissions?.clients?.view ?? true,
-    whatsapp: permissions?.whatsapp?.view ?? true,
-    subscriptions: permissions?.subscriptions?.view ?? true,
-    events: permissions?.events?.view ?? true,
-    promotions: permissions?.promotions?.view ?? true,
-    loyalty: permissions?.loyalty?.view ?? true,
-    requests: permissions?.requests?.view ?? true,
+    agenda: permissions?.agenda?.view ?? false,
+    services: permissions?.services?.view ?? false,
+    team: permissions?.team?.view ?? false,
+    clients: permissions?.clients?.view ?? false,
+    whatsapp: permissions?.whatsapp?.view ?? false,
+    subscriptions: permissions?.subscriptions?.view ?? false,
+    events: permissions?.events?.view ?? false,
+    promotions: permissions?.promotions?.view ?? false,
+    loyalty: permissions?.loyalty?.view ?? false,
+    requests: permissions?.requests?.view ?? false,
     finance: permissions?.finance?.view ?? false,
     settings: permissions?.settings?.view ?? false,
     reports: permissions?.reports?.view ?? false,

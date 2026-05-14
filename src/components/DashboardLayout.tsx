@@ -434,7 +434,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
           <ChevronDown className={cn('h-4 w-4 transition-transform', open && 'rotate-180')} />
         </CollapsibleTrigger>
         <CollapsibleContent className="pl-4 space-y-0.5 mt-0.5 sidebar-submenu">
-          {subItems.map((item) => {
+          {filteredSubItems.map((item) => {
             const active = location.pathname === item.href;
             return (
               <Link

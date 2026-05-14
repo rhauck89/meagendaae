@@ -313,7 +313,7 @@ export default function BarbershopLanding({ routeBusinessType, customSlug }: Bar
       const [fullCompanyRes, servicesRes, profsRes, settingsRes] = await Promise.all([
         supabase.from('public_company' as any).select('*').eq('id', rpcComp.id).maybeSingle(),
         supabase.from('public_services' as any).select('*').eq('company_id', rpcComp.id).order('name'),
-        supabase.from('public_professionals' as any).select('*').eq('company_id', rpcComp.id).eq('active', true),
+        supabase.from('public_professionals' as any).select('*').eq('company_id', rpcComp.id).eq('active', true).eq('is_service_provider', true),
         supabase.from('public_company_settings' as any).select('*').eq('company_id', rpcComp.id).maybeSingle(),
       ]);
       

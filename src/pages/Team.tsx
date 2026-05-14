@@ -117,6 +117,9 @@ const PAYMENT_METHOD_OPTIONS = [
   { value: 'outro', label: 'Outro' },
 ];
 
+const NON_PROVIDER_SYSTEM_ROLES = ['receptionist', 'manager', 'administrative', 'admin', 'admin_financeiro'];
+const isNonProviderSystemRole = (role?: string | null) => Boolean(role && NON_PROVIDER_SYSTEM_ROLES.includes(role));
+
 const Team = () => {
   const { companyId, user } = useAuth();
   const queryClient = useQueryClient();
@@ -150,6 +153,8 @@ const Team = () => {
     salary_recurrence: 'monthly',
     salary_payment_method: 'pix',
     salary_auto_expense: false,
+    system_role: 'collaborator',
+    permissions: PERMISSION_PRESETS.collaborator as any,
   });
   // New unified business model form
   const [editBM, setEditBM] = useState<BusinessModelForm>({
@@ -306,7 +311,10 @@ const Team = () => {
   // Aggregated appointments query — fetch today's appointments for all professionals at once
   const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
   const todayEnd = new Date(); todayEnd.setHours(23, 59, 59, 999);
-  const professionalIds = collaborators.map((c) => c.profile_id).filter(Boolean);
+  const professionalIds = collaborators
+    .filter((c) => c.is_service_provider !== false)
+    .map((c) => c.profile_id)
+    .filter(Boolean);
 
   const { data: appointmentsAgg = {} } = useQuery({
     queryKey: ['team-appointments-agg', companyId, professionalIds.join(',')],
@@ -427,10 +435,12 @@ const Team = () => {
   };
 
   const handleSystemRoleChange = (role: string) => {
+    const isProviderRole = role === 'collaborator';
     setForm((prev) => ({
       ...prev,
       system_role: role,
-      is_service_provider: role === 'collaborator' ? true : prev.is_service_provider,
+      is_service_provider: isProviderRole,
+      selectedServiceIds: isProviderRole ? prev.selectedServiceIds : [],
       permissions: PERMISSION_PRESETS[role] || prev.permissions,
     }));
   };
@@ -581,6 +591,9 @@ const Team = () => {
   };
 
   const openEditDialog = async (collaborator: any) => {
+    const systemRole = collaborator.system_role || (collaborator.is_service_provider === false ? 'receptionist' : 'collaborator');
+    const mustBeAdministrative = isNonProviderSystemRole(systemRole);
+    const isServiceProvider = mustBeAdministrative ? false : collaborator.is_service_provider !== false;
     setEditTarget(collaborator);
     setEditForm({
       name: collaborator.profile?.full_name || '',
@@ -592,21 +605,26 @@ const Team = () => {
       grid_interval: (collaborator as any).grid_interval || 15,
       break_time: (collaborator as any).break_time || 0,
       use_company_banner: (collaborator as any).use_company_banner ?? true,
-      is_service_provider: (collaborator as any).is_service_provider !== false,
+      is_service_provider: isServiceProvider,
       salary_amount: (collaborator as any).salary_amount ? String((collaborator as any).salary_amount) : '',
       salary_payment_day: (collaborator as any).salary_payment_day ? String((collaborator as any).salary_payment_day) : '',
       salary_next_due_date: (collaborator as any).salary_next_due_date || '',
       salary_recurrence: (collaborator as any).salary_recurrence || 'monthly',
       salary_payment_method: (collaborator as any).salary_payment_method || 'pix',
       salary_auto_expense: (collaborator as any).salary_auto_expense || false,
+      system_role: systemRole,
+      permissions: collaborator.permissions && Object.keys(collaborator.permissions).length > 0
+        ? collaborator.permissions
+        : (PERMISSION_PRESETS[systemRole] || PERMISSION_PRESETS.receptionist),
     });
     setEditServiceSearch('');
     setEditSlugDirty(false);
     setEditSlug(collaborator.slug || generateSlug(collaborator.profile?.full_name || ''));
     setEditAssignedServiceIds([]);
     setEditDialogOpen(true);
-    // Load assigned services for this professional
+    // Load assigned services only for service providers
     try {
+      if (!isServiceProvider) return;
       const { data } = await supabase
         .from('service_professionals')
         .select('service_id')
@@ -675,7 +693,7 @@ const Team = () => {
       // Derive legacy fields from the unified business model so the
       // financial engine and reports keep working unchanged.
       const legacy = deriveLegacyFields(editBM);
-      const editIsProvider = editForm.is_service_provider !== false;
+      const editIsProvider = !isNonProviderSystemRole(editForm.system_role) && editForm.is_service_provider !== false;
       const updateData: any = {
         business_model: editIsProvider ? editBM.business_model : 'employee',
         partner_revenue_mode: editIsProvider ? editBM.partner_revenue_mode : null,
@@ -687,6 +705,8 @@ const Team = () => {
         commission_value: editIsProvider ? legacy.commission_value : 0,
         break_time: editForm.break_time,
         use_company_banner: editForm.use_company_banner,
+        system_role: editForm.system_role,
+        permissions: editForm.permissions,
         is_service_provider: editIsProvider,
         salary_amount: editIsProvider ? 0 : (Number(editForm.salary_amount) || 0),
         salary_payment_day: !editIsProvider && editForm.salary_payment_day ? Number(editForm.salary_payment_day) : null,
@@ -712,6 +732,7 @@ const Team = () => {
         .from('company_collaborators')
         .update({
           is_service_provider: editIsProvider,
+          permissions: editForm.permissions,
           salary_amount: updateData.salary_amount,
           salary_payment_day: updateData.salary_payment_day,
           salary_next_due_date: updateData.salary_next_due_date,
@@ -722,7 +743,14 @@ const Team = () => {
         .eq('company_id', companyId!)
         .eq('profile_id', editTarget.profile_id);
 
-      toast.success('Profissional atualizado!');
+      if (!editIsProvider) {
+        await supabase
+          .from('service_professionals')
+          .delete()
+          .eq('professional_id', editTarget.profile_id);
+      }
+
+      toast.success(editIsProvider ? 'Profissional atualizado!' : 'Membro atualizado!');
       setEditDialogOpen(false);
       await refreshTeam();
     } catch (err: any) {
@@ -1963,7 +1991,7 @@ const Team = () => {
               </Avatar>
               <div className="flex-1 min-w-0 text-left">
                 <DialogTitle className="text-base sm:text-lg leading-tight truncate">
-                  {editForm.name || 'Editar Profissional'}
+                  {editForm.name || 'Editar membro'}
                 </DialogTitle>
                 <p className="text-xs text-muted-foreground truncate">{editForm.email || 'Sem e-mail'}</p>
               </div>
@@ -1972,22 +2000,26 @@ const Team = () => {
 
           <Tabs defaultValue="personal" className="flex-1 flex flex-col overflow-hidden">
             <div className="px-6 pt-4 border-b">
-              <TabsList className="w-full grid grid-cols-3 sm:grid-cols-5 h-auto bg-transparent p-0 gap-1">
+              <TabsList className={`w-full grid ${editForm.is_service_provider ? 'grid-cols-3 sm:grid-cols-5' : 'grid-cols-3'} h-auto bg-transparent p-0 gap-1`}>
                 <TabsTrigger value="personal" className="data-[state=active]:bg-muted text-xs sm:text-sm">
                   Pessoal
                 </TabsTrigger>
                 <TabsTrigger value="model" className="data-[state=active]:bg-muted text-xs sm:text-sm">
                   Modelo Comercial
                 </TabsTrigger>
-                <TabsTrigger value="schedule" className="data-[state=active]:bg-muted text-xs sm:text-sm">
-                  Agenda
-                </TabsTrigger>
-                <TabsTrigger value="services" className="data-[state=active]:bg-muted text-xs sm:text-sm">
-                  Serviços
-                </TabsTrigger>
-                <TabsTrigger value="public" className="data-[state=active]:bg-muted text-xs sm:text-sm">
-                  Página
-                </TabsTrigger>
+                {editForm.is_service_provider && (
+                  <>
+                    <TabsTrigger value="schedule" className="data-[state=active]:bg-muted text-xs sm:text-sm">
+                      Agenda
+                    </TabsTrigger>
+                    <TabsTrigger value="services" className="data-[state=active]:bg-muted text-xs sm:text-sm">
+                      Serviços
+                    </TabsTrigger>
+                    <TabsTrigger value="public" className="data-[state=active]:bg-muted text-xs sm:text-sm">
+                      Página
+                    </TabsTrigger>
+                  </>
+                )}
               </TabsList>
             </div>
 
@@ -2023,7 +2055,46 @@ const Team = () => {
                     <p className="text-sm font-medium">Este membro presta serviços?</p>
                     <p className="text-xs text-muted-foreground">Desative apenas para recepcionistas, atendentes, gerentes ou administrativos.</p>
                   </div>
-                  <Switch checked={editForm.is_service_provider} onCheckedChange={(checked) => setEditForm({ ...editForm, is_service_provider: Boolean(checked) })} />
+                  <Switch
+                    checked={editForm.is_service_provider && !isNonProviderSystemRole(editForm.system_role)}
+                    disabled={isNonProviderSystemRole(editForm.system_role)}
+                    onCheckedChange={(checked) => setEditForm({ ...editForm, is_service_provider: Boolean(checked) })}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Função no painel</Label>
+                  <Select
+                    value={editForm.system_role}
+                    onValueChange={(role) => {
+                      const providerRole = role === 'collaborator';
+                      setEditForm({
+                        ...editForm,
+                        system_role: role,
+                        is_service_provider: providerRole,
+                        permissions: PERMISSION_PRESETS[role] || editForm.permissions,
+                      });
+                    }}
+                  >
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(SYSTEM_ROLES)
+                        .filter(([key]) => key !== 'admin_principal')
+                        .map(([key, role]) => (
+                          <SelectItem key={key} value={key}>
+                            <div className="flex items-center gap-2">
+                              <role.icon className="h-4 w-4" />
+                              {role.label}
+                            </div>
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                  {isNonProviderSystemRole(editForm.system_role) && (
+                    <p className="text-xs text-muted-foreground">
+                      Esta função é administrativa e não cria perfil público, agenda própria nem vínculo com serviços.
+                    </p>
+                  )}
                 </div>
 
                 {!editForm.is_service_provider && (
@@ -2072,6 +2143,59 @@ const Team = () => {
                         <p className="text-xs text-muted-foreground">Mantém este pagamento identificado para lançamento em Salários.</p>
                       </div>
                       <Switch checked={editForm.salary_auto_expense} onCheckedChange={(checked) => setEditForm({ ...editForm, salary_auto_expense: Boolean(checked) })} />
+                    </div>
+                  </div>
+                )}
+
+                {!editForm.is_service_provider && (
+                  <div className="space-y-4 rounded-lg border p-4">
+                    <div>
+                      <Label className="text-sm font-semibold">Permissões de acesso</Label>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Defina exatamente quais menus e ações este membro pode usar no painel administrativo.
+                      </p>
+                    </div>
+                    <div className="space-y-4 max-h-[360px] overflow-y-auto pr-1">
+                      {Object.entries(editForm.permissions || {}).map(([module, perms]: [string, any]) => (
+                        <div key={module} className="space-y-3 p-3 rounded-lg border bg-muted/30">
+                          <div className="flex items-center justify-between border-b pb-2">
+                            <span className="font-bold text-xs uppercase tracking-wider">{module}</span>
+                            <Switch
+                              checked={Boolean(perms.view)}
+                              onCheckedChange={(checked) => {
+                                const next = { ...editForm.permissions };
+                                next[module] = { ...next[module], view: Boolean(checked) };
+                                setEditForm({ ...editForm, permissions: next });
+                              }}
+                            />
+                          </div>
+                          {perms.view && (
+                            <div className="grid grid-cols-2 gap-3">
+                              {['create', 'edit', 'delete', 'view_values'].map((action) => {
+                                if (action === 'view_values' && module !== 'finance') return null;
+                                if (['whatsapp', 'reports', 'settings'].includes(module) && action !== 'edit' && action !== 'view_values') return null;
+                                const label = action === 'create' ? 'Criar' : action === 'edit' ? 'Editar' : action === 'delete' ? 'Excluir' : 'Ver valores';
+                                return (
+                                  <div key={action} className="flex items-center gap-2">
+                                    <Checkbox
+                                      id={`edit-perm-${module}-${action}`}
+                                      checked={Boolean(perms[action])}
+                                      onCheckedChange={(checked) => {
+                                        const next = { ...editForm.permissions };
+                                        next[module] = { ...next[module], [action]: Boolean(checked) };
+                                        setEditForm({ ...editForm, permissions: next });
+                                      }}
+                                    />
+                                    <Label htmlFor={`edit-perm-${module}-${action}`} className="text-xs cursor-pointer">
+                                      {label}
+                                    </Label>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      ))}
                     </div>
                   </div>
                 )}
