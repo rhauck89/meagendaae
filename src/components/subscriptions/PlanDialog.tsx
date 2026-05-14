@@ -34,7 +34,6 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -100,9 +99,7 @@ export function PlanDialog({
   useEffect(() => {
     if (open) {
       fetchServices();
-      
       if (plan) {
-        
         form.reset({
           name: plan.name,
           description: plan.description || '',
@@ -185,13 +182,15 @@ export function PlanDialog({
         }
         text += `\n`;
 
-        text += `Forma de consumo:\n`;
-        if (mode === 'service') {
-          text += `Por serviço: cada serviço realizado consome 1 crédito. Exemplo: se o cliente agendar Corte + Barba no mesmo atendimento, serão consumidos 2 créditos.\n`;
-        } else {
-          text += `Por agendamento: cada atendimento realizado consome 1 crédito, mesmo que tenha vários serviços juntos. Exemplo: se o cliente agendar Corte + Barba + Sobrancelha no mesmo atendimento, será consumido apenas 1 crédito.\n`;
+        if (type !== 'unlimited') {
+          text += `Forma de consumo:\n`;
+          if (mode === 'service') {
+            text += `Por serviço: cada serviço realizado consome 1 crédito. Exemplo: se o cliente agendar Corte + Barba no mesmo atendimento, serão consumidos 2 créditos.\n`;
+          } else {
+            text += `Por agendamento: cada atendimento realizado consome 1 crédito, mesmo que tenha vários serviços juntos. Exemplo: se o cliente agendar Corte + Barba + Sobrancelha no mesmo atendimento, será consumido apenas 1 crédito.\n`;
+          }
+          text += `\n`;
         }
-        text += `\n`;
 
         text += `Dias permitidos:\n`;
         if (!days || days.length === 0 || days.length === 7) {
@@ -249,8 +248,6 @@ export function PlanDialog({
     }
   };
 
-
-
   const onSubmit = async (values: PlanFormValues) => {
     setLoading(true);
     try {
@@ -261,14 +258,14 @@ export function PlanDialog({
         price_yearly: values.price_yearly,
         type: values.type,
         usage_limit: values.type === 'unlimited' ? null : values.usage_limit,
-        usage_count_mode: values.usage_count_mode,
+        usage_count_mode: values.type === 'unlimited' ? 'service' : values.usage_count_mode,
         included_services: values.included_services,
         valid_days: values.valid_days,
         valid_start_time: values.valid_start_time || null,
         valid_end_time: values.valid_end_time || null,
         observations: values.observations,
         is_active: values.is_active,
-        
+        all_professionals: true,
         company_id: companyId,
       };
 
@@ -292,6 +289,12 @@ export function PlanDialog({
         toast.success('Plano criado com sucesso!');
       }
 
+      if (planId) {
+        await supabase
+          .from('subscription_plan_professionals')
+          .delete()
+          .eq('plan_id', planId);
+      }
 
       onSuccess();
       onOpenChange(false);
@@ -519,6 +522,76 @@ export function PlanDialog({
             />
 
             <div className="space-y-4 border rounded-md p-4 bg-muted/20">
+              
+              {planType === 'limited' && (
+                <FormField
+                  control={form.control}
+                  name="usage_count_mode"
+                  render={({ field }) => (
+                    <FormItem className="space-y-3">
+                      <FormLabel>Como consumir créditos</FormLabel>
+                      <FormControl>
+                        <RadioGroup
+                          onValueChange={field.onChange}
+                          defaultValue={field.value}
+                          value={field.value}
+                          className="grid grid-cols-1 md:grid-cols-2 gap-3"
+                        >
+                          <div className="relative">
+                            <RadioGroupItem value="service" id="mode-service" className="peer sr-only" />
+                            <Label
+                              htmlFor="mode-service"
+                              className={cn(
+                                "flex flex-col items-start justify-between rounded-lg border-2 border-muted bg-popover p-4 hover:bg-accent/50 cursor-pointer h-full transition-all",
+                                field.value === 'service' ? "border-primary bg-primary/[0.03]" : "hover:border-muted-foreground/20"
+                              )}
+                            >
+                              <div className="flex items-center gap-2 mb-2">
+                                <div className={cn(
+                                  "h-4 w-4 rounded-full border border-primary flex items-center justify-center transition-colors",
+                                  field.value === 'service' ? "bg-primary" : "bg-transparent"
+                                )}>
+                                  {field.value === 'service' && <div className="h-1.5 w-1.5 rounded-full bg-white" />}
+                                </div>
+                                <span className="font-semibold text-sm">Por serviço</span>
+                              </div>
+                              <span className="text-xs text-muted-foreground font-normal leading-relaxed">
+                                Cada serviço incluído no atendimento consome 1 crédito. Ex: Corte + Barba = 2 créditos.
+                              </span>
+                            </Label>
+                          </div>
+
+                          <div className="relative">
+                            <RadioGroupItem value="appointment" id="mode-appointment" className="peer sr-only" />
+                            <Label
+                              htmlFor="mode-appointment"
+                              className={cn(
+                                "flex flex-col items-start justify-between rounded-lg border-2 border-muted bg-popover p-4 hover:bg-accent/50 cursor-pointer h-full transition-all",
+                                field.value === 'appointment' ? "border-primary bg-primary/[0.03]" : "hover:border-muted-foreground/20"
+                              )}
+                            >
+                              <div className="flex items-center gap-2 mb-2">
+                                <div className={cn(
+                                  "h-4 w-4 rounded-full border border-primary flex items-center justify-center transition-colors",
+                                  field.value === 'appointment' ? "bg-primary" : "bg-transparent"
+                                )}>
+                                  {field.value === 'appointment' && <div className="h-1.5 w-1.5 rounded-full bg-white" />}
+                                </div>
+                                <span className="font-semibold text-sm">Por agendamento</span>
+                              </div>
+                              <span className="text-xs text-muted-foreground font-normal leading-relaxed">
+                                O atendimento inteiro consome 1 crédito, mesmo que tenha vários serviços juntos. Ex: Corte + Barba + Sobrancelha = 1 crédito.
+                              </span>
+                            </Label>
+                          </div>
+                        </RadioGroup>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
+
               <div className="space-y-3">
                 <FormLabel>Dias da semana permitidos</FormLabel>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -597,6 +670,7 @@ export function PlanDialog({
                 const start = form.watch('valid_start_time');
                 const end = form.watch('valid_end_time');
                 const mode = form.watch('usage_count_mode');
+                const type = form.watch('type');
                 
                 const dayLabels = [
                   { id: 1, label: 'segunda' },
@@ -631,8 +705,12 @@ export function PlanDialog({
                   summary += ", qualquer horário";
                 }
                 
-                const modeLabel = mode === 'service' ? 'por serviço' : 'por agendamento';
-                summary += `. Consumo ${modeLabel}.`;
+                if (type === 'limited') {
+                  const modeLabel = mode === 'service' ? 'por serviço' : 'por agendamento';
+                  summary += `. Consumo ${modeLabel}.`;
+                } else {
+                  summary += `. Uso ilimitado.`;
+                }
                 
                 return (
                   <p className="text-xs font-medium text-primary bg-primary/5 p-2 rounded border border-primary/10">
