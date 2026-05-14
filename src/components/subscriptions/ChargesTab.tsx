@@ -147,7 +147,7 @@ export function ChargesTab({ companyId }: ChargesTabProps) {
           notes: `Cobrança Ref: ${charge.id}`,
           commission_amount: commissionAmount,
           commission_paid: false
-        });
+        } as any);
 
       if (revenueError) throw revenueError;
       
