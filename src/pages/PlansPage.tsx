@@ -79,6 +79,12 @@ const alwaysIncludedFeatures = [
   'Funções de membros',
 ];
 
+const officialPlanSlugs = ['solo', 'studio', 'elite', 'black'];
+
+const officialPlanFeaturesEnabled = (plan: Plan) => {
+  return officialPlanSlugs.includes(plan.slug || '');
+};
+
 const formatBRL = (n: number) => `R$${Number(n || 0).toFixed(2).replace('.', ',')}`;
 const formatDate = (iso: string | null) => iso ? format(new Date(iso), "dd/MM/yyyy", { locale: ptBR }) : null;
 
@@ -310,7 +316,7 @@ const PlansPage = () => {
                   </div>
                   <div className="space-y-1.5 pt-3 border-t">
                     {featureRows.map(({ key, label }) => {
-                      const enabled = Boolean(plan[key]);
+                      const enabled = officialPlanFeaturesEnabled(plan) || Boolean(plan[key]);
                       return (
                         <div key={String(key)} className="flex items-center gap-2 text-sm">
                           {enabled
@@ -321,10 +327,12 @@ const PlansPage = () => {
                       );
                     })}
                     <div className="flex items-center gap-2 text-sm">
-                      {plan.feature_financial_level !== 'none'
+                      {officialPlanFeaturesEnabled(plan) || plan.feature_financial_level !== 'none'
                         ? <Check className="h-4 w-4 text-success shrink-0" />
                         : <X className="h-4 w-4 text-muted-foreground/30 shrink-0" />}
-                      <span className={plan.feature_financial_level !== 'none' ? '' : 'text-muted-foreground/50'}>{finLabel}</span>
+                      <span className={officialPlanFeaturesEnabled(plan) || plan.feature_financial_level !== 'none' ? '' : 'text-muted-foreground/50'}>
+                        {officialPlanFeaturesEnabled(plan) ? 'Financeiro completo' : finLabel}
+                      </span>
                     </div>
                     {alwaysIncludedFeatures.map((label) => (
                       <div key={label} className="flex items-center gap-2 text-sm">
