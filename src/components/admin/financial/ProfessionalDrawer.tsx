@@ -107,6 +107,7 @@ export const ProfessionalDrawer = ({
             id,
             description,
             gross_amount,
+            commission_rate,
             commission_amount,
             company_net_amount,
             paid_at,
@@ -175,6 +176,7 @@ export const ProfessionalDrawer = ({
         displayServiceName: sc.description || 'Assinatura',
         start_time: sc.paid_at,
         revenue: Number(sc.gross_amount),
+        commValue: Number(sc.commission_rate || 0),
         professionalValue: Number(sc.commission_amount),
         companyValue: Number(sc.company_net_amount),
         origin: 'Assinatura',
@@ -381,7 +383,7 @@ export const ProfessionalDrawer = ({
                                 {maskValue(h.revenue)}
                               </TableCell>
                               <TableCell className="text-[11px] text-center py-4 px-4 text-muted-foreground whitespace-nowrap">
-                                {h.origin === 'Assinatura' ? '70%' : commissionLabel(professional.commType, professional.value)}
+                                {h.origin === 'Assinatura' ? commissionLabel('percentage', h.commValue || 0) : commissionLabel(professional.commType, professional.value)}
                               </TableCell>
                               <TableCell className="text-[12px] text-right py-4 px-4 font-bold text-warning">
                                 {maskValue(h.professionalValue)}

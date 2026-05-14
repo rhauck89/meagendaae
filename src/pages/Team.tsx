@@ -470,6 +470,92 @@ const Team = () => {
     salary_auto_expense: form.salary_auto_expense,
   });
 
+  const ensureSalaryExpense = async ({
+    profileId,
+    memberName,
+    amount,
+    dueDate,
+    recurrence,
+    paymentMethod,
+  }: {
+    profileId: string;
+    memberName: string;
+    amount: number;
+    dueDate?: string | null;
+    recurrence: string;
+    paymentMethod?: string | null;
+  }) => {
+    if (!companyId || !profileId || amount <= 0) return;
+
+    let { data: category, error: categoryError } = await supabase
+      .from('company_expense_categories')
+      .select('id')
+      .eq('company_id', companyId)
+      .in('name', ['Salário', 'Salários', 'Salarios'])
+      .limit(1)
+      .maybeSingle();
+
+    if (categoryError) throw categoryError;
+
+    if (!category) {
+      const { data: newCategory, error: newCategoryError } = await supabase
+        .from('company_expense_categories')
+        .insert({
+          company_id: companyId,
+          name: 'Salários',
+          type: 'expense',
+          description: 'Despesas de salário e pagamentos fixos da equipe',
+        })
+        .select('id')
+        .single();
+
+      if (newCategoryError) throw newCategoryError;
+      category = newCategory;
+    }
+
+    const expenseDate = dueDate || new Date().toISOString().slice(0, 10);
+    const sourceToken = `salary_profile_id:${profileId}`;
+    const notes = `Despesa gerada automaticamente pelo cadastro de membro da equipe. Recorrência: ${recurrence || 'monthly'}. ${sourceToken}`;
+
+    const { data: existingExpense, error: existingError } = await supabase
+      .from('company_expenses')
+      .select('id')
+      .eq('company_id', companyId)
+      .ilike('notes', `%${sourceToken}%`)
+      .maybeSingle();
+
+    if (existingError) throw existingError;
+
+    const payload = {
+      company_id: companyId,
+      description: `Salário - ${memberName}`,
+      amount,
+      expense_date: expenseDate,
+      due_date: expenseDate,
+      status: 'pending',
+      category_id: category?.id,
+      is_recurring: recurrence !== 'none',
+      recurrence_type: recurrence === 'weekly' ? 'weekly' : 'monthly',
+      recurrence_interval: recurrence === 'biweekly' ? 2 : 1,
+      notes,
+      created_by: user?.id || null,
+      payment_method: paymentMethod || null,
+    };
+
+    if (existingExpense?.id) {
+      const { error } = await supabase.from('company_expenses').update(payload as any).eq('id', existingExpense.id);
+      if (error) throw error;
+    } else {
+      const { error } = await supabase.from('company_expenses').insert(payload as any);
+      if (error) throw error;
+    }
+
+    await Promise.all([
+      supabase.from('collaborators').update({ salary_expense_category_id: category?.id } as any).eq('company_id', companyId).eq('profile_id', profileId),
+      supabase.from('company_collaborators').update({ salary_expense_category_id: category?.id } as any).eq('company_id', companyId).eq('profile_id', profileId),
+    ]);
+  };
+
   const handleAdd = async () => {
     if (!form.name.trim()) {
       return toast.error('Preencha o nome');
@@ -532,6 +618,18 @@ const Team = () => {
 
       if (!response.data?.success) {
         throw new Error(response.data?.error || 'Erro ao criar colaborador');
+      }
+
+      const createdProfileId = response.data?.collaborator?.profile_id;
+      if (!form.is_service_provider && form.salary_auto_expense && Number(form.salary_amount) > 0 && createdProfileId) {
+        await ensureSalaryExpense({
+          profileId: createdProfileId,
+          memberName: form.name.trim(),
+          amount: Number(form.salary_amount) || 0,
+          dueDate: form.salary_next_due_date || null,
+          recurrence: form.salary_recurrence,
+          paymentMethod: form.salary_payment_method,
+        });
       }
 
       const businessPrefix = company?.business_type === 'esthetic' ? 'estetica' : 'barbearia';
@@ -758,6 +856,17 @@ const Team = () => {
         } as any)
         .eq('company_id', companyId!)
         .eq('profile_id', editTarget.profile_id);
+
+      if (!editIsProvider && updateData.salary_auto_expense && Number(updateData.salary_amount) > 0) {
+        await ensureSalaryExpense({
+          profileId: editTarget.profile_id,
+          memberName: editForm.name.trim(),
+          amount: Number(updateData.salary_amount) || 0,
+          dueDate: updateData.salary_next_due_date,
+          recurrence: updateData.salary_recurrence,
+          paymentMethod: updateData.salary_payment_method,
+        });
+      }
 
       if (!editIsProvider) {
         await supabase

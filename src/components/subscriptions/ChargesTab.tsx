@@ -70,6 +70,8 @@ export function ChargesTab({ companyId }: ChargesTabProps) {
           *,
           subscription:client_subscriptions(
             id,
+            client_id,
+            professional_id,
             professional_commission,
             clients(name, whatsapp),
             subscription_plans(name),
@@ -144,12 +146,35 @@ export function ChargesTab({ companyId }: ChargesTabProps) {
           professional_id: professionalId,
           professional_name: charge.subscription?.professional?.full_name,
           service_name: 'Assinatura',
-          notes: `Cobrança Ref: ${charge.id}`,
-          commission_amount: commissionAmount,
-          commission_paid: false
-        } as any);
+          notes: `Cobrança Ref: ${charge.id}`
+        });
 
       if (revenueError) throw revenueError;
+
+      if (professionalId && commissionAmount > 0) {
+        const { error: commissionError } = await supabase
+          .from('professional_commissions')
+          .upsert({
+            company_id: companyId,
+            professional_id: professionalId,
+            client_id: charge.subscription?.client_id || null,
+            source_type: 'subscription_charge',
+            source_id: charge.id,
+            description: `Comissão Assinatura: ${charge.subscription?.subscription_plans?.name || 'Assinatura'}`,
+            gross_amount: amount,
+            commission_type: 'percentage',
+            commission_rate: commissionPercent,
+            commission_amount: commissionAmount,
+            company_net_amount: amount - commissionAmount,
+            paid_at: new Date().toISOString(),
+            status: 'paid',
+          } as any, { onConflict: 'source_id,source_type,professional_id' });
+
+        if (commissionError) {
+          console.error('[SUBSCRIPTION_PAYMENT] Error registering commission:', commissionError);
+          toast.error('Pagamento registrado, mas a comissão não foi lançada. Verifique permissões do financeiro.');
+        }
+      }
       
       // 3. Register loyalty points and cashback if applicable
       try {

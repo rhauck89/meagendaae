@@ -98,6 +98,7 @@ const FinanceCommissions = () => {
             id,
             professional_id,
             gross_amount,
+            commission_rate,
             commission_amount,
             company_net_amount,
             paid_at,
@@ -239,7 +240,7 @@ const FinanceCommissions = () => {
           serviceName: c.description || 'Assinatura',
           revenue: Number(c.gross_amount),
           commType: 'percentage',
-          commValue: 70, // This could be dynamic from DB
+          commValue: Number(c.commission_rate || 0),
           collaboratorType: collab.collaborator_type,
           professionalValue: Number(c.commission_amount),
           companyValue: Number(c.company_net_amount),

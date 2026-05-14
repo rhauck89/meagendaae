@@ -519,7 +519,7 @@ Deno.serve(async (req) => {
         is_recurring: salaryRecurrence !== "none",
         recurrence_type: salaryRecurrence === "weekly" ? "weekly" : "monthly",
         recurrence_interval: salaryRecurrence === "biweekly" ? 2 : 1,
-        notes: `Despesa gerada automaticamente pelo cadastro de membro da equipe. Recorrência: ${salaryRecurrence}.`,
+        notes: `Despesa gerada automaticamente pelo cadastro de membro da equipe. Recorrência: ${salaryRecurrence}. salary_profile_id:${profileId}`,
         created_by: caller.id,
         payment_method: salaryPaymentMethod,
       });
