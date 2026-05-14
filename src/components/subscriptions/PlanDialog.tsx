@@ -38,7 +38,7 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Loader2, Search, Users } from 'lucide-react';
+import { Loader2, Search } from 'lucide-react';
 
 const planSchema = z.object({
   name: z.string().min(1, 'Nome é obrigatório'),
@@ -54,8 +54,6 @@ const planSchema = z.object({
   valid_end_time: z.string().optional().nullable(),
   observations: z.string().optional(),
   is_active: z.boolean().default(true),
-  all_professionals: z.boolean().default(true),
-  participant_professionals: z.array(z.string()).default([]),
 });
 
 type PlanFormValues = z.infer<typeof planSchema>;
@@ -79,9 +77,6 @@ export function PlanDialog({
   const [services, setServices] = useState<any[]>([]);
   const [serviceSearch, setServiceSearch] = useState('');
   const [fetchingServices, setFetchingServices] = useState(false);
-  const [professionals, setProfessionals] = useState<any[]>([]);
-  const [fetchingProfessionals, setFetchingProfessionals] = useState(false);
-  const [professionalSearch, setProfessionalSearch] = useState('');
 
   const form = useForm<PlanFormValues>({
     resolver: zodResolver(planSchema),
@@ -99,17 +94,15 @@ export function PlanDialog({
       valid_end_time: '',
       observations: '',
       is_active: true,
-      all_professionals: true,
-      participant_professionals: [],
     },
   });
 
   useEffect(() => {
     if (open) {
       fetchServices();
-      fetchProfessionals();
+      
       if (plan) {
-        fetchPlanParticipants(plan.id);
+        
         form.reset({
           name: plan.name,
           description: plan.description || '',
@@ -124,8 +117,6 @@ export function PlanDialog({
           valid_end_time: plan.valid_end_time || '',
           observations: plan.observations || '',
           is_active: plan.is_active,
-          all_professionals: plan.all_professionals ?? true,
-          participant_professionals: [], // Will be updated by fetchPlanParticipants
         });
       } else {
         form.reset({
@@ -142,8 +133,6 @@ export function PlanDialog({
           valid_end_time: '',
           observations: '',
           is_active: true,
-          all_professionals: true,
-          participant_professionals: [],
         });
       }
     }
@@ -260,67 +249,7 @@ export function PlanDialog({
     }
   };
 
-  const fetchProfessionals = async () => {
-    setFetchingProfessionals(true);
-    try {
-      console.log('Fetching professionals for company:', companyId);
-      
-      // We fetch collaborators and profiles joined via profile_id
-      // This matches the logic in Team.tsx to find people linked to the company
-      const { data, error } = await supabase
-        .from('collaborators')
-        .select(`
-          id,
-          profile_id,
-          active,
-          profile:profiles!collaborators_profile_id_fkey (
-            id,
-            full_name,
-            email
-          )
-        `)
-        .eq('company_id', companyId)
-        .eq('is_service_provider', true)
-        .eq('active', true);
 
-      if (error) {
-        console.error('Supabase error fetching professionals:', error);
-        throw error;
-      }
-      
-      // Transform the data to the expected format
-      const formattedProfessionals = (data || [])
-        .map((c: any) => ({
-          id: c.profile_id,
-          full_name: c.profile?.full_name || 'Sem nome',
-          email: c.profile?.email || '',
-        }))
-        .filter(p => p.id); // Ensure we have an ID
-
-      console.log('Professionals found and formatted:', formattedProfessionals.length);
-      setProfessionals(formattedProfessionals);
-    } catch (error: any) {
-      console.error('Error fetching professionals:', error);
-      toast.error('Erro ao buscar profissionais');
-    } finally {
-      setFetchingProfessionals(false);
-    }
-  };
-
-  const fetchPlanParticipants = async (planId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('subscription_plan_professionals')
-        .select('professional_id')
-        .eq('plan_id', planId);
-
-      if (error) throw error;
-      const participantIds = data?.map(p => p.professional_id) || [];
-      form.setValue('participant_professionals', participantIds);
-    } catch (error: any) {
-      console.error('Error fetching plan participants:', error);
-    }
-  };
 
   const onSubmit = async (values: PlanFormValues) => {
     setLoading(true);
@@ -339,7 +268,7 @@ export function PlanDialog({
         valid_end_time: values.valid_end_time || null,
         observations: values.observations,
         is_active: values.is_active,
-        all_professionals: values.all_professionals,
+        
         company_id: companyId,
       };
 
@@ -363,29 +292,6 @@ export function PlanDialog({
         toast.success('Plano criado com sucesso!');
       }
 
-      // Handle participants
-      if (planId) {
-        // First delete all
-        await supabase
-          .from('subscription_plan_professionals')
-          .delete()
-          .eq('plan_id', planId);
-
-        // Then insert if not all_professionals
-        if (!values.all_professionals && values.participant_professionals.length > 0) {
-          const participantPayload = values.participant_professionals.map(profId => ({
-            plan_id: planId,
-            professional_id: profId,
-            company_id: companyId
-          }));
-
-          const { error: participantError } = await supabase
-            .from('subscription_plan_professionals')
-            .insert(participantPayload);
-          
-          if (participantError) throw participantError;
-        }
-      }
 
       onSuccess();
       onOpenChange(false);
@@ -402,15 +308,6 @@ export function PlanDialog({
   );
 
   const planType = form.watch('type');
-  const allProfessionals = form.watch('all_professionals');
-
-  const filteredProfessionals = professionals.filter((p) => {
-    const search = professionalSearch.toLowerCase();
-    return (
-      p.full_name?.toLowerCase().includes(search) ||
-      p.email?.toLowerCase().includes(search)
-    );
-  });
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -802,9 +699,10 @@ export function PlanDialog({
                     </RadioGroup>
                   </FormControl>
                   <FormMessage />
-                </FormItem>
+                    </FormItem>
+                  )}
+                />
               )}
-            />
 
               <div className="space-y-3">
                 <FormLabel>Dias da semana permitidos</FormLabel>
