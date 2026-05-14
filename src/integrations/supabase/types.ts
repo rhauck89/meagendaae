@@ -220,6 +220,7 @@ export type Database = {
         Row: {
           booking_origin: string | null
           cashback_used: number | null
+          client_email: string | null
           client_id: string | null
           client_name: string | null
           client_whatsapp: string | null
@@ -258,6 +259,7 @@ export type Database = {
         Insert: {
           booking_origin?: string | null
           cashback_used?: number | null
+          client_email?: string | null
           client_id?: string | null
           client_name?: string | null
           client_whatsapp?: string | null
@@ -296,6 +298,7 @@ export type Database = {
         Update: {
           booking_origin?: string | null
           cashback_used?: number | null
+          client_email?: string | null
           client_id?: string | null
           client_name?: string | null
           client_whatsapp?: string | null
