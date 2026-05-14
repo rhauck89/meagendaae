@@ -24,6 +24,7 @@ import { cn } from '@/lib/utils';
 import CompanySetup from './CompanySetup';
 import { PushNotificationPrompt } from './PushNotificationPrompt';
 import { OnboardingPopup } from './OnboardingPopup';
+import MarketplaceUpgradeOffer from './MarketplaceUpgradeOffer';
 import { PlatformLogo } from './PlatformLogo';
 import { PlatformFooter } from './PlatformFooter';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
@@ -754,6 +755,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
           </footer>
         </main>
         <OnboardingPopup />
+        <MarketplaceUpgradeOffer />
         {ENABLE_PUSH_NOTIFICATIONS && <PushNotificationPrompt />}
         <RoleSelectorDialog open={needsRoleSelection} onSelect={handleRoleSelect} />
       </div>

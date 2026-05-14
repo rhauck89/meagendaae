@@ -1,4 +1,5 @@
 import CurrentPlanCard from '@/components/CurrentPlanCard';
+import MarketplaceUpgradeOffer from '@/components/MarketplaceUpgradeOffer';
 import SettingsBreadcrumb from '@/components/SettingsBreadcrumb';
 
 const SettingsPlan = () => {
@@ -10,6 +11,7 @@ const SettingsPlan = () => {
         <p className="text-sm text-muted-foreground">Gerencie seu plano atual e recursos disponíveis</p>
       </div>
       <CurrentPlanCard />
+      <MarketplaceUpgradeOffer mode="card" />
     </div>
   );
 };
