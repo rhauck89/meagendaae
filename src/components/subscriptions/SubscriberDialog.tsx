@@ -134,13 +134,12 @@ export function SubscriberDialog({
   };
 
   const fetchProfessionals = async () => {
-    const query: any = supabase
-      .from('collaborators')
+    const { data } = await supabase
+      .from('collaborators' as any)
       .select('profile_id, profile:profiles(full_name)')
-      .eq('company_id', companyId)
+      .eq('company_id' as any, companyId)
       .eq('is_service_provider' as any, true)
-      .eq('active', true);
-    const { data } = await query;
+      .eq('active' as any, true);
     setProfessionals(data || []);
   };
 
