@@ -6345,6 +6345,9 @@ export type Database = {
           paddle_subscription_id: string | null
           payload: Json | null
           status: string | null
+          stripe_customer_id: string | null
+          stripe_event_id: string | null
+          stripe_subscription_id: string | null
         }
         Insert: {
           company_id?: string | null
@@ -6357,6 +6360,9 @@ export type Database = {
           paddle_subscription_id?: string | null
           payload?: Json | null
           status?: string | null
+          stripe_customer_id?: string | null
+          stripe_event_id?: string | null
+          stripe_subscription_id?: string | null
         }
         Update: {
           company_id?: string | null
@@ -6369,6 +6375,9 @@ export type Database = {
           paddle_subscription_id?: string | null
           payload?: Json | null
           status?: string | null
+          stripe_customer_id?: string | null
+          stripe_event_id?: string | null
+          stripe_subscription_id?: string | null
         }
         Relationships: [
           {
