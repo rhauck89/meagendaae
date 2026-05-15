@@ -94,7 +94,7 @@ export function ManualAppointmentDialog({
     } else {
       setSubBenefit(null);
     }
-  }, [selectedClient, selectedProfessional, selectedServices]);
+  }, [selectedClient, selectedProfessional, selectedServices, selectedDate, selectedSlot]);
 
   const validateSubscription = async () => {
     setValidatingSub(true);
@@ -152,7 +152,7 @@ export function ManualAppointmentDialog({
   };
 
   const fetchProfessionals = async () => {
-    const { data } = await (supabase as any)
+    const { data } = await supabase
       .from('collaborators')
       .select('profile_id, active, profile:profiles(full_name)')
       .eq('company_id', companyId)

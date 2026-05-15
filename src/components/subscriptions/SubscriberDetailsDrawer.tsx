@@ -167,11 +167,11 @@ export function SubscriberDetailsDrawer({
             <div className="grid grid-cols-2 gap-4">
               <div className="p-3 border rounded-lg bg-background">
                 <p className="text-[10px] text-muted-foreground uppercase mb-1">Responsável</p>
-                <p className="text-sm font-medium">{subscriber.professional?.full_name || '-'}</p>
+                <p className="text-sm font-medium">Definido pelos profissionais do plano</p>
               </div>
               <div className="p-3 border rounded-lg bg-background">
                 <p className="text-[10px] text-muted-foreground uppercase mb-1">Comissão</p>
-                <p className="text-sm font-medium">{subscriber.professional_commission}%</p>
+                <p className="text-sm font-medium">Configurada no plano</p>
               </div>
             </div>
           </section>

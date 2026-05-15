@@ -205,9 +205,16 @@ export function PlansTab({ companyId, onEditPlan, onNewPlan, canManage = false }
                   )}
 
                   <div className="flex items-center gap-2">
-                    <Badge variant="outline" className="font-normal capitalize">
-                      {plan.type === 'unlimited' ? 'Ilimitado' : `Limitado: ${plan.usage_limit} usos`}
+                    <Badge variant="outline" className="font-normal">
+                      {plan.type === 'unlimited'
+                        ? 'Ilimitado'
+                        : `${plan.usage_count_mode === 'appointment' ? 'Por agendamento' : 'Por serviço'}: ${plan.usage_limit} uso(s) ${plan.limit_period === 'weekly' ? 'por semana' : 'por mês'}`}
                     </Badge>
+                    {plan.quantity_available ? (
+                      <Badge variant="outline" className="font-normal">
+                        {plan.quantity_available} disponíveis
+                      </Badge>
+                    ) : null}
                   </div>
 
                   <div className="space-y-2">
@@ -218,6 +225,16 @@ export function PlansTab({ companyId, onEditPlan, onNewPlan, canManage = false }
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <Users className="h-4 w-4" />
                       <span>{subscribersCount} assinantes vinculados</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Settings className="h-4 w-4" />
+                      <span>
+                        {plan.commission_timing === 'appointment_completion'
+                          ? 'Comissão no atendimento'
+                          : plan.commission_timing === 'plan_billing'
+                            ? 'Comissão no faturamento'
+                            : 'Sem comissão'}
+                      </span>
                     </div>
                   </div>
 

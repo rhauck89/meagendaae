@@ -69,7 +69,7 @@ export function SubscribersTab({ companyId, onEditSubscriber, onViewDetails }: S
         .select(`
           *,
           clients(id, name, whatsapp, email),
-          subscription_plans(id, name, price_monthly, price_yearly, type, usage_limit, included_services),
+          subscription_plans(id, name, price_monthly, price_yearly, type, usage_limit, usage_count_mode, limit_period, included_services),
           professional:profiles(full_name),
           charges:subscription_charges(status, due_date, amount),
           usage:subscription_usage(id, usage_date, appointment_id, service_id, usage_count, appointments!subscription_usage_appointment_id_fkey(status, start_time), services!subscription_usage_service_id_fkey(name))
@@ -350,7 +350,9 @@ export function SubscribersTab({ companyId, onEditSubscriber, onViewDetails }: S
                       <div className="flex flex-col">
                         <span className="text-sm font-medium">{plan?.name}</span>
                         <Badge variant="outline" className="mt-1 w-fit border-violet-100 bg-violet-50 px-1.5 text-[10px] text-violet-700">
-                          {plan?.type === 'unlimited' ? 'Ilimitado' : `${plan?.usage_limit || 0} usos/mês`}
+                          {plan?.type === 'unlimited'
+                            ? 'Ilimitado'
+                            : `${plan?.usage_limit || 0} uso(s) ${plan?.limit_period === 'weekly' ? 'por semana' : 'por mês'} - ${plan?.usage_count_mode === 'appointment' ? 'por agendamento' : 'por serviço'}`}
                         </Badge>
                       </div>
                     </TableCell>

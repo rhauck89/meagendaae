@@ -881,6 +881,15 @@ const Dashboard = () => {
         await supabase.from('company_revenues').insert(revenuePayload);
       }
 
+      if (isSubscriptionCovered) {
+        const { error: subscriptionCommissionError } = await supabase.rpc('generate_subscription_appointment_commission' as any, {
+          p_appointment_id: apt.id,
+        });
+        if (subscriptionCommissionError) {
+          console.error('[Dashboard] Subscription appointment commission error:', subscriptionCommissionError);
+        }
+      }
+
       // Generate cashback credits via transactional RPC
       if (apt.client_id) {
         try {

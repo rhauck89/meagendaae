@@ -34,8 +34,6 @@ import {
   Filter,
   Search,
   DollarSign,
-  User,
-  CreditCard,
   RefreshCw,
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -71,11 +69,8 @@ export function ChargesTab({ companyId }: ChargesTabProps) {
           subscription:client_subscriptions(
             id,
             client_id,
-            professional_id,
-            professional_commission,
             clients(name, whatsapp),
-            subscription_plans(name),
-            professional:profiles(full_name)
+            subscription_plans(name, commission_timing, plan_commission_type, plan_commission_value)
           )
         `)
         .eq('company_id', companyId)
@@ -85,7 +80,7 @@ export function ChargesTab({ companyId }: ChargesTabProps) {
       setCharges(data || []);
     } catch (error: any) {
       console.error('Error fetching charges:', error);
-      toast.error('Erro ao buscar cobranças');
+      toast.error('Erro ao buscar cobranÃ§as');
     } finally {
       setLoading(false);
     }
@@ -96,12 +91,6 @@ export function ChargesTab({ companyId }: ChargesTabProps) {
 
     try {
       const amount = Number(charge.amount);
-      const commissionPercent = Number(charge.subscription?.professional_commission || 0);
-      const professionalId = charge.subscription?.professional_id;
-      
-      const commissionAmount = (amount * commissionPercent) / 100;
-      // const netAmount = amount - commissionAmount; // Not stored, but used for display
-
       // 1. Update charge status
       const { error: chargeError } = await supabase
         .from('subscription_charges')
@@ -143,38 +132,14 @@ export function ChargesTab({ companyId }: ChargesTabProps) {
           category_id: category?.id,
           payment_method: 'pix',
           client_name: charge.subscription?.clients?.name,
-          professional_id: professionalId,
-          professional_name: charge.subscription?.professional?.full_name,
+          professional_id: null,
+          professional_name: null,
           service_name: 'Assinatura',
-          notes: `Cobrança Ref: ${charge.id}`
+          notes: `CobranÃ§a Ref: ${charge.id}`
         });
 
       if (revenueError) throw revenueError;
 
-      if (professionalId && commissionAmount > 0) {
-        const { error: commissionError } = await supabase
-          .from('professional_commissions')
-          .upsert({
-            company_id: companyId,
-            professional_id: professionalId,
-            client_id: charge.subscription?.client_id || null,
-            source_type: 'subscription_charge',
-            source_id: charge.id,
-            description: `Comissão Assinatura: ${charge.subscription?.subscription_plans?.name || 'Assinatura'}`,
-            gross_amount: amount,
-            commission_type: 'percentage',
-            commission_rate: commissionPercent,
-            commission_amount: commissionAmount,
-            company_net_amount: amount - commissionAmount,
-            paid_at: new Date().toISOString(),
-            status: 'paid',
-          } as any, { onConflict: 'source_id,source_type,professional_id' });
-
-        if (commissionError) {
-          console.error('[SUBSCRIPTION_PAYMENT] Error registering commission:', commissionError);
-          toast.error('Pagamento registrado, mas a comissão não foi lançada. Verifique permissões do financeiro.');
-        }
-      }
       
       // 3. Register loyalty points and cashback if applicable
       try {
@@ -259,7 +224,7 @@ export function ChargesTab({ companyId }: ChargesTabProps) {
 
       // 4. Register commission if applicable (Phase 1 simplicity: using the finance display logic)
 
-      toast.success('Cobrança marcada como paga e integrada ao financeiro!');
+      toast.success('CobranÃ§a marcada como paga e integrada ao financeiro!');
       fetchCharges();
       // Keep every subscription financial view reading the updated charge state.
       window.dispatchEvent(new CustomEvent('refresh-subscription-dashboard'));
@@ -303,7 +268,7 @@ export function ChargesTab({ companyId }: ChargesTabProps) {
   };
 
   if (loading && charges.length === 0) {
-    return <div className="p-8 text-center text-muted-foreground animate-pulse">Carregando cobranças...</div>;
+    return <div className="p-8 text-center text-muted-foreground animate-pulse">Carregando cobranÃ§as...</div>;
   }
 
   return (
@@ -360,26 +325,26 @@ export function ChargesTab({ companyId }: ChargesTabProps) {
           <TableHeader>
             <TableRow className="bg-muted/50 text-[11px] uppercase tracking-wider">
               <TableHead>Cliente / Plano</TableHead>
-              <TableHead>Profissional</TableHead>
+              <TableHead>ComissÃ£o</TableHead>
               <TableHead>Vencimento</TableHead>
               <TableHead>Valor</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead>Financeiro (Líquido)</TableHead>
-              {hasActions && <TableHead className="text-right">Ações</TableHead>}
+              <TableHead>Financeiro (LÃ­quido)</TableHead>
+              {hasActions && <TableHead className="text-right">AÃ§Ãµes</TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>
             {filteredCharges.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={hasActions ? 7 : 6} className="text-center py-20 text-muted-foreground">
-                  Nenhuma cobrança encontrada com os filtros selecionados.
+                  Nenhuma cobranÃ§a encontrada com os filtros selecionados.
                 </TableCell>
               </TableRow>
             ) : (
               filteredCharges.map((charge) => {
                 const amount = Number(charge.amount);
-                const commission = (amount * Number(charge.subscription?.professional_commission || 0)) / 100;
-                const net = amount - commission;
+                const plan = charge.subscription?.subscription_plans;
+                const hasBillingCommission = plan?.commission_timing === 'plan_billing' && plan?.plan_commission_type !== 'none';
 
                 return (
                   <TableRow key={charge.id} className="hover:bg-muted/30 transition-colors">
@@ -390,7 +355,13 @@ export function ChargesTab({ companyId }: ChargesTabProps) {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <span className="text-sm">{charge.subscription?.professional?.full_name || '-'}</span>
+                      <span className="text-sm">
+                        {hasBillingCommission
+                          ? plan?.plan_commission_type === 'percentage'
+                            ? `${Number(plan?.plan_commission_value || 0)}% no faturamento`
+                            : `R$ ${Number(plan?.plan_commission_value || 0).toFixed(2)} no faturamento`
+                          : 'Sem comissÃ£o no faturamento'}
+                      </span>
                     </TableCell>
                     <TableCell>
                       <div className="flex flex-col">
@@ -407,10 +378,7 @@ export function ChargesTab({ companyId }: ChargesTabProps) {
                     <TableCell>
                       <div className="flex flex-col gap-1">
                         <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
-                          <DollarSign className="h-3 w-3" /> Emp: R$ {net.toFixed(2)}
-                        </div>
-                        <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
-                          <User className="h-3 w-3" /> Prof: R$ {commission.toFixed(2)}
+                          <DollarSign className="h-3 w-3" /> Receita: R$ {amount.toFixed(2)}
                         </div>
                       </div>
                     </TableCell>
