@@ -137,18 +137,15 @@ export const MarketplaceUpgradeOffer = ({ mode = 'popup' }: { mode?: 'popup' | '
 
     setBusy(module.id);
     try {
-      const { error } = await supabase.from('company_modules').upsert({
-        company_id: companyId,
-        module_id: module.id,
-        status: 'interested',
-        billing_cycle: 'monthly',
-      } as any, { onConflict: 'company_id,module_id' });
+      const { data, error } = await supabase.functions.invoke('activate-marketplace-upgrade', {
+        body: { companyId, moduleId: module.id },
+      });
 
       if (error) throw error;
 
       setCompanyModules((previous) => [
         ...previous.filter((item) => item.module_id !== module.id),
-        { module_id: module.id, status: 'interested' },
+        { module_id: module.id, status: data?.active ? 'active' : 'interested' },
       ]);
       toast.success('Interesse registrado. Nossa equipe entrará em contato para ativar o destaque.');
       dismiss();

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCompanyPlan } from '@/hooks/useCompanyPlan';
-import { usePaddleCheckout } from '@/hooks/usePaddleCheckout';
+import { useStripeCheckout } from '@/hooks/useStripeCheckout';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -28,6 +28,8 @@ interface Plan {
   marketplace_priority: number;
   paddle_monthly_price_id: string | null;
   paddle_yearly_price_id: string | null;
+  stripe_monthly_price_id: string | null;
+  stripe_yearly_price_id: string | null;
   automatic_messages: boolean;
   open_scheduling: boolean;
   promotions: boolean;
@@ -98,7 +100,7 @@ const PlansPage = () => {
   const { companyId } = useAuth();
   const currentPlan = useCompanyPlan();
   const navigate = useNavigate();
-  const { openCheckout, loading: checkoutLoading } = usePaddleCheckout();
+  const { openCheckout, loading: checkoutLoading } = useStripeCheckout();
   const [plans, setPlans] = useState<Plan[]>([]);
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
   const [loading, setLoading] = useState(true);
@@ -146,44 +148,22 @@ const PlansPage = () => {
     setBusy(true);
 
     try {
-      // Downgrade: schedule for end of current period (no payment needed)
-      if (intent.type === 'downgrade' && hasActivePaidSub && currentPlan.currentPeriodEnd) {
-        const { error } = await supabase
-          .from('companies')
-          .update({
-            pending_plan_id: intent.plan.id,
-            pending_billing_cycle: intent.cycle,
-            pending_change_at: currentPlan.currentPeriodEnd,
-          } as any)
-          .eq('id', companyId);
-        if (error) throw error;
-        toast.success(`Downgrade agendado para ${formatDate(currentPlan.currentPeriodEnd)}`);
-        await currentPlan.refresh();
-        setIntent(null);
-        return;
-      }
-
-      // Switch cycle while active: open checkout for the new cycle (Paddle handles proration)
-      // Upgrade or fresh subscribe: open Paddle checkout
+      // Switch cycle, upgrade or fresh subscribe: open Stripe Checkout.
       const externalPriceId = intent.cycle === 'yearly'
-        ? intent.plan.paddle_yearly_price_id
-        : intent.plan.paddle_monthly_price_id;
+        ? intent.plan.stripe_yearly_price_id
+        : intent.plan.stripe_monthly_price_id;
 
       if (!externalPriceId) {
-        toast.error('Plano sem preço configurado no Paddle. Contate o suporte.');
+        toast.error('Plano sem preço configurado no Stripe. Contate o suporte.');
         return;
       }
 
       await openCheckout({
-        priceId: externalPriceId,
+        planId: intent.plan.id,
+        cycle: intent.cycle,
+        intentType: intent.type,
         successUrl: `${window.location.origin}/checkout/success`,
-        customData: {
-          intentType: intent.type,
-          planId: intent.plan.id,
-          cycle: intent.cycle,
-        },
       });
-      // Checkout overlay opens; close our confirm dialog
       setIntent(null);
     } catch (e: any) {
       console.error(e);
@@ -386,14 +366,14 @@ const PlansPage = () => {
                 {intent?.type === 'upgrade' && (
                   <p className="text-xs">Você será direcionado ao checkout. A liberação é imediata após o pagamento.</p>
                 )}
-                {intent?.type === 'downgrade' && currentPlan.currentPeriodEnd && (
+                {intent?.type === 'downgrade' && (
                   <p className="text-xs">Mudança aplicada automaticamente em {formatDate(currentPlan.currentPeriodEnd)} (fim do ciclo atual). Sem cobrança extra.</p>
                 )}
                 {intent?.type === 'switch_cycle' && (
-                  <p className="text-xs">Você será direcionado ao checkout para confirmar o novo ciclo. O Paddle aplica o ajuste proporcional.</p>
+                  <p className="text-xs">Você será direcionado ao checkout seguro para confirmar o novo ciclo.</p>
                 )}
                 {intent?.type === 'subscribe' && (
-                  <p className="text-xs">Você será direcionado ao checkout seguro do Paddle.</p>
+                  <p className="text-xs">Você será direcionado ao checkout seguro do Stripe.</p>
                 )}
               </div>
             </DialogDescription>
@@ -402,7 +382,7 @@ const PlansPage = () => {
             <Button variant="outline" onClick={() => setIntent(null)} disabled={working}>Voltar</Button>
             <Button onClick={applyChange} disabled={working}>
               {working && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
-              {intent?.type === 'downgrade' ? 'Agendar' : 'Continuar'}
+              {intent?.type === 'downgrade' ? 'Confirmar' : 'Continuar'}
             </Button>
           </DialogFooter>
         </DialogContent>

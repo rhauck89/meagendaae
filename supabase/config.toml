@@ -18,6 +18,15 @@ verify_jwt = false
 [functions.payments-webhook]
 verify_jwt = false
 
+[functions.stripe-webhook]
+verify_jwt = false
+
+[functions.create-stripe-checkout]
+verify_jwt = true
+
+[functions.activate-marketplace-upgrade]
+verify_jwt = true
+
 [functions.get-paddle-price]
 verify_jwt = false
 

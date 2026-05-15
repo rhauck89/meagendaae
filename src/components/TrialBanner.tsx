@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { usePaddleCheckout } from '@/hooks/usePaddleCheckout';
+import { useStripeCheckout } from '@/hooks/useStripeCheckout';
 import { openWhatsApp } from '@/lib/whatsapp';
 import { useTrialUsageStats } from '@/hooks/useTrialUsageStats';
 
@@ -16,8 +16,8 @@ interface StudioPlan {
   monthly_price: number;
   yearly_price: number;
   yearly_discount: number;
-  paddle_monthly_price_id: string | null;
-  paddle_yearly_price_id: string | null;
+  stripe_monthly_price_id: string | null;
+  stripe_yearly_price_id: string | null;
 }
 
 // Configurable: support WhatsApp (international format, digits only)
@@ -42,7 +42,7 @@ const TrialBanner = () => {
   const { trialActive, trialExpired, trialDaysLeft, loading } = useCompanyPlan();
   const { user } = useAuth();
   const navigate = useNavigate();
-  const { openCheckout, loading: checkoutLoading } = usePaddleCheckout();
+  const { openCheckout, loading: checkoutLoading } = useStripeCheckout();
   const usage = useTrialUsageStats();
   const [studio, setStudio] = useState<StudioPlan | null>(null);
   const [cycle, setCycle] = useState<'monthly' | 'yearly'>('yearly');
@@ -53,7 +53,7 @@ const TrialBanner = () => {
     (async () => {
       const { data } = await supabase
         .from('plans')
-        .select('id,name,monthly_price,yearly_price,yearly_discount,paddle_monthly_price_id,paddle_yearly_price_id')
+        .select('id,name,monthly_price,yearly_price,yearly_discount,stripe_monthly_price_id,stripe_yearly_price_id')
         .eq('slug', 'studio')
         .eq('active', true)
         .maybeSingle();
@@ -66,7 +66,7 @@ const TrialBanner = () => {
       navigate('/settings/plans');
       return;
     }
-    const priceId = cycle === 'yearly' ? studio.paddle_yearly_price_id : studio.paddle_monthly_price_id;
+    const priceId = cycle === 'yearly' ? studio.stripe_yearly_price_id : studio.stripe_monthly_price_id;
     if (!priceId) {
       navigate('/settings/plans');
       return;
@@ -74,11 +74,9 @@ const TrialBanner = () => {
     setSubmitting(true);
     try {
       await openCheckout({
-        priceId,
-        customData: {
-          planId: studio.id,
-          billingCycle: cycle,
-        },
+        planId: studio.id,
+        cycle,
+        intentType: 'subscribe',
         successUrl: `${window.location.origin}/checkout/success`,
       });
     } finally {

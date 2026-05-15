@@ -16,7 +16,6 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { getPaddleEnvironment } from '@/lib/paddle';
 
 const featureLabels: Array<{ key: string; label: string }> = [
   { key: 'open_scheduling', label: 'Agendamento aberto' },
@@ -69,8 +68,7 @@ const CurrentPlanCard = () => {
   const onTrial = plan.trialActive && !plan.trialExpired;
   const isActive = plan.subscriptionStatus === 'active';
   const isPastDue = plan.subscriptionStatus === 'past_due';
-  const hasPaddleSub = isActive || isPastDue || plan.subscriptionStatus === 'canceled';
-  const env = getPaddleEnvironment();
+  const hasStripeSub = isActive || isPastDue || plan.subscriptionStatus === 'canceled';
 
   const cancelPendingChange = async () => {
     if (!companyId) return;
@@ -90,7 +88,7 @@ const CurrentPlanCard = () => {
     setBusy('portal');
     try {
       const { data, error } = await supabase.functions.invoke('customer-portal', {
-        body: { companyId, environment: env === 'live' ? 'live' : 'sandbox' },
+        body: { companyId },
       });
       if (error) throw error;
       const url = data?.url;
@@ -109,7 +107,7 @@ const CurrentPlanCard = () => {
     setBusy('cancel');
     try {
       const { error } = await supabase.functions.invoke('cancel-subscription', {
-        body: { companyId, environment: env === 'live' ? 'live' : 'sandbox' },
+        body: { companyId },
       });
       if (error) throw error;
       toast.success('Assinatura cancelada. Acesso mantido até o fim do período.');
@@ -260,14 +258,14 @@ const CurrentPlanCard = () => {
           {/* Actions */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2 border-t">
             <Button onClick={() => navigate('/settings/plans')}>
-              <ArrowUpRight className="h-4 w-4 mr-1" /> {hasPaddleSub ? 'Mudar de plano' : 'Escolher plano'}
+              <ArrowUpRight className="h-4 w-4 mr-1" /> {hasStripeSub ? 'Mudar de plano' : 'Escolher plano'}
             </Button>
-            {!hasPaddleSub && (
+            {!hasStripeSub && (
               <Button variant="outline" onClick={() => navigate('/settings/plans')}>
                 <ArrowDownRight className="h-4 w-4 mr-1" /> Comparar planos
               </Button>
             )}
-            {hasPaddleSub && (
+            {hasStripeSub && (
               <Button variant="outline" onClick={openCustomerPortal} disabled={!!busy}>
                 {busy === 'portal'
                   ? <Loader2 className="h-4 w-4 mr-1 animate-spin" />
