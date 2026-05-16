@@ -52,6 +52,7 @@ import SuperAdminSupportReports from "./pages/superadmin/SuperAdminSupportReport
 import SuperAdminTutorials from "./pages/superadmin/SuperAdminTutorials";
 import SuperAdminMessages from "./pages/superadmin/SuperAdminMessages";
 import SuperAdminWhatsAppCenter from "./pages/superadmin/SuperAdminWhatsAppCenter";
+import SuperAdminErrorLogs from "./pages/superadmin/SuperAdminErrorLogs";
 import Support from "./pages/Support";
 import HelpCenter from "./pages/HelpCenter";
 import PlansPage from "./pages/PlansPage";
