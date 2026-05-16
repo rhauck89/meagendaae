@@ -140,6 +140,92 @@ Deno.serve(async (req) => {
       totalProcessed++;
     }
 
+    // 5. Subscription Reminders (2 days before due date)
+    console.log("[SCHEDULER] Checking for subscription reminders (2 days before)...");
+    const twoDaysFromNow = new Date(now.getTime() + 2 * 24 * 60 * 60 * 1000);
+    const twoDaysStr = twoDaysFromNow.toISOString().split('T')[0];
+
+    const { data: subscriptionCharges } = await supabase
+      .from("subscription_charges")
+      .select(`
+        id, 
+        company_id, 
+        amount, 
+        due_date,
+        subscription:client_subscriptions(
+          clients(name, whatsapp),
+          subscription_plans(name)
+        ),
+        company:companies(
+          name,
+          payment_pix_key,
+          payment_bank_name,
+          payment_bank_agency,
+          payment_bank_account,
+          payment_holder_name,
+          payment_document,
+          subscription_payment_notes
+        )
+      `)
+      .eq("status", "pending")
+      .eq("due_date", twoDaysStr)
+      .eq("whatsapp_reminder_2d_sent", false)
+      .in("company_id", companyIds);
+
+    if (subscriptionCharges && subscriptionCharges.length > 0) {
+      console.log(`[SCHEDULER] Found ${subscriptionCharges.length} subscription charges to notify`);
+      for (const charge of subscriptionCharges) {
+        const client = (charge.subscription as any)?.clients;
+        if (!client?.whatsapp) continue;
+
+        const company = charge.company as any;
+        const planName = (charge.subscription as any)?.subscription_plans?.name || 'Assinatura';
+        const amount = `R$ ${Number(charge.amount).toFixed(2)}`;
+        const dueDate = new Date(charge.due_date).toLocaleDateString('pt-BR');
+
+        let paymentData = '';
+        if (company?.payment_pix_key) paymentData += `PIX: ${company.payment_pix_key}\n`;
+        if (company?.payment_bank_name) {
+          paymentData += `Banco: ${company.payment_bank_name}\n`;
+          paymentData += `Ag: ${company.payment_bank_agency} C/C: ${company.payment_bank_account}\n`;
+          paymentData += `Titular: ${company.payment_holder_name}\n`;
+          paymentData += `Documento: ${company.payment_document}\n`;
+        }
+        if (company?.subscription_payment_notes) {
+          paymentData += `\nObs: ${company.subscription_payment_notes}`;
+        }
+
+        const message = `Olá ${client.name}, tudo bem? Identificamos que a fatura da sua assinatura está em aberto.\n\nEmpresa: ${company?.name || ''}\nPlano: ${planName}\nVencimento: ${dueDate}\nValor: ${amount}\n\nDados para pagamento:\n${paymentData || 'Por favor, entre em contato para os dados de pagamento.'}\n\nAssim que realizar o pagamento, por favor envie o comprovante por aqui.`;
+
+        const { data: response } = await supabase.functions.invoke('whatsapp-integration', {
+          body: {
+            action: 'send-message',
+            companyId: charge.company_id,
+            phone: client.whatsapp,
+            message: message
+          }
+        });
+
+        if (response?.success) {
+          await supabase.from("subscription_charges").update({
+            whatsapp_reminder_2d_sent: true,
+            whatsapp_reminder_2d_sent_at: new Date().toISOString()
+          }).eq("id", charge.id);
+
+          await supabase.from("whatsapp_logs").insert({
+            company_id: charge.company_id,
+            client_name: client.name,
+            whatsapp_number: client.whatsapp,
+            message: message,
+            status: 'sent',
+            source: `subscription_payment_2d:${charge.id}`
+          });
+
+          totalProcessed++;
+        }
+      }
+    }
+
     return new Response(JSON.stringify({ success: true, processed: totalProcessed }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (error) {
     return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
