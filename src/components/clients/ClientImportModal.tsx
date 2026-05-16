@@ -505,6 +505,8 @@ function StatsCard({ label, value, icon, isHeader }: { label: string; value: num
 
 function StatusBadge({ status, error }: { status: PreviewRow['status']; error?: string }) {
   switch (status) {
+    case 'imported':
+      return <Badge className="bg-blue-500 text-white hover:bg-blue-600">Importado</Badge>;
     case 'ready':
       return <Badge className="bg-green-500/10 text-green-600 hover:bg-green-500/10 border-green-200">Pronto</Badge>;
     case 'incomplete':
@@ -521,9 +523,29 @@ function StatusBadge({ status, error }: { status: PreviewRow['status']; error?: 
         </TooltipProvider>
       );
     case 'duplicate':
-      return <Badge variant="outline" className="text-amber-600 border-amber-200">{error}</Badge>;
+      return (
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Badge variant="outline" className="text-amber-600 border-amber-200 cursor-help">Duplicado</Badge>
+            </TooltipTrigger>
+            <TooltipContent>{error}</TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      );
     case 'error':
-      return <Badge variant="destructive" className="gap-1"><XCircle className="h-3 w-3" /> {error}</Badge>;
+      return (
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Badge variant="destructive" className="gap-1 cursor-help">
+                <XCircle className="h-3 w-3" /> Erro
+              </Badge>
+            </TooltipTrigger>
+            <TooltipContent>{error}</TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      );
     default:
       return null;
   }
