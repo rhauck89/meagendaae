@@ -579,10 +579,10 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
                         : 'bg-teal-500/15 text-teal-300 hover:bg-teal-500/25'
                     )}
                   >
-                    {isAdmin ? <Crown className="h-4 w-4 shrink-0" /> : <Scissors className="h-4 w-4 shrink-0" />}
+                    {!isProfessionalMode ? <Crown className="h-4 w-4 shrink-0" /> : <Scissors className="h-4 w-4 shrink-0" />}
                     <div className="flex-1 text-left min-w-0">
                       <p className="font-semibold text-[11px] leading-tight">
-                        {isAdmin ? 'Administrando empresa' : `Atendendo como: ${profile?.full_name || 'Profissional'}`}
+                        {!isProfessionalMode ? 'Administrando empresa' : `Atendendo como: ${profile?.full_name || 'Profissional'}`}
                       </p>
                     </div>
                     <ArrowLeftRight className="h-3 w-3 opacity-50 shrink-0" />
