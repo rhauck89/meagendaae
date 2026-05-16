@@ -22,7 +22,7 @@ export class AppErrorBoundary extends Component<Props, State> {
   componentDidCatch(error: Error, info: ErrorInfo) {
     reportError(error, {
       area: 'react.boundary',
-      payload: { componentStack: info.componentStack?.slice(0, 500) },
+      metadata: { componentStack: info.componentStack?.slice(0, 500) },
     });
   }
 
