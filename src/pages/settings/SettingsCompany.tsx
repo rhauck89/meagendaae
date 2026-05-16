@@ -95,6 +95,13 @@ const SettingsCompany = () => {
       setCompanyInstagram((data as any).instagram ?? '');
       setCompanyFacebook((data as any).facebook ?? '');
       setCompanyWebsite((data as any).website ?? '');
+      setPaymentPixKey((data as any).payment_pix_key ?? '');
+      setPaymentHolderName((data as any).payment_holder_name ?? '');
+      setPaymentDocument((data as any).payment_document ?? '');
+      setPaymentBankName((data as any).payment_bank_name ?? '');
+      setPaymentBankAgency((data as any).payment_bank_agency ?? '');
+      setPaymentBankAccount((data as any).payment_bank_account ?? '');
+      setSubscriptionPaymentNotes((data as any).subscription_payment_notes ?? '');
       setProfPermClients((data as any).prof_perm_clients ?? true);
       setProfPermPromotions((data as any).prof_perm_promotions ?? true);
       setProfPermEvents((data as any).prof_perm_events ?? true);
