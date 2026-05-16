@@ -12,6 +12,45 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Label } from '@/components/ui/label';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+const normalizeBirthDate = (value: string | undefined | null): string | null | { error: string } => {
+  if (!value || value.trim() === '') return null;
+  
+  const trimmedValue = value.trim();
+  
+  // Excel serial number (numeric string)
+  if (/^\d+$/.test(trimmedValue)) {
+    const serial = parseInt(trimmedValue, 10);
+    // Excel date starts from 1900-01-01. 
+    // JS dates start from 1970-01-01.
+    // Difference is ~25569 days.
+    const date = new Date((serial - 25569) * 86400 * 1000);
+    if (!isNaN(date.getTime())) {
+      return date.toISOString().split('T')[0];
+    }
+  }
+
+  // YYYY-MM-DD
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmedValue)) {
+    return trimmedValue;
+  }
+
+  // DD/MM/YYYY, DD-MM-YYYY, DD.MM.YYYY
+  const brDateMatch = trimmedValue.match(/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})$/);
+  if (brDateMatch) {
+    const day = brDateMatch[1].padStart(2, '0');
+    const month = brDateMatch[2].padStart(2, '0');
+    const year = brDateMatch[3];
+    const isoDate = `${year}-${month}-${day}`;
+    // Basic validation
+    const date = new Date(isoDate);
+    if (!isNaN(date.getTime()) && date.toISOString().startsWith(isoDate)) {
+      return isoDate;
+    }
+  }
+
+  return { error: "Data de nascimento inválida. Use DD/MM/AAAA ou AAAA-MM-DD." };
+};
+
 
 interface ClientImportModalProps {
   open: boolean;
@@ -211,21 +250,26 @@ export function ClientImportModal({ open, onOpenChange, companyId, onImportSucce
       const rawWa = row[mapping.whatsapp]?.trim();
       const whatsapp = formatWhatsApp(rawWa);
       const email = mapping.email ? row[mapping.email]?.trim() : undefined;
-      const birth_date = mapping.birth_date ? row[mapping.birth_date]?.trim() : undefined;
+      const rawBirthDate = mapping.birth_date ? row[mapping.birth_date]?.trim() : undefined;
       const notes = mapping.notes ? row[mapping.notes]?.trim() : undefined;
 
-      if (!name) return { line, name: '', whatsapp, status: 'error', errorDetails: 'Nome obrigatório' };
-      if (!whatsapp || !isValidWhatsApp(whatsapp)) return { line, name, whatsapp: rawWa || '', status: 'error', errorDetails: 'WhatsApp inválido' };
+      const normalizedResult = normalizeBirthDate(rawBirthDate);
+      const birth_date = (typeof normalizedResult === 'string' || normalizedResult === null) ? normalizedResult : undefined;
+      const dateError = (typeof normalizedResult === 'object' && normalizedResult !== null) ? normalizedResult.error : null;
+
+      if (!name) return { line, name: '', whatsapp, status: 'error', errorDetails: 'Nome obrigatório' } as PreviewRow;
+      if (!whatsapp || !isValidWhatsApp(whatsapp)) return { line, name, whatsapp: rawWa || '', status: 'error', errorDetails: 'WhatsApp inválido' } as PreviewRow;
+      if (dateError) return { line, name, whatsapp, birth_date: rawBirthDate || '', status: 'error', errorDetails: dateError } as PreviewRow;
       
       // Check for duplicates within the file itself
       if (fileWas.has(whatsapp)) {
-        return { line, name, whatsapp, email, birth_date, notes, status: 'duplicate', errorDetails: 'Duplicado no arquivo' };
+        return { line, name, whatsapp, email, birth_date: birth_date || rawBirthDate || '', status: 'duplicate', errorDetails: 'Duplicado no arquivo' } as PreviewRow;
       }
       fileWas.add(whatsapp);
 
       // Check for duplicates in the DB
       if (dbWas.has(whatsapp)) {
-        return { line, name, whatsapp, email, birth_date, notes, status: 'duplicate', errorDetails: 'Já cadastrado no sistema' };
+        return { line, name, whatsapp, email, birth_date: birth_date || rawBirthDate || '', status: 'duplicate', errorDetails: 'Já cadastrado no sistema' } as PreviewRow;
       }
 
       const isIncomplete = !email || !birth_date;
@@ -234,10 +278,10 @@ export function ClientImportModal({ open, onOpenChange, companyId, onImportSucce
         name,
         whatsapp,
         email,
-        birth_date,
+        birth_date: birth_date || undefined,
         notes,
         status: isIncomplete ? 'incomplete' : 'ready'
-      };
+      } as PreviewRow;
     });
 
     setPreviewData(preview);
@@ -264,16 +308,19 @@ export function ClientImportModal({ open, onOpenChange, companyId, onImportSucce
       const p = updatedPreview[i];
       if (p.status !== 'ready' && p.status !== 'incomplete') continue;
 
+      const normalizedBirth = normalizeBirthDate(p.birth_date);
+      const birthDateToSave = (typeof normalizedBirth === 'string' || normalizedBirth === null) ? normalizedBirth : p.birth_date;
+
       try {
         const { error } = await supabase.from('clients').insert({
           company_id: companyId,
           name: p.name,
           whatsapp: p.whatsapp,
           email: p.email || null,
-          birth_date: p.birth_date || null,
+          birth_date: birthDateToSave || null,
           notes: p.notes || null,
           opt_in_whatsapp: true,
-          registration_complete: !!(p.email && p.birth_date)
+          registration_complete: !!(p.email && birthDateToSave)
         } as any);
 
         if (error) {
