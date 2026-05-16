@@ -116,6 +116,13 @@ export function ClientImportModal({ open, onOpenChange, companyId, onImportSucce
     const file = e.target.files?.[0];
     if (!file) return;
 
+    // Support for .csv and .txt exported as CSV
+    const isCsvOrTxt = file.name.endsWith('.csv') || file.name.endsWith('.txt');
+    if (!isCsvOrTxt) {
+      toast.error('Por favor, selecione um arquivo .csv ou .txt');
+      return;
+    }
+
     const reader = new FileReader();
     reader.onload = (event) => {
       let content = event.target?.result as string;
@@ -138,7 +145,23 @@ export function ClientImportModal({ open, onOpenChange, companyId, onImportSucce
         skipEmptyLines: 'greedy',
         delimitersToGuess: [';', ',', '\t'],
         complete: (results) => {
+          if (results.errors.length > 0) {
+            const firstError = results.errors[0];
+            toast.error(`Erro ao processar arquivo (Linha ${firstError.row + 1}): ${firstError.message}`);
+            return;
+          }
+
           const fileHeaders = results.meta.fields || [];
+          if (fileHeaders.length === 0) {
+            toast.error('O arquivo não possui um cabeçalho válido.');
+            return;
+          }
+
+          if (results.data.length === 0) {
+            toast.error('O arquivo está vazio ou não possui linhas válidas.');
+            return;
+          }
+
           setHeaders(fileHeaders);
           setRawData(results.data as RawRow[]);
           
