@@ -52,7 +52,7 @@ const Clients = () => {
   const [importModalOpen, setImportModalOpen] = useState(false);
 
   const { data: appointments = [] } = useQuery({
-    queryKey: ['client-appointments-stats', companyId, isAdmin, profileId],
+    queryKey: ['client-appointments-stats', companyId, isAdmin, isProfessionalMode, profileId],
     queryFn: async () => {
       if (!companyId) return [];
       let query = supabase
