@@ -253,9 +253,9 @@ export function ClientImportModal({ open, onOpenChange, companyId, onImportSucce
       const rawBirthDate = mapping.birth_date ? row[mapping.birth_date]?.trim() : undefined;
       const notes = mapping.notes ? row[mapping.notes]?.trim() : undefined;
 
-      const normalizedBirth = normalizeBirthDate(rawBirthDate);
-      const birth_date = typeof normalizedBirth === 'string' || normalizedBirth === null ? normalizedBirth : undefined;
-      const dateError = typeof normalizedBirth === 'object' && normalizedBirth !== null ? normalizedBirth.error : null;
+      const normalizedResult = normalizeBirthDate(rawBirthDate);
+      const birth_date = (typeof normalizedResult === 'string' || normalizedResult === null) ? normalizedResult : undefined;
+      const dateError = (typeof normalizedResult === 'object' && normalizedResult !== null) ? normalizedResult.error : null;
 
       if (!name) return { line, name: '', whatsapp, status: 'error', errorDetails: 'Nome obrigatório' };
       if (!whatsapp || !isValidWhatsApp(whatsapp)) return { line, name, whatsapp: rawWa || '', status: 'error', errorDetails: 'WhatsApp inválido' };
@@ -263,13 +263,13 @@ export function ClientImportModal({ open, onOpenChange, companyId, onImportSucce
       
       // Check for duplicates within the file itself
       if (fileWas.has(whatsapp)) {
-        return { line, name, whatsapp, email, birth_date, notes, status: 'duplicate', errorDetails: 'Duplicado no arquivo' };
+        return { line, name, whatsapp, email, birth_date: birth_date || rawBirthDate, status: 'duplicate', errorDetails: 'Duplicado no arquivo' };
       }
       fileWas.add(whatsapp);
 
       // Check for duplicates in the DB
       if (dbWas.has(whatsapp)) {
-        return { line, name, whatsapp, email, birth_date, notes, status: 'duplicate', errorDetails: 'Já cadastrado no sistema' };
+        return { line, name, whatsapp, email, birth_date: birth_date || rawBirthDate, status: 'duplicate', errorDetails: 'Já cadastrado no sistema' };
       }
 
       const isIncomplete = !email || !birth_date;
@@ -278,7 +278,7 @@ export function ClientImportModal({ open, onOpenChange, companyId, onImportSucce
         name,
         whatsapp,
         email,
-        birth_date,
+        birth_date: birth_date || undefined,
         notes,
         status: isIncomplete ? 'incomplete' : 'ready'
       };
