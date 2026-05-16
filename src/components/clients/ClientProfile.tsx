@@ -185,11 +185,11 @@ export const ClientProfile = ({ client, companyId, profileMap, onBack }: ClientP
 
   const getSubscriptionPaymentInfo = () => {
     if (!clientSubscription) return { label: 'Sem assinatura', badge: <Badge variant="secondary">Sem assinatura</Badge>, detail: '-' };
-    if (!nextOpenCharge) return { label: 'Em dia', badge: <Badge className="bg-green-100 text-green-700 border-none">Em dia</Badge>, detail: 'Nenhuma cobranÃ§a pendente' };
+    if (!nextOpenCharge) return { label: 'Em dia', badge: <Badge className="bg-green-100 text-green-700 border-none">Em dia</Badge>, detail: 'Nenhuma cobrança pendente' };
     const diff = differenceInCalendarDays(parseISO(nextOpenCharge.due_date), new Date());
-    if (nextOpenCharge.status === 'overdue' || diff < 0) return { label: 'Atrasado', badge: <Badge className="bg-red-100 text-red-700 border-none">Atrasado</Badge>, detail: `Atrasado hÃ¡ ${Math.abs(diff)} dias` };
+    if (nextOpenCharge.status === 'overdue' || diff < 0) return { label: 'Atrasado', badge: <Badge className="bg-red-100 text-red-700 border-none">Atrasado</Badge>, detail: `Atrasado há ${Math.abs(diff)} dias` };
     if (diff === 0) return { label: 'Vence hoje', badge: <Badge className="bg-amber-100 text-amber-700 border-none">Vence hoje</Badge>, detail: 'Vencimento hoje' };
-    return { label: `Vence em ${diff} dias`, badge: <Badge className="bg-blue-100 text-blue-700 border-none">Vence em {diff} dias</Badge>, detail: `PrÃ³ximo vencimento em ${format(parseISO(nextOpenCharge.due_date), 'dd/MM/yyyy')}` };
+    return { label: `Vence em ${diff} dias`, badge: <Badge className="bg-blue-100 text-blue-700 border-none">Vence em {diff} dias</Badge>, detail: `Próximo vencimento em ${format(parseISO(nextOpenCharge.due_date), 'dd/MM/yyyy')}` };
   };
 
   const paymentInfo = getSubscriptionPaymentInfo();
