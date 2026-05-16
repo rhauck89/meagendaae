@@ -491,12 +491,12 @@ export function ClientImportModal({ open, onOpenChange, companyId, onImportSucce
   );
 }
 
-function StatsCard({ label, value, icon }: { label: string; value: number; icon: React.ReactNode }) {
+function StatsCard({ label, value, icon, isHeader }: { label: string; value: number; icon: React.ReactNode; isHeader?: boolean }) {
   return (
-    <div className="bg-muted/50 p-3 rounded-lg border flex items-center justify-between">
+    <div className={`p-3 rounded-lg border flex items-center justify-between ${isHeader ? 'bg-secondary/30' : 'bg-muted/50'}`}>
       <div>
         <p className="text-xs text-muted-foreground uppercase tracking-wider">{label}</p>
-        <p className="text-xl font-bold">{value}</p>
+        <p className="text-xl font-bold">{isHeader ? '-' : value}</p>
       </div>
       {icon}
     </div>
