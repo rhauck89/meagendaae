@@ -35,6 +35,15 @@ const SettingsPage = () => {
   const [companyCoverUrl, setCompanyCoverUrl] = useState('');
   const [logoUploading, setLogoUploading] = useState(false);
   const [coverUploading, setCoverUploading] = useState(false);
+  
+  // Payment data
+  const [paymentPixKey, setPaymentPixKey] = useState('');
+  const [paymentBankName, setPaymentBankName] = useState('');
+  const [paymentBankAgency, setPaymentBankAgency] = useState('');
+  const [paymentBankAccount, setPaymentBankAccount] = useState('');
+  const [paymentHolderName, setPaymentHolderName] = useState('');
+  const [paymentDocument, setPaymentDocument] = useState('');
+  const [subscriptionPaymentNotes, setSubscriptionPaymentNotes] = useState('');
 
   // Address fields
   const [companyAddress, setCompanyAddress] = useState('');
@@ -134,6 +143,13 @@ const SettingsPage = () => {
       setCompanyInstagram((data as any).instagram ?? '');
       setCompanyFacebook((data as any).facebook ?? '');
       setCompanyWebsite((data as any).website ?? '');
+      setPaymentPixKey((data as any).payment_pix_key ?? '');
+      setPaymentBankName((data as any).payment_bank_name ?? '');
+      setPaymentBankAgency((data as any).payment_bank_agency ?? '');
+      setPaymentBankAccount((data as any).payment_bank_account ?? '');
+      setPaymentHolderName((data as any).payment_holder_name ?? '');
+      setPaymentDocument((data as any).payment_document ?? '');
+      setSubscriptionPaymentNotes((data as any).subscription_payment_notes ?? '');
     }
     if (settingsRes.data) {
       setBrandPrimaryColor((settingsRes.data as any).primary_color || '#6D28D9');
@@ -218,6 +234,13 @@ const SettingsPage = () => {
       instagram: companyInstagram,
       facebook: companyFacebook,
       website: companyWebsite,
+      payment_pix_key: paymentPixKey,
+      payment_bank_name: paymentBankName,
+      payment_bank_agency: paymentBankAgency,
+      payment_bank_account: paymentBankAccount,
+      payment_holder_name: paymentHolderName,
+      payment_document: paymentDocument,
+      subscription_payment_notes: subscriptionPaymentNotes,
     };
     await supabase.from('companies').update(updateData).eq('id', companyId!);
     toast.success('Dados da empresa salvos');
@@ -871,6 +894,58 @@ const SettingsPage = () => {
               </div>
             ))}
           </div>
+        </CardContent>
+      </Card>
+      {/* Dados de Pagamento */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <DollarSign className="h-5 w-5" /> Dados de pagamento
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-1">
+              <Label className="text-xs">Chave PIX</Label>
+              <Input value={paymentPixKey} onChange={(e) => setPaymentPixKey(e.target.value)} placeholder="E-mail, CPF, Celular ou Chave Aleatória" />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Banco</Label>
+              <Input value={paymentBankName} onChange={(e) => setPaymentBankName(e.target.value)} placeholder="Ex: Nubank, Itaú..." />
+            </div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-1">
+              <Label className="text-xs">Agência</Label>
+              <Input value={paymentBankAgency} onChange={(e) => setPaymentBankAgency(e.target.value)} placeholder="0001" />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Conta</Label>
+              <Input value={paymentBankAccount} onChange={(e) => setPaymentBankAccount(e.target.value)} placeholder="123456-7" />
+            </div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-1">
+              <Label className="text-xs">Titular</Label>
+              <Input value={paymentHolderName} onChange={(e) => setPaymentHolderName(e.target.value)} placeholder="Nome completo" />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">CPF/CNPJ</Label>
+              <Input value={paymentDocument} onChange={(e) => setPaymentDocument(e.target.value)} placeholder="000.000.000-00" />
+            </div>
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs">Observação para cobranças</Label>
+            <Textarea 
+              value={subscriptionPaymentNotes} 
+              onChange={(e) => setSubscriptionPaymentNotes(e.target.value)} 
+              placeholder="Instruções adicionais que aparecerão no lembrete de pagamento..."
+              rows={3}
+            />
+          </div>
+          <Button onClick={saveCompanyProfile} className="w-full sm:w-auto">
+            Salvar Dados de Pagamento
+          </Button>
         </CardContent>
       </Card>
     </div>

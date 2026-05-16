@@ -35,6 +35,7 @@ import {
   Search,
   DollarSign,
   RefreshCw,
+  MessageCircle,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -71,6 +72,16 @@ export function ChargesTab({ companyId }: ChargesTabProps) {
             client_id,
             clients(name, whatsapp),
             subscription_plans(name, commission_timing, plan_commission_type, plan_commission_value)
+          ),
+          company:companies(
+            name,
+            payment_pix_key,
+            payment_bank_name,
+            payment_bank_agency,
+            payment_bank_account,
+            payment_holder_name,
+            payment_document,
+            subscription_payment_notes
           )
         `)
         .eq('company_id', companyId)
@@ -235,6 +246,45 @@ export function ChargesTab({ companyId }: ChargesTabProps) {
     }
   };
 
+  const handleWhatsAppReminder = (charge: any) => {
+    const clientName = charge.subscription?.clients?.name || 'Cliente';
+    const company = charge.company;
+    const planName = charge.subscription?.subscription_plans?.name || 'Assinatura';
+    const dueDate = format(parseISO(charge.due_date), 'dd/MM/yyyy');
+    const amount = `R$ ${Number(charge.amount).toFixed(2)}`;
+    
+    let paymentData = '';
+    if (company?.payment_pix_key) paymentData += `PIX: ${company.payment_pix_key}\n`;
+    if (company?.payment_bank_name) {
+      paymentData += `Banco: ${company.payment_bank_name}\n`;
+      paymentData += `Ag: ${company.payment_bank_agency} C/C: ${company.payment_bank_account}\n`;
+      paymentData += `Titular: ${company.payment_holder_name}\n`;
+      paymentData += `Documento: ${company.payment_document}\n`;
+    }
+    if (company?.subscription_payment_notes) {
+      paymentData += `\nObs: ${company.subscription_payment_notes}`;
+    }
+
+    const message = `Olá ${clientName}, tudo bem? Identificamos que a fatura da sua assinatura está em aberto.
+
+Empresa: ${company?.name || ''}
+Plano: ${planName}
+Vencimento: ${dueDate}
+Valor: ${amount}
+
+Dados para pagamento:
+${paymentData || 'Por favor, entre em contato para os dados de pagamento.'}
+
+Assim que realizar o pagamento, por favor envie o comprovante por aqui.`;
+
+    const phone = charge.subscription?.clients?.whatsapp?.replace(/\D/g, '');
+    if (phone) {
+      window.open(`https://wa.me/55${phone}?text=${encodeURIComponent(message)}`, '_blank');
+    } else {
+      toast.error('Cliente sem WhatsApp cadastrado');
+    }
+  };
+
   const filteredCharges = charges.filter(charge => {
     const matchesStatus = filterStatus === 'all' || charge.status === filterStatus;
     const matchesSearch = !searchTerm || 
@@ -384,16 +434,28 @@ export function ChargesTab({ companyId }: ChargesTabProps) {
                     </TableCell>
                     {hasActions && (
                       <TableCell className="text-right">
-                        {charge.status !== 'paid' ? (
-                          <Button 
-                            size="sm" 
-                            variant="default" 
-                            className="h-8 gap-2 bg-green-600 hover:bg-green-700"
-                            onClick={() => handleMarkAsPaid(charge)}
-                          >
-                            <CheckCircle className="h-4 w-4" /> Pago
-                          </Button>
-                        ) : null}
+                        <div className="flex items-center gap-2">
+                          {charge.status !== 'paid' && (
+                            <>
+                              <Button 
+                                size="sm" 
+                                variant="outline" 
+                                className="h-8 gap-2 text-green-600 border-green-200 hover:bg-green-50"
+                                onClick={() => handleWhatsAppReminder(charge)}
+                              >
+                                <MessageCircle className="h-4 w-4" /> WhatsApp
+                              </Button>
+                              <Button 
+                                size="sm" 
+                                variant="default" 
+                                className="h-8 gap-2 bg-green-600 hover:bg-green-700"
+                                onClick={() => handleMarkAsPaid(charge)}
+                              >
+                                <CheckCircle className="h-4 w-4" /> Pago
+                              </Button>
+                            </>
+                          )}
+                        </div>
                       </TableCell>
                     )}
                   </TableRow>
