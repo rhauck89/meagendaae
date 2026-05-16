@@ -20,7 +20,7 @@ interface ClientImportModalProps {
   onImportSuccess: () => void;
 }
 
-type Step = 'upload' | 'mapping' | 'preview' | 'importing';
+type Step = 'upload' | 'mapping' | 'preview' | 'importing' | 'results';
 
 interface RawRow {
   [key: string]: string;
@@ -35,12 +35,13 @@ interface ColumnMapping {
 }
 
 interface PreviewRow {
+  line: number;
   name: string;
   whatsapp: string;
   email?: string;
   birth_date?: string;
   notes?: string;
-  status: 'ready' | 'error' | 'duplicate' | 'incomplete';
+  status: 'ready' | 'error' | 'duplicate' | 'incomplete' | 'imported';
   errorDetails?: string;
 }
 
@@ -115,6 +116,13 @@ export function ClientImportModal({ open, onOpenChange, companyId, onImportSucce
     const file = e.target.files?.[0];
     if (!file) return;
 
+    // Support for .csv and .txt exported as CSV
+    const isCsvOrTxt = file.name.endsWith('.csv') || file.name.endsWith('.txt');
+    if (!isCsvOrTxt) {
+      toast.error('Por favor, selecione um arquivo .csv ou .txt');
+      return;
+    }
+
     const reader = new FileReader();
     reader.onload = (event) => {
       let content = event.target?.result as string;
@@ -137,7 +145,23 @@ export function ClientImportModal({ open, onOpenChange, companyId, onImportSucce
         skipEmptyLines: 'greedy',
         delimitersToGuess: [';', ',', '\t'],
         complete: (results) => {
+          if (results.errors.length > 0) {
+            const firstError = results.errors[0];
+            toast.error(`Erro ao processar arquivo (Linha ${firstError.row + 1}): ${firstError.message}`);
+            return;
+          }
+
           const fileHeaders = results.meta.fields || [];
+          if (fileHeaders.length === 0) {
+            toast.error('O arquivo não possui um cabeçalho válido.');
+            return;
+          }
+
+          if (results.data.length === 0) {
+            toast.error('O arquivo está vazio ou não possui linhas válidas.');
+            return;
+          }
+
           setHeaders(fileHeaders);
           setRawData(results.data as RawRow[]);
           
@@ -172,15 +196,17 @@ export function ClientImportModal({ open, onOpenChange, companyId, onImportSucce
 
     setIsProcessing(true);
     
-    // Fetch existing WhatsApps to check for duplicates
+    // Fetch existing WhatsApps to check for duplicates in the DB
     const { data: existingClients } = await supabase
       .from('clients')
       .select('whatsapp')
       .eq('company_id', companyId);
     
-    const existingWas = new Set(existingClients?.map(c => c.whatsapp) || []);
+    const dbWas = new Set(existingClients?.map(c => c.whatsapp) || []);
+    const fileWas = new Set<string>();
 
-    const preview: PreviewRow[] = rawData.map(row => {
+    const preview: PreviewRow[] = rawData.map((row, index) => {
+      const line = index + 1;
       const name = row[mapping.name]?.trim();
       const rawWa = row[mapping.whatsapp]?.trim();
       const whatsapp = formatWhatsApp(rawWa);
@@ -188,15 +214,23 @@ export function ClientImportModal({ open, onOpenChange, companyId, onImportSucce
       const birth_date = mapping.birth_date ? row[mapping.birth_date]?.trim() : undefined;
       const notes = mapping.notes ? row[mapping.notes]?.trim() : undefined;
 
-      if (!name) return { name: '', whatsapp, status: 'error', errorDetails: 'Nome obrigatório' };
-      if (!whatsapp || !isValidWhatsApp(whatsapp)) return { name, whatsapp: rawWa || '', status: 'error', errorDetails: 'WhatsApp inválido' };
+      if (!name) return { line, name: '', whatsapp, status: 'error', errorDetails: 'Nome obrigatório' };
+      if (!whatsapp || !isValidWhatsApp(whatsapp)) return { line, name, whatsapp: rawWa || '', status: 'error', errorDetails: 'WhatsApp inválido' };
       
-      if (existingWas.has(whatsapp)) {
-        return { name, whatsapp, email, birth_date, notes, status: 'duplicate', errorDetails: 'Já cadastrado' };
+      // Check for duplicates within the file itself
+      if (fileWas.has(whatsapp)) {
+        return { line, name, whatsapp, email, birth_date, notes, status: 'duplicate', errorDetails: 'Duplicado no arquivo' };
+      }
+      fileWas.add(whatsapp);
+
+      // Check for duplicates in the DB
+      if (dbWas.has(whatsapp)) {
+        return { line, name, whatsapp, email, birth_date, notes, status: 'duplicate', errorDetails: 'Já cadastrado no sistema' };
       }
 
       const isIncomplete = !email || !birth_date;
       return {
+        line,
         name,
         whatsapp,
         email,
@@ -221,31 +255,63 @@ export function ClientImportModal({ open, onOpenChange, companyId, onImportSucce
     setIsProcessing(true);
     setStep('importing');
 
-    try {
-      // Cast the insert data to avoid TS errors with missing/new columns
-      const insertData = toImport.map(p => ({
-        company_id: companyId,
-        name: p.name,
-        whatsapp: p.whatsapp,
-        email: p.email || null,
-        birth_date: p.birth_date || null,
-        notes: p.notes || null,
-        opt_in_whatsapp: true,
-        registration_complete: !!(p.email && p.birth_date)
-      }));
+    let successCount = 0;
+    let failCount = 0;
+    const updatedPreview = [...previewData];
 
-      const { error } = await supabase.from('clients').insert(insertData as any);
+    // Import line by line as requested
+    for (let i = 0; i < updatedPreview.length; i++) {
+      const p = updatedPreview[i];
+      if (p.status !== 'ready' && p.status !== 'incomplete') continue;
 
-      if (error) throw error;
+      try {
+        const { error } = await supabase.from('clients').insert({
+          company_id: companyId,
+          name: p.name,
+          whatsapp: p.whatsapp,
+          email: p.email || null,
+          birth_date: p.birth_date || null,
+          notes: p.notes || null,
+          opt_in_whatsapp: true,
+          registration_complete: !!(p.email && p.birth_date)
+        } as any);
 
-      toast.success(`${toImport.length} clientes importados com sucesso!`);
+        if (error) {
+          console.error(`Erro ao importar linha ${p.line}:`, error);
+          updatedPreview[i] = {
+            ...p,
+            status: 'error',
+            errorDetails: `Falha no banco: ${error.message}`
+          };
+          failCount++;
+        } else {
+          updatedPreview[i] = {
+            ...p,
+            status: 'imported'
+          };
+          successCount++;
+        }
+      } catch (err: any) {
+        console.error(`Erro inesperado na linha ${p.line}:`, err);
+        updatedPreview[i] = {
+          ...p,
+          status: 'error',
+          errorDetails: `Erro inesperado: ${err.message}`
+        };
+        failCount++;
+      }
+    }
+
+    setPreviewData(updatedPreview);
+    setIsProcessing(false);
+
+    if (failCount === 0) {
+      toast.success(`${successCount} clientes importados com sucesso!`);
       onImportSuccess();
       onOpenChange(false);
-    } catch (error: any) {
-      toast.error(`Erro na importação: ${error.message}`);
+    } else {
+      toast.warning(`Importação concluída: ${successCount} sucessos, ${failCount} falhas. Verifique as linhas marcadas com erro.`);
       setStep('preview');
-    } finally {
-      setIsProcessing(false);
     }
   };
 
@@ -267,7 +333,7 @@ export function ClientImportModal({ open, onOpenChange, companyId, onImportSucce
               </div>
               <div className="text-center">
                 <p className="text-lg font-medium">Arraste seu arquivo CSV ou clique para selecionar</p>
-                <p className="text-sm text-muted-foreground">Apenas arquivos .csv são suportados</p>
+                <p className="text-sm text-muted-foreground">Arquivos .csv ou .txt (CSV) são suportados</p>
               </div>
               <div className="flex flex-wrap justify-center gap-3">
                 <Button onClick={() => fileInputRef.current?.click()} className="gap-2">
@@ -281,7 +347,7 @@ export function ClientImportModal({ open, onOpenChange, companyId, onImportSucce
                 type="file" 
                 ref={fileInputRef} 
                 onChange={handleFileUpload} 
-                accept=".csv" 
+                accept=".csv,.txt" 
                 className="hidden" 
               />
             </div>
@@ -327,7 +393,13 @@ export function ClientImportModal({ open, onOpenChange, companyId, onImportSucce
 
           {step === 'preview' && (
             <div className="flex flex-col h-full space-y-4">
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                <StatsCard 
+                  label="Linha" 
+                  value={0} 
+                  icon={<Info className="h-4 w-4 text-gray-400" />}
+                  isHeader
+                />
                 <StatsCard 
                   label="Prontos" 
                   value={previewData.filter(p => p.status === 'ready' || p.status === 'incomplete').length} 
@@ -344,9 +416,9 @@ export function ClientImportModal({ open, onOpenChange, companyId, onImportSucce
                   icon={<XCircle className="h-4 w-4 text-red-500" />}
                 />
                 <StatsCard 
-                  label="Total" 
-                  value={previewData.length} 
-                  icon={<Users className="h-4 w-4 text-blue-500" />}
+                  label="Importados" 
+                  value={previewData.filter(p => p.status === 'imported').length} 
+                  icon={<CheckCircle2 className="h-4 w-4 text-blue-500" />}
                 />
               </div>
 
@@ -354,21 +426,23 @@ export function ClientImportModal({ open, onOpenChange, companyId, onImportSucce
                 <Table>
                   <TableHeader className="sticky top-0 bg-background">
                     <TableRow>
+                      <TableHead className="w-16">Linha</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>Nome</TableHead>
                       <TableHead>WhatsApp</TableHead>
-                      <TableHead>Obs</TableHead>
+                      <TableHead>Motivo / Obs</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {previewData.map((row, i) => (
                       <TableRow key={i}>
+                        <TableCell className="text-muted-foreground text-xs font-mono">{row.line}</TableCell>
                         <TableCell>
                           <StatusBadge status={row.status} error={row.errorDetails} />
                         </TableCell>
                         <TableCell className="font-medium">{row.name || '-'}</TableCell>
                         <TableCell>{row.whatsapp || '-'}</TableCell>
-                        <TableCell className="text-xs text-muted-foreground truncate max-w-[150px]">
+                        <TableCell className="text-xs text-muted-foreground max-w-[200px]">
                           {row.errorDetails || row.notes || '-'}
                         </TableCell>
                       </TableRow>
@@ -417,12 +491,12 @@ export function ClientImportModal({ open, onOpenChange, companyId, onImportSucce
   );
 }
 
-function StatsCard({ label, value, icon }: { label: string; value: number; icon: React.ReactNode }) {
+function StatsCard({ label, value, icon, isHeader }: { label: string; value: number; icon: React.ReactNode; isHeader?: boolean }) {
   return (
-    <div className="bg-muted/50 p-3 rounded-lg border flex items-center justify-between">
+    <div className={`p-3 rounded-lg border flex items-center justify-between ${isHeader ? 'bg-secondary/30' : 'bg-muted/50'}`}>
       <div>
         <p className="text-xs text-muted-foreground uppercase tracking-wider">{label}</p>
-        <p className="text-xl font-bold">{value}</p>
+        <p className="text-xl font-bold">{isHeader ? '-' : value}</p>
       </div>
       {icon}
     </div>
@@ -431,6 +505,8 @@ function StatsCard({ label, value, icon }: { label: string; value: number; icon:
 
 function StatusBadge({ status, error }: { status: PreviewRow['status']; error?: string }) {
   switch (status) {
+    case 'imported':
+      return <Badge className="bg-blue-500 text-white hover:bg-blue-600">Importado</Badge>;
     case 'ready':
       return <Badge className="bg-green-500/10 text-green-600 hover:bg-green-500/10 border-green-200">Pronto</Badge>;
     case 'incomplete':
@@ -447,9 +523,29 @@ function StatusBadge({ status, error }: { status: PreviewRow['status']; error?: 
         </TooltipProvider>
       );
     case 'duplicate':
-      return <Badge variant="outline" className="text-amber-600 border-amber-200">{error}</Badge>;
+      return (
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Badge variant="outline" className="text-amber-600 border-amber-200 cursor-help">Duplicado</Badge>
+            </TooltipTrigger>
+            <TooltipContent>{error}</TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      );
     case 'error':
-      return <Badge variant="destructive" className="gap-1"><XCircle className="h-3 w-3" /> {error}</Badge>;
+      return (
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Badge variant="destructive" className="gap-1 cursor-help">
+                <XCircle className="h-3 w-3" /> Erro
+              </Badge>
+            </TooltipTrigger>
+            <TooltipContent>{error}</TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      );
     default:
       return null;
   }
