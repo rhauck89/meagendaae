@@ -1715,6 +1715,12 @@ export type Database = {
           name: string
           paddle_customer_id: string | null
           paddle_subscription_id: string | null
+          payment_bank_account: string | null
+          payment_bank_agency: string | null
+          payment_bank_name: string | null
+          payment_document: string | null
+          payment_holder_name: string | null
+          payment_pix_key: string | null
           pending_billing_cycle: string | null
           pending_change_at: string | null
           pending_plan_id: string | null
@@ -1733,6 +1739,7 @@ export type Database = {
           state: string | null
           stripe_customer_id: string | null
           stripe_subscription_id: string | null
+          subscription_payment_notes: string | null
           subscription_status: Database["public"]["Enums"]["subscription_status"]
           timezone: string
           trial_active: boolean
@@ -1779,6 +1786,12 @@ export type Database = {
           name: string
           paddle_customer_id?: string | null
           paddle_subscription_id?: string | null
+          payment_bank_account?: string | null
+          payment_bank_agency?: string | null
+          payment_bank_name?: string | null
+          payment_document?: string | null
+          payment_holder_name?: string | null
+          payment_pix_key?: string | null
           pending_billing_cycle?: string | null
           pending_change_at?: string | null
           pending_plan_id?: string | null
@@ -1797,6 +1810,7 @@ export type Database = {
           state?: string | null
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
+          subscription_payment_notes?: string | null
           subscription_status?: Database["public"]["Enums"]["subscription_status"]
           timezone?: string
           trial_active?: boolean
@@ -1843,6 +1857,12 @@ export type Database = {
           name?: string
           paddle_customer_id?: string | null
           paddle_subscription_id?: string | null
+          payment_bank_account?: string | null
+          payment_bank_agency?: string | null
+          payment_bank_name?: string | null
+          payment_document?: string | null
+          payment_holder_name?: string | null
+          payment_pix_key?: string | null
           pending_billing_cycle?: string | null
           pending_change_at?: string | null
           pending_plan_id?: string | null
@@ -1861,6 +1881,7 @@ export type Database = {
           state?: string | null
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
+          subscription_payment_notes?: string | null
           subscription_status?: Database["public"]["Enums"]["subscription_status"]
           timezone?: string
           trial_active?: boolean
@@ -6259,6 +6280,8 @@ export type Database = {
           status: string
           subscription_id: string
           updated_at: string
+          whatsapp_reminder_2d_sent: boolean | null
+          whatsapp_reminder_2d_sent_at: string | null
         }
         Insert: {
           amount: number
@@ -6273,6 +6296,8 @@ export type Database = {
           status?: string
           subscription_id: string
           updated_at?: string
+          whatsapp_reminder_2d_sent?: boolean | null
+          whatsapp_reminder_2d_sent_at?: string | null
         }
         Update: {
           amount?: number
@@ -6287,6 +6312,8 @@ export type Database = {
           status?: string
           subscription_id?: string
           updated_at?: string
+          whatsapp_reminder_2d_sent?: boolean | null
+          whatsapp_reminder_2d_sent_at?: string | null
         }
         Relationships: [
           {
