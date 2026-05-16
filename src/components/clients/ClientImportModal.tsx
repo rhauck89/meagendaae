@@ -333,7 +333,7 @@ export function ClientImportModal({ open, onOpenChange, companyId, onImportSucce
               </div>
               <div className="text-center">
                 <p className="text-lg font-medium">Arraste seu arquivo CSV ou clique para selecionar</p>
-                <p className="text-sm text-muted-foreground">Apenas arquivos .csv são suportados</p>
+                <p className="text-sm text-muted-foreground">Arquivos .csv ou .txt (CSV) são suportados</p>
               </div>
               <div className="flex flex-wrap justify-center gap-3">
                 <Button onClick={() => fileInputRef.current?.click()} className="gap-2">
@@ -347,7 +347,7 @@ export function ClientImportModal({ open, onOpenChange, companyId, onImportSucce
                 type="file" 
                 ref={fileInputRef} 
                 onChange={handleFileUpload} 
-                accept=".csv" 
+                accept=".csv,.txt" 
                 className="hidden" 
               />
             </div>
