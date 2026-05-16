@@ -92,7 +92,7 @@ const AppointmentRequests = () => {
       .order('created_at', { ascending: false });
     
     // Professionals only see their own requests
-    if (!isAdmin && profileId) {
+    if (isProfessionalMode && profileId) {
       query = query.eq('professional_id', profileId);
     }
     
