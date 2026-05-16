@@ -325,10 +325,11 @@ export function ClientImportModal({ open, onOpenChange, companyId, onImportSucce
 
         if (error) {
           console.error(`Erro ao importar linha ${p.line}:`, error);
+          const { friendlyMessage } = classifyError(error);
           updatedPreview[i] = {
             ...p,
             status: 'error',
-            errorDetails: `Falha no banco: ${error.message}`
+            errorDetails: friendlyMessage
           };
           failCount++;
         } else {
