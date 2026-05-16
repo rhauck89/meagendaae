@@ -426,21 +426,23 @@ export function ClientImportModal({ open, onOpenChange, companyId, onImportSucce
                 <Table>
                   <TableHeader className="sticky top-0 bg-background">
                     <TableRow>
+                      <TableHead className="w-16">Linha</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>Nome</TableHead>
                       <TableHead>WhatsApp</TableHead>
-                      <TableHead>Obs</TableHead>
+                      <TableHead>Motivo / Obs</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {previewData.map((row, i) => (
                       <TableRow key={i}>
+                        <TableCell className="text-muted-foreground text-xs font-mono">{row.line}</TableCell>
                         <TableCell>
                           <StatusBadge status={row.status} error={row.errorDetails} />
                         </TableCell>
                         <TableCell className="font-medium">{row.name || '-'}</TableCell>
                         <TableCell>{row.whatsapp || '-'}</TableCell>
-                        <TableCell className="text-xs text-muted-foreground truncate max-w-[150px]">
+                        <TableCell className="text-xs text-muted-foreground max-w-[200px]">
                           {row.errorDetails || row.notes || '-'}
                         </TableCell>
                       </TableRow>
