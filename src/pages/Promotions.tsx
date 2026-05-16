@@ -227,7 +227,7 @@ function formatCountdown(ms: number): string {
 
 export default function Promotions() {
   const { companyId, profile } = useAuth();
-  const { isAdmin } = useUserRole();
+  const { isAdmin, isProfessionalMode } = useUserRole();
   const [searchParams, setSearchParams] = useSearchParams();
   const initialSection = searchParams.get('section') || 'campaigns';
   const [section, setSection] = useState<any>(initialSection);
