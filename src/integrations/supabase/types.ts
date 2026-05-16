@@ -35,6 +35,87 @@ export type Database = {
         }
         Relationships: []
       }
+      app_error_logs: {
+        Row: {
+          company_id: string | null
+          context: string
+          created_at: string
+          error_code: string | null
+          error_name: string | null
+          friendly_message: string | null
+          friendly_title: string | null
+          id: string
+          metadata: Json | null
+          stack: string | null
+          technical_message: string | null
+          user_id: string | null
+        }
+        Insert: {
+          company_id?: string | null
+          context: string
+          created_at?: string
+          error_code?: string | null
+          error_name?: string | null
+          friendly_message?: string | null
+          friendly_title?: string | null
+          id?: string
+          metadata?: Json | null
+          stack?: string | null
+          technical_message?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          company_id?: string | null
+          context?: string
+          created_at?: string
+          error_code?: string | null
+          error_name?: string | null
+          friendly_message?: string | null
+          friendly_title?: string | null
+          id?: string
+          metadata?: Json | null
+          stack?: string | null
+          technical_message?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "app_error_logs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "app_error_logs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies_billing"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "app_error_logs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "marketplace_active_services"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "app_error_logs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "public_company"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "app_error_logs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "public_company_view"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       appointment_requests: {
         Row: {
           client_email: string | null

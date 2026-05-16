@@ -10,6 +10,7 @@ import Papa from 'papaparse';
 import { formatWhatsApp, isValidWhatsApp } from '@/lib/whatsapp';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { classifyError } from '@/lib/error-handler';
 import { Label } from '@/components/ui/label';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 const normalizeBirthDate = (value: string | undefined | null): string | null | { error: string } => {
@@ -325,10 +326,11 @@ export function ClientImportModal({ open, onOpenChange, companyId, onImportSucce
 
         if (error) {
           console.error(`Erro ao importar linha ${p.line}:`, error);
+          const { friendlyMessage } = classifyError(error);
           updatedPreview[i] = {
             ...p,
             status: 'error',
-            errorDetails: `Falha no banco: ${error.message}`
+            errorDetails: friendlyMessage
           };
           failCount++;
         } else {

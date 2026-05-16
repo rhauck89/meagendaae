@@ -6,7 +6,7 @@ import { useSupportTicketCounts } from '@/hooks/useSupportTicketCounts';
 import PageContainer from '@/components/layout/PageContainer';
 import {
   LayoutDashboard, Building2, CreditCard, DollarSign, BarChart3, Settings, LogOut, Menu, X,
-  ShieldCheck, MessageSquare, Bell, Video, Megaphone,
+  ShieldCheck, MessageSquare, Bell, Video, Megaphone, Terminal,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useState, useEffect } from 'react';
@@ -25,6 +25,7 @@ const navItems = [
   { href: '/super-admin/tutorials', icon: Video, label: 'Tutoriais' },
   { href: '/super-admin/messages', icon: Megaphone, label: 'Mensagens' },
   { href: '/super-admin/whatsapp-center', icon: MessageSquare, label: 'WhatsApp Center' },
+  { href: '/super-admin/error-logs', icon: Terminal, label: 'Logs de Erros' },
   { href: '/super-admin/settings', icon: Settings, label: 'Configurações' },
 ];
 

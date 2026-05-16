@@ -14,6 +14,7 @@ import { format, parseISO, isSameMonth, isSameDay, differenceInCalendarDays } fr
 import { ptBR } from 'date-fns/locale';
 import { displayWhatsApp, formatWhatsApp, openWhatsApp } from '@/lib/whatsapp';
 import { toast } from 'sonner';
+import { handleError } from '@/lib/error-handler';
 import { ArrowLeft, Ban, Pencil, MessageCircle, Crown, ShieldCheck, Calendar, DollarSign, Star, CreditCard, Activity, CheckCircle2, AlertCircle, Clock, Scissors, CalendarCheck } from 'lucide-react';
 
 interface ClientRow {
@@ -185,11 +186,11 @@ export const ClientProfile = ({ client, companyId, profileMap, onBack }: ClientP
 
   const getSubscriptionPaymentInfo = () => {
     if (!clientSubscription) return { label: 'Sem assinatura', badge: <Badge variant="secondary">Sem assinatura</Badge>, detail: '-' };
-    if (!nextOpenCharge) return { label: 'Em dia', badge: <Badge className="bg-green-100 text-green-700 border-none">Em dia</Badge>, detail: 'Nenhuma cobranÃ§a pendente' };
+    if (!nextOpenCharge) return { label: 'Em dia', badge: <Badge className="bg-green-100 text-green-700 border-none">Em dia</Badge>, detail: 'Nenhuma cobrança pendente' };
     const diff = differenceInCalendarDays(parseISO(nextOpenCharge.due_date), new Date());
-    if (nextOpenCharge.status === 'overdue' || diff < 0) return { label: 'Atrasado', badge: <Badge className="bg-red-100 text-red-700 border-none">Atrasado</Badge>, detail: `Atrasado hÃ¡ ${Math.abs(diff)} dias` };
+    if (nextOpenCharge.status === 'overdue' || diff < 0) return { label: 'Atrasado', badge: <Badge className="bg-red-100 text-red-700 border-none">Atrasado</Badge>, detail: `Atrasado há ${Math.abs(diff)} dias` };
     if (diff === 0) return { label: 'Vence hoje', badge: <Badge className="bg-amber-100 text-amber-700 border-none">Vence hoje</Badge>, detail: 'Vencimento hoje' };
-    return { label: `Vence em ${diff} dias`, badge: <Badge className="bg-blue-100 text-blue-700 border-none">Vence em {diff} dias</Badge>, detail: `PrÃ³ximo vencimento em ${format(parseISO(nextOpenCharge.due_date), 'dd/MM/yyyy')}` };
+    return { label: `Vence em ${diff} dias`, badge: <Badge className="bg-blue-100 text-blue-700 border-none">Vence em {diff} dias</Badge>, detail: `Próximo vencimento em ${format(parseISO(nextOpenCharge.due_date), 'dd/MM/yyyy')}` };
   };
 
   const paymentInfo = getSubscriptionPaymentInfo();
@@ -197,7 +198,7 @@ export const ClientProfile = ({ client, companyId, profileMap, onBack }: ClientP
   const selectedDayAppointments = selectedHistoryDate ? appointments.filter(a => isSameDay(parseISO(a.start_time), selectedHistoryDate)) : [];
 
   const handleSaveClient = async () => {
-    if (!editForm.name.trim()) { toast.error('Nome Ã© obrigatÃ³rio'); return; }
+    if (!editForm.name.trim()) { toast.error('Nome é obrigatório'); return; }
     setSaving(true);
     try {
       const { error } = await supabase.from('clients').update({
@@ -211,7 +212,7 @@ export const ClientProfile = ({ client, companyId, profileMap, onBack }: ClientP
       refresh('clients');
       toast.success('Cliente atualizado com sucesso');
       setEditOpen(false);
-    } catch { toast.error('Erro ao atualizar cliente'); } finally { setSaving(false); }
+    } catch (err) { handleError(err, { area: 'client.profile.update', companyId }); } finally { setSaving(false); }
   };
 
   const handleToggleBlock = async () => {
@@ -222,7 +223,7 @@ export const ClientProfile = ({ client, companyId, profileMap, onBack }: ClientP
       client.is_blocked = newBlocked;
       refresh('clients');
       toast.success(newBlocked ? 'Cliente bloqueado' : 'Cliente desbloqueado');
-    } catch { toast.error('Erro ao atualizar status do cliente'); }
+    } catch (err) { handleError(err, { area: 'client.profile.toggleBlock', companyId }); }
   };
 
   return (
@@ -238,10 +239,10 @@ export const ClientProfile = ({ client, companyId, profileMap, onBack }: ClientP
             {clientSubscription && <Badge className="text-xs gap-1 bg-amber-100 text-amber-800 border-none"><Crown className="h-3 w-3" /> Assinante</Badge>}
             {client.is_blocked && <Badge variant="destructive" className="text-xs gap-1"><Ban className="h-3 w-3" /> Bloqueado</Badge>}
           </div>
-          <p className="text-muted-foreground text-sm break-words">
+          <p className="text-muted-foreground text-sm flex items-center gap-1 flex-wrap">
             {client.whatsapp ? displayWhatsApp(client.whatsapp) : 'Sem WhatsApp'}
-            {client.email && ` â€¢ ${client.email}`}
-            {client.birth_date && ` â€¢ ðŸŽ‚ ${format(parseISO(client.birth_date), 'dd/MM/yyyy', { locale: ptBR })}`}
+            {client.email && ` | ${client.email}`}
+            {client.birth_date && ` | Nasc.: ${format(parseISO(client.birth_date), 'dd/MM/yyyy')}`}
           </p>
         </div>
         <div className="flex gap-2 shrink-0 flex-wrap">
@@ -284,17 +285,17 @@ export const ClientProfile = ({ client, companyId, profileMap, onBack }: ClientP
           <CardHeader><CardTitle className="text-base flex flex-wrap items-center gap-2"><Crown className="h-4 w-4 text-amber-600" /> Assinatura {getSubscriptionStatusBadge((clientSubscription as any).status)} {paymentInfo.badge}</CardTitle></CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-              <InfoTile label="Plano atual" value={subscriptionPlan?.name || '-'} sub={subscriptionPlan?.type === 'unlimited' ? 'Ilimitado' : `${subscriptionPlan?.usage_limit || 0} usos/mÃªs`} />
+              <InfoTile label="Plano atual" value={subscriptionPlan?.name || '-'} sub={subscriptionPlan?.type === 'unlimited' ? 'Ilimitado' : `${subscriptionPlan?.usage_limit || 0} usos/mês`} />
               <InfoTile label="Pagamento" value={paymentInfo.label} sub={paymentInfo.detail} />
-              <InfoTile label="Atendimento" value="Profissionais do plano" sub="Comissao configurada no plano" />
-              <InfoTile label="Uso no ciclo" value={subscriptionPlan?.type === 'unlimited' ? `${currentMonthUsage.length} usos` : `${currentMonthUsage.length}/${subscriptionPlan?.usage_limit || 0}`} sub={`CobranÃ§a todo dia ${(clientSubscription as any).billing_day}`} />
+              <InfoTile label="Atendimento" value="Profissionais do plano" sub="Comissão configurada no plano" />
+              <InfoTile label="Uso no ciclo" value={subscriptionPlan?.type === 'unlimited' ? `${currentMonthUsage.length} usos` : `${currentMonthUsage.length}/${subscriptionPlan?.usage_limit || 0}`} sub={`Cobrança todo dia ${(clientSubscription as any).billing_day}`} />
             </div>
           </CardContent>
         </Card>
       )}
 
       <Card>
-        <CardHeader><CardTitle className="text-base flex items-center gap-2"><CalendarCheck className="h-4 w-4" /> HistÃ³rico de agendamentos</CardTitle></CardHeader>
+        <CardHeader><CardTitle className="text-base flex items-center gap-2"><CalendarCheck className="h-4 w-4" /> Histórico de agendamentos</CardTitle></CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 lg:grid-cols-[340px_1fr] gap-6">
             <div className="rounded-xl border bg-muted/20 p-3">
