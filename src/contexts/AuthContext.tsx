@@ -304,9 +304,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         stateRef.current.permissions = ctx.permissions || {};
       }
       
+      const isOwnerNow = ctx.is_company_owner || ctx.is_owner || false;
       setIsAlsoCollaborator(Boolean(ctx.is_collaborator && isServiceProvider));
       setIsServiceProvider(isServiceProvider);
-      setIsOwner(ctx.is_company_owner || ctx.is_owner || false);
+      setIsOwner(isOwnerNow);
       stateRef.current.hasContext = true;
 
       console.log("[AUTH_CONTEXT_DIAG] State updated successfully. Changed:", { profileChanged, companyChanged, rolesChanged });
