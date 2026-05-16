@@ -14,6 +14,7 @@ import { format, parseISO, isSameMonth, isSameDay, differenceInCalendarDays } fr
 import { ptBR } from 'date-fns/locale';
 import { displayWhatsApp, formatWhatsApp, openWhatsApp } from '@/lib/whatsapp';
 import { toast } from 'sonner';
+import { handleError } from '@/lib/error-handler';
 import { ArrowLeft, Ban, Pencil, MessageCircle, Crown, ShieldCheck, Calendar, DollarSign, Star, CreditCard, Activity, CheckCircle2, AlertCircle, Clock, Scissors, CalendarCheck } from 'lucide-react';
 
 interface ClientRow {
