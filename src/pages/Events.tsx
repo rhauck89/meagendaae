@@ -388,7 +388,7 @@ const Events = () => {
       setEventServices([]);
     }
     // For professionals, always lock to their own profile
-    if (!isAdmin && profile?.id) {
+    if (isProfessionalMode && profile?.id) {
       setSlotProfessionals([profile.id]);
     } else if (professionals.length > 0) {
       setSlotProfessionals([professionals[0].profile_id]);
