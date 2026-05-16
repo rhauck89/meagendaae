@@ -365,14 +365,14 @@ export function ClientImportModal({ open, onOpenChange, companyId, onImportSucce
                        key === 'email' ? 'E-mail' : 'Observações'}
                     </Label>
                     <Select 
-                      value={mapping[key]} 
-                      onValueChange={(val) => setMapping(m => ({ ...m, [key]: val }))}
+                      value={mapping[key] || "__none"} 
+                      onValueChange={(val) => setMapping(m => ({ ...m, [key]: val === "__none" ? "" : val }))}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Selecione a coluna..." />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">--- Não importar ---</SelectItem>
+                        <SelectItem value="__none">--- Não importar ---</SelectItem>
                         {headers.map(h => (
                           <SelectItem key={h} value={h}>{h}</SelectItem>
                         ))}
