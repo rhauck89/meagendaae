@@ -151,7 +151,7 @@ export function ClientImportModal({ open, onOpenChange, companyId, onImportSucce
             return;
           }
 
-          const fileHeaders = results.meta.fields || [];
+          const fileHeaders = (results.meta.fields || []).filter(h => !!h && h.trim() !== '');
           if (fileHeaders.length === 0) {
             toast.error('O arquivo não possui um cabeçalho válido.');
             return;
