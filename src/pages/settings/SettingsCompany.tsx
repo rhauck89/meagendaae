@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
-import { Building2, Camera, Phone, MapPin, Globe, Instagram, Facebook, ShieldCheck } from 'lucide-react';
+import { Building2, Camera, Phone, MapPin, Globe, Instagram, Facebook, ShieldCheck, CreditCard } from 'lucide-react';
 import SettingsBreadcrumb from '@/components/SettingsBreadcrumb';
 import AmenitiesSettings from '@/components/AmenitiesSettings';
 import ImageCropDialog from '@/components/ImageCropDialog';
