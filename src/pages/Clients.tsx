@@ -161,7 +161,7 @@ const Clients = () => {
       const s = search.toLowerCase();
       result = result.filter(c => c.name.toLowerCase().includes(s) || (c.whatsapp && c.whatsapp.includes(search)));
     }
-    if (isAdmin && profFilter !== 'all') result = result.filter(c => metrics.filteredClientIds.has(c.id));
+    if (!isProfessionalMode && profFilter !== 'all') result = result.filter(c => metrics.filteredClientIds.has(c.id));
     result.sort((a, b) => {
       const sA = clientStatsMap[a.id] || { totalVisits: 0, totalSpent: 0, lastVisit: null };
       const sB = clientStatsMap[b.id] || { totalVisits: 0, totalSpent: 0, lastVisit: null };
