@@ -250,11 +250,16 @@ export function ClientImportModal({ open, onOpenChange, companyId, onImportSucce
       const rawWa = row[mapping.whatsapp]?.trim();
       const whatsapp = formatWhatsApp(rawWa);
       const email = mapping.email ? row[mapping.email]?.trim() : undefined;
-      const birth_date = mapping.birth_date ? row[mapping.birth_date]?.trim() : undefined;
+      const rawBirthDate = mapping.birth_date ? row[mapping.birth_date]?.trim() : undefined;
       const notes = mapping.notes ? row[mapping.notes]?.trim() : undefined;
+
+      const normalizedBirth = normalizeBirthDate(rawBirthDate);
+      const birth_date = typeof normalizedBirth === 'string' || normalizedBirth === null ? normalizedBirth : undefined;
+      const dateError = typeof normalizedBirth === 'object' && normalizedBirth !== null ? normalizedBirth.error : null;
 
       if (!name) return { line, name: '', whatsapp, status: 'error', errorDetails: 'Nome obrigatório' };
       if (!whatsapp || !isValidWhatsApp(whatsapp)) return { line, name, whatsapp: rawWa || '', status: 'error', errorDetails: 'WhatsApp inválido' };
+      if (dateError) return { line, name, whatsapp, birth_date: rawBirthDate, status: 'error', errorDetails: dateError };
       
       // Check for duplicates within the file itself
       if (fileWas.has(whatsapp)) {
