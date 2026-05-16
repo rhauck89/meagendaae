@@ -268,7 +268,7 @@ const Dashboard = () => {
     return () => {
       cancelled = true;
     };
-  }, [companyId, currentDate, viewMode, filterProfessional, isAdmin, profileId]);
+  }, [companyId, currentDate, viewMode, filterProfessional, isAdmin, profileId, isProfessionalMode]);
 
   const fetchPremiumMetrics = async () => {
     if (!companyId) return;
