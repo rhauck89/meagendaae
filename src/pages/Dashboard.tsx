@@ -2050,7 +2050,7 @@ const Dashboard = () => {
         </CardHeader>
         <CardContent>
           {/* Professional Legend & Day Stats */}
-          {agendaDisplayMode === 'calendario' && isAdmin && (
+          {agendaDisplayMode === 'calendario' && !isProfessionalMode && (
             <div className="flex flex-wrap items-center justify-between gap-4 mb-6 p-4 rounded-xl bg-muted/20 border border-border/10">
               <div className="flex flex-wrap items-center gap-4">
                 <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mr-2">Profissionais:</p>
