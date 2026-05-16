@@ -557,7 +557,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
                         onClick={handleSwitchMode}
                         className={cn(
                           'w-full flex items-center justify-center py-2 rounded-lg text-xs font-medium transition-colors',
-                          isAdmin
+                          !isProfessionalMode
                             ? 'bg-amber-500/15 text-amber-300 hover:bg-amber-500/25'
                             : 'bg-teal-500/15 text-teal-300 hover:bg-teal-500/25'
                         )}
