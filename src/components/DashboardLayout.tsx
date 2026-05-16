@@ -44,6 +44,7 @@ const allAdminNavItems = [
   { href: '/dashboard/clients', icon: UserCheck, label: 'Clientes', permKey: 'clients' },
   { href: '/dashboard/whatsapp', icon: MessageSquare, label: 'WhatsApp Center', permKey: 'whatsapp' },
   { href: '/dashboard/events', icon: PartyPopper, label: 'Agenda Aberta', permKey: 'events' },
+  { href: '/dashboard/subscriptions/subscribers', icon: ClipboardList, label: 'Assinaturas', permKey: 'subscriptions' },
   { href: '/dashboard/promotions', icon: Megaphone, label: 'Promoções', permKey: 'promotions' },
   { href: '/dashboard/loyalty', icon: Star, label: 'Fidelidade', permKey: 'loyalty' },
   { href: '/dashboard/solicitacoes', icon: Inbox, label: 'Solicitações', permKey: 'requests' },
@@ -608,11 +609,10 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
             <nav className="flex-1 px-3 space-y-1 overflow-y-auto sidebar-nav">
               {navItems.map(item => (
                 <div key={item.href}>
-                  {!isProfessionalMode && item.href === '/dashboard/events' && renderCollapsibleGroup('Assinaturas', ClipboardList, isSubscriptionsActive, subscriptionsOpen, setSubscriptionsOpen, subscriptionSubItems)}
                   {renderNavLink(item, item.href === '/dashboard/solicitacoes' ? pendingRequests : undefined)}
                 </div>
               ))}
-              {!isProfessionalMode && renderCollapsibleGroup('Financeiro', DollarSign, isFinanceActive, financeOpen, setFinanceOpen, financeSubItems)}
+              {!isProfessionalMode && (profPerms.finance || profPerms.reports) && renderCollapsibleGroup('Financeiro', DollarSign, isFinanceActive, financeOpen, setFinanceOpen, financeSubItems)}
               {!isProfessionalMode && renderCollapsibleGroup('Configurações', Settings, isSettingsActive, settingsOpen, setSettingsOpen, settingsSubItems)}
 
               {isProfessionalMode && profPerms.finance && renderCollapsibleGroup('Financeiro', DollarSign, isProfessionalFinanceActive, professionalFinanceOpen, setProfessionalFinanceOpen, professionalFinanceSubItems)}

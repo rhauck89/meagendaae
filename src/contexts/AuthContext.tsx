@@ -304,8 +304,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         stateRef.current.permissions = ctx.permissions || {};
       }
       
-      setIsAlsoCollaborator(Boolean(ctx.is_collaborator && serviceProvider));
-      setIsServiceProvider(serviceProvider);
+      setIsAlsoCollaborator(Boolean(ctx.is_collaborator && isServiceProvider));
+      setIsServiceProvider(isServiceProvider);
       setIsOwner(ctx.is_company_owner || ctx.is_owner || false);
       stateRef.current.hasContext = true;
 
