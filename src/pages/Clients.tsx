@@ -134,7 +134,7 @@ const Clients = () => {
   }, [visibleClients, appointments, profileMap, isAdmin, profFilter]);
 
   const { data: serverMetrics } = useQuery({
-    queryKey: ['client-dashboard-stats', companyId, isAdmin, profileId, profFilter],
+    queryKey: ['client-dashboard-stats', companyId, isAdmin, isProfessionalMode, profileId, profFilter],
     queryFn: async () => {
       if (!companyId) return null;
       const { data, error } = await supabase.rpc('get_company_dashboard_stats', {
