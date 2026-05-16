@@ -285,10 +285,10 @@ export const ClientProfile = ({ client, companyId, profileMap, onBack }: ClientP
           <CardHeader><CardTitle className="text-base flex flex-wrap items-center gap-2"><Crown className="h-4 w-4 text-amber-600" /> Assinatura {getSubscriptionStatusBadge((clientSubscription as any).status)} {paymentInfo.badge}</CardTitle></CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-              <InfoTile label="Plano atual" value={subscriptionPlan?.name || '-'} sub={subscriptionPlan?.type === 'unlimited' ? 'Ilimitado' : `${subscriptionPlan?.usage_limit || 0} usos/mÃªs`} />
+              <InfoTile label="Plano atual" value={subscriptionPlan?.name || '-'} sub={subscriptionPlan?.type === 'unlimited' ? 'Ilimitado' : `${subscriptionPlan?.usage_limit || 0} usos/mês`} />
               <InfoTile label="Pagamento" value={paymentInfo.label} sub={paymentInfo.detail} />
-              <InfoTile label="Atendimento" value="Profissionais do plano" sub="Comissao configurada no plano" />
-              <InfoTile label="Uso no ciclo" value={subscriptionPlan?.type === 'unlimited' ? `${currentMonthUsage.length} usos` : `${currentMonthUsage.length}/${subscriptionPlan?.usage_limit || 0}`} sub={`CobranÃ§a todo dia ${(clientSubscription as any).billing_day}`} />
+              <InfoTile label="Atendimento" value="Profissionais do plano" sub="Comissão configurada no plano" />
+              <InfoTile label="Uso no ciclo" value={subscriptionPlan?.type === 'unlimited' ? `${currentMonthUsage.length} usos` : `${currentMonthUsage.length}/${subscriptionPlan?.usage_limit || 0}`} sub={`Cobrança todo dia ${(clientSubscription as any).billing_day}`} />
             </div>
           </CardContent>
         </Card>
