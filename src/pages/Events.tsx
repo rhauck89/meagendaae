@@ -119,7 +119,7 @@ const WIZARD_STEPS = [
 
 const Events = () => {
   const { companyId, profile } = useAuth();
-  const { isAdmin } = useUserRole();
+  const { isAdmin, isProfessionalMode } = useUserRole();
   const { hasSeen, markSeen, loading: discoveryLoading } = useFeatureDiscovery();
   const [showIntro, setShowIntro] = useState(false);
   const [events, setEvents] = useState<Event[]>([]);
