@@ -196,15 +196,17 @@ export function ClientImportModal({ open, onOpenChange, companyId, onImportSucce
 
     setIsProcessing(true);
     
-    // Fetch existing WhatsApps to check for duplicates
+    // Fetch existing WhatsApps to check for duplicates in the DB
     const { data: existingClients } = await supabase
       .from('clients')
       .select('whatsapp')
       .eq('company_id', companyId);
     
-    const existingWas = new Set(existingClients?.map(c => c.whatsapp) || []);
+    const dbWas = new Set(existingClients?.map(c => c.whatsapp) || []);
+    const fileWas = new Set<string>();
 
-    const preview: PreviewRow[] = rawData.map(row => {
+    const preview: PreviewRow[] = rawData.map((row, index) => {
+      const line = index + 1;
       const name = row[mapping.name]?.trim();
       const rawWa = row[mapping.whatsapp]?.trim();
       const whatsapp = formatWhatsApp(rawWa);
@@ -212,15 +214,23 @@ export function ClientImportModal({ open, onOpenChange, companyId, onImportSucce
       const birth_date = mapping.birth_date ? row[mapping.birth_date]?.trim() : undefined;
       const notes = mapping.notes ? row[mapping.notes]?.trim() : undefined;
 
-      if (!name) return { name: '', whatsapp, status: 'error', errorDetails: 'Nome obrigatório' };
-      if (!whatsapp || !isValidWhatsApp(whatsapp)) return { name, whatsapp: rawWa || '', status: 'error', errorDetails: 'WhatsApp inválido' };
+      if (!name) return { line, name: '', whatsapp, status: 'error', errorDetails: 'Nome obrigatório' };
+      if (!whatsapp || !isValidWhatsApp(whatsapp)) return { line, name, whatsapp: rawWa || '', status: 'error', errorDetails: 'WhatsApp inválido' };
       
-      if (existingWas.has(whatsapp)) {
-        return { name, whatsapp, email, birth_date, notes, status: 'duplicate', errorDetails: 'Já cadastrado' };
+      // Check for duplicates within the file itself
+      if (fileWas.has(whatsapp)) {
+        return { line, name, whatsapp, email, birth_date, notes, status: 'duplicate', errorDetails: 'Duplicado no arquivo' };
+      }
+      fileWas.add(whatsapp);
+
+      // Check for duplicates in the DB
+      if (dbWas.has(whatsapp)) {
+        return { line, name, whatsapp, email, birth_date, notes, status: 'duplicate', errorDetails: 'Já cadastrado no sistema' };
       }
 
       const isIncomplete = !email || !birth_date;
       return {
+        line,
         name,
         whatsapp,
         email,
