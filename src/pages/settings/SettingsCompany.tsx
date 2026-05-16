@@ -32,6 +32,15 @@ const SettingsCompany = () => {
   const [companyInstagram, setCompanyInstagram] = useState('');
   const [companyFacebook, setCompanyFacebook] = useState('');
   const [companyWebsite, setCompanyWebsite] = useState('');
+  
+  // Payment Data
+  const [paymentPixKey, setPaymentPixKey] = useState('');
+  const [paymentHolderName, setPaymentHolderName] = useState('');
+  const [paymentDocument, setPaymentDocument] = useState('');
+  const [paymentBankName, setPaymentBankName] = useState('');
+  const [paymentBankAgency, setPaymentBankAgency] = useState('');
+  const [paymentBankAccount, setPaymentBankAccount] = useState('');
+  const [subscriptionPaymentNotes, setSubscriptionPaymentNotes] = useState('');
   const [brStates, setBrStates] = useState<{ id: number; name: string; uf: string }[]>([]);
   const [brCities, setBrCities] = useState<{ id: number; name: string }[]>([]);
   const [loadingCities, setLoadingCities] = useState(false);
