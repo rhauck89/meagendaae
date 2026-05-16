@@ -117,7 +117,7 @@ const Clients = () => {
 
   const clientStatsMap = useMemo(() => {
     const map: Record<string, { totalVisits: number; totalSpent: number; lastVisit: string | null; favProfName: string; favProfId: string | null; cancelledCount: number }> = {};
-    const filteredApptsForStats = (isAdmin && profFilter !== 'all') ? appointments.filter(a => a.professional_id === profFilter) : appointments;
+    const filteredApptsForStats = (!isProfessionalMode && profFilter !== 'all') ? appointments.filter(a => a.professional_id === profFilter) : appointments;
     visibleClients.forEach(client => {
       const clientAppts = filteredApptsForStats.filter(a => a.client_id === client.id);
       const completedAppts = clientAppts.filter(a => a.status === 'completed' || a.status === 'confirmed');
