@@ -255,31 +255,63 @@ export function ClientImportModal({ open, onOpenChange, companyId, onImportSucce
     setIsProcessing(true);
     setStep('importing');
 
-    try {
-      // Cast the insert data to avoid TS errors with missing/new columns
-      const insertData = toImport.map(p => ({
-        company_id: companyId,
-        name: p.name,
-        whatsapp: p.whatsapp,
-        email: p.email || null,
-        birth_date: p.birth_date || null,
-        notes: p.notes || null,
-        opt_in_whatsapp: true,
-        registration_complete: !!(p.email && p.birth_date)
-      }));
+    let successCount = 0;
+    let failCount = 0;
+    const updatedPreview = [...previewData];
 
-      const { error } = await supabase.from('clients').insert(insertData as any);
+    // Import line by line as requested
+    for (let i = 0; i < updatedPreview.length; i++) {
+      const p = updatedPreview[i];
+      if (p.status !== 'ready' && p.status !== 'incomplete') continue;
 
-      if (error) throw error;
+      try {
+        const { error } = await supabase.from('clients').insert({
+          company_id: companyId,
+          name: p.name,
+          whatsapp: p.whatsapp,
+          email: p.email || null,
+          birth_date: p.birth_date || null,
+          notes: p.notes || null,
+          opt_in_whatsapp: true,
+          registration_complete: !!(p.email && p.birth_date)
+        } as any);
 
-      toast.success(`${toImport.length} clientes importados com sucesso!`);
+        if (error) {
+          console.error(`Erro ao importar linha ${p.line}:`, error);
+          updatedPreview[i] = {
+            ...p,
+            status: 'error',
+            errorDetails: `Falha no banco: ${error.message}`
+          };
+          failCount++;
+        } else {
+          updatedPreview[i] = {
+            ...p,
+            status: 'imported'
+          };
+          successCount++;
+        }
+      } catch (err: any) {
+        console.error(`Erro inesperado na linha ${p.line}:`, err);
+        updatedPreview[i] = {
+          ...p,
+          status: 'error',
+          errorDetails: `Erro inesperado: ${err.message}`
+        };
+        failCount++;
+      }
+    }
+
+    setPreviewData(updatedPreview);
+    setIsProcessing(false);
+
+    if (failCount === 0) {
+      toast.success(`${successCount} clientes importados com sucesso!`);
       onImportSuccess();
       onOpenChange(false);
-    } catch (error: any) {
-      toast.error(`Erro na importação: ${error.message}`);
+    } else {
+      toast.warning(`Importação concluída: ${successCount} sucessos, ${failCount} falhas. Verifique as linhas marcadas com erro.`);
       setStep('preview');
-    } finally {
-      setIsProcessing(false);
     }
   };
 
