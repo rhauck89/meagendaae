@@ -295,7 +295,7 @@ export const ClientProfile = ({ client, companyId, profileMap, onBack }: ClientP
       )}
 
       <Card>
-        <CardHeader><CardTitle className="text-base flex items-center gap-2"><CalendarCheck className="h-4 w-4" /> HistÃ³rico de agendamentos</CardTitle></CardHeader>
+        <CardHeader><CardTitle className="text-base flex items-center gap-2"><CalendarCheck className="h-4 w-4" /> Histórico de agendamentos</CardTitle></CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 lg:grid-cols-[340px_1fr] gap-6">
             <div className="rounded-xl border bg-muted/20 p-3">
