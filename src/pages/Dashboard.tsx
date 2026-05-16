@@ -323,7 +323,7 @@ const Dashboard = () => {
       .order('start_time', { ascending: true })
       .limit(10);
 
-    if (!isAdmin && profileId) {
+    if (isProfessionalMode && profileId) {
       query = query.eq('professional_id', profileId);
     } else if (filterProfessional !== 'all') {
       query = query.eq('professional_id', filterProfessional);
