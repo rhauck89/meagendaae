@@ -97,7 +97,7 @@ const allProfessionalNavItems = [
 
 const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   const { user, profile, companyId, signOut, loading: authLoading, loginMode, setLoginMode, isAlsoCollaborator, roles, refreshProfile } = useAuth();
-  const { isAdmin, isProfessionalMode, isProfessional } = useUserRole();
+  const { isAdmin, isProfessionalMode, isProfessional, profileId } = useUserRole();
   // isProfessional = raw role check (always true if user has 'professional' role)
   // isAdmin = false when in professional mode (by design)
   const profPerms = useProfessionalPermissions();
@@ -182,7 +182,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
     return (profPerms as any)[item.permKey];
   });
 
-  const navItems = isAdmin ? adminNavItems : professionalNavItems;
+  const navItems = isProfessionalMode ? professionalNavItems : adminNavItems;
 
   const handleRoleSelect = (mode: 'admin' | 'professional') => {
     setLoginMode(mode);
@@ -557,7 +557,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
                         onClick={handleSwitchMode}
                         className={cn(
                           'w-full flex items-center justify-center py-2 rounded-lg text-xs font-medium transition-colors',
-                          isAdmin
+                          !isProfessionalMode
                             ? 'bg-amber-500/15 text-amber-300 hover:bg-amber-500/25'
                             : 'bg-teal-500/15 text-teal-300 hover:bg-teal-500/25'
                         )}
@@ -566,7 +566,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
                       </button>
                     </TooltipTrigger>
                     <TooltipContent side="right">
-                      {isAdmin ? 'Modo Administrador — Clique para trocar' : 'Modo Profissional — Clique para trocar'}
+                      {!isProfessionalMode ? 'Modo Administrador — Clique para trocar' : 'Modo Profissional — Clique para trocar'}
                     </TooltipContent>
                   </Tooltip>
                 ) : (
@@ -574,15 +574,15 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
                     onClick={handleSwitchMode}
                     className={cn(
                       'w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-xs font-medium transition-colors',
-                      isAdmin
+                      !isProfessionalMode
                         ? 'bg-amber-500/15 text-amber-300 hover:bg-amber-500/25'
                         : 'bg-teal-500/15 text-teal-300 hover:bg-teal-500/25'
                     )}
                   >
-                    {isAdmin ? <Crown className="h-4 w-4 shrink-0" /> : <Scissors className="h-4 w-4 shrink-0" />}
+                    {!isProfessionalMode ? <Crown className="h-4 w-4 shrink-0" /> : <Scissors className="h-4 w-4 shrink-0" />}
                     <div className="flex-1 text-left min-w-0">
                       <p className="font-semibold text-[11px] leading-tight">
-                        {isAdmin ? 'Administrando empresa' : `Atendendo como: ${profile?.full_name || 'Profissional'}`}
+                        {!isProfessionalMode ? 'Administrando empresa' : `Atendendo como: ${profile?.full_name || 'Profissional'}`}
                       </p>
                     </div>
                     <ArrowLeftRight className="h-3 w-3 opacity-50 shrink-0" />
@@ -608,16 +608,16 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
             <nav className="flex-1 px-3 space-y-1 overflow-y-auto sidebar-nav">
               {navItems.map(item => (
                 <div key={item.href}>
-                  {isAdmin && item.href === '/dashboard/events' && renderCollapsibleGroup('Assinaturas', ClipboardList, isSubscriptionsActive, subscriptionsOpen, setSubscriptionsOpen, subscriptionSubItems)}
+                  {!isProfessionalMode && item.href === '/dashboard/events' && renderCollapsibleGroup('Assinaturas', ClipboardList, isSubscriptionsActive, subscriptionsOpen, setSubscriptionsOpen, subscriptionSubItems)}
                   {renderNavLink(item, item.href === '/dashboard/solicitacoes' ? pendingRequests : undefined)}
                 </div>
               ))}
-              {isAdmin && renderCollapsibleGroup('Financeiro', DollarSign, isFinanceActive, financeOpen, setFinanceOpen, financeSubItems)}
-              {isAdmin && renderCollapsibleGroup('Configurações', Settings, isSettingsActive, settingsOpen, setSettingsOpen, settingsSubItems)}
+              {!isProfessionalMode && renderCollapsibleGroup('Financeiro', DollarSign, isFinanceActive, financeOpen, setFinanceOpen, financeSubItems)}
+              {!isProfessionalMode && renderCollapsibleGroup('Configurações', Settings, isSettingsActive, settingsOpen, setSettingsOpen, settingsSubItems)}
 
-              {!isAdmin && profPerms.finance && renderCollapsibleGroup('Financeiro', DollarSign, isProfessionalFinanceActive, professionalFinanceOpen, setProfessionalFinanceOpen, professionalFinanceSubItems)}
+              {isProfessionalMode && profPerms.finance && renderCollapsibleGroup('Financeiro', DollarSign, isProfessionalFinanceActive, professionalFinanceOpen, setProfessionalFinanceOpen, professionalFinanceSubItems)}
 
-              {!isAdmin && (
+              {isProfessionalMode && (
                 <>
                   {renderNavLink({ href: '/dashboard/profile', icon: User, label: 'Meu Perfil' })}
                   {!collapsed && profile?.full_name && (
@@ -629,7 +629,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
               <div className="pt-2 mt-2 border-t border-sidebar-border">
                 {!collapsed && <p className="px-3 py-1.5 text-xs font-semibold text-sidebar-foreground/40 uppercase tracking-wider">Ajuda</p>}
                 {renderNavLink({ href: '/dashboard/help', icon: HelpCircle, label: 'Tutoriais' })}
-                {isAdmin && renderNavLink({ href: '/dashboard/support', icon: MessageSquare, label: 'Suporte' }, unreadTickets)}
+                {!isProfessionalMode && renderNavLink({ href: '/dashboard/support', icon: MessageSquare, label: 'Suporte' }, unreadTickets)}
               </div>
             </nav>
 

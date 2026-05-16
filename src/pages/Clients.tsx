@@ -35,7 +35,7 @@ interface ClientRow {
 
 const Clients = () => {
   const { companyId } = useAuth();
-  const { isAdmin, profileId } = useUserRole();
+  const { isAdmin, isProfessionalMode, profileId } = useUserRole();
   const queryClient = useQueryClient();
   const { refresh } = useRefreshData();
   const [search, setSearch] = useState('');
@@ -52,7 +52,7 @@ const Clients = () => {
   const [importModalOpen, setImportModalOpen] = useState(false);
 
   const { data: appointments = [] } = useQuery({
-    queryKey: ['client-appointments-stats', companyId, isAdmin, profileId],
+    queryKey: ['client-appointments-stats', companyId, isAdmin, isProfessionalMode, profileId],
     queryFn: async () => {
       if (!companyId) return [];
       let query = supabase
@@ -60,7 +60,7 @@ const Clients = () => {
         .select('id, client_id, professional_id, start_time, total_price, status')
         .eq('company_id', companyId)
         .in('status', ['completed', 'confirmed', 'pending', 'cancelled']);
-      if (!isAdmin && profileId) query = query.eq('professional_id', profileId);
+      if (isProfessionalMode && profileId) query = query.eq('professional_id', profileId);
       const { data, error } = await query;
       if (error) throw error;
       return data;
@@ -69,7 +69,7 @@ const Clients = () => {
   });
 
   const professionalClientIds = useMemo(() => {
-    if (isAdmin) return null;
+    if (!isProfessionalMode) return null;
     return new Set(appointments.filter(a => ['completed', 'confirmed', 'pending'].includes(a.status)).map(a => a.client_id).filter(Boolean));
   }, [isAdmin, appointments]);
 
@@ -98,7 +98,7 @@ const Clients = () => {
   });
 
   const visibleClients = useMemo(() => {
-    if (isAdmin || !professionalClientIds) return clients;
+    if (!isProfessionalMode || !professionalClientIds) return clients;
     return clients.filter(c => professionalClientIds.has(c.id));
   }, [clients, isAdmin, professionalClientIds]);
 
@@ -117,7 +117,7 @@ const Clients = () => {
 
   const clientStatsMap = useMemo(() => {
     const map: Record<string, { totalVisits: number; totalSpent: number; lastVisit: string | null; favProfName: string; favProfId: string | null; cancelledCount: number }> = {};
-    const filteredApptsForStats = (isAdmin && profFilter !== 'all') ? appointments.filter(a => a.professional_id === profFilter) : appointments;
+    const filteredApptsForStats = (!isProfessionalMode && profFilter !== 'all') ? appointments.filter(a => a.professional_id === profFilter) : appointments;
     visibleClients.forEach(client => {
       const clientAppts = filteredApptsForStats.filter(a => a.client_id === client.id);
       const completedAppts = clientAppts.filter(a => a.status === 'completed' || a.status === 'confirmed');
@@ -134,12 +134,12 @@ const Clients = () => {
   }, [visibleClients, appointments, profileMap, isAdmin, profFilter]);
 
   const { data: serverMetrics } = useQuery({
-    queryKey: ['client-dashboard-stats', companyId, isAdmin, profileId, profFilter],
+    queryKey: ['client-dashboard-stats', companyId, isAdmin, isProfessionalMode, profileId, profFilter],
     queryFn: async () => {
       if (!companyId) return null;
       const { data, error } = await supabase.rpc('get_company_dashboard_stats', {
         p_company_id: companyId,
-        p_professional_id: !isAdmin ? profileId : (profFilter === 'all' ? null : profFilter)
+        p_professional_id: isProfessionalMode ? profileId : (profFilter === 'all' ? null : profFilter)
       });
       if (error) throw error;
       return data[0];
@@ -152,7 +152,7 @@ const Clients = () => {
     newClientsMonth: Number(serverMetrics?.new_clients_month || 0),
     totalAppointments: Number(serverMetrics?.total_appointments || 0),
     topClientMonth: serverMetrics?.top_client_name ? { name: serverMetrics.top_client_name, count: Number(serverMetrics.top_client_count) } : null,
-    filteredClientIds: new Set(isAdmin && profFilter !== 'all' ? appointments.filter(a => a.professional_id === profFilter && ['completed', 'confirmed'].includes(a.status)).map(a => a.client_id) : [])
+    filteredClientIds: new Set(!isProfessionalMode && profFilter !== 'all' ? appointments.filter(a => a.professional_id === profFilter && ['completed', 'confirmed'].includes(a.status)).map(a => a.client_id) : [])
   }), [serverMetrics, isAdmin, profFilter, appointments]);
 
   const filtered = useMemo(() => {
@@ -161,7 +161,7 @@ const Clients = () => {
       const s = search.toLowerCase();
       result = result.filter(c => c.name.toLowerCase().includes(s) || (c.whatsapp && c.whatsapp.includes(search)));
     }
-    if (isAdmin && profFilter !== 'all') result = result.filter(c => metrics.filteredClientIds.has(c.id));
+    if (!isProfessionalMode && profFilter !== 'all') result = result.filter(c => metrics.filteredClientIds.has(c.id));
     result.sort((a, b) => {
       const sA = clientStatsMap[a.id] || { totalVisits: 0, totalSpent: 0, lastVisit: null };
       const sB = clientStatsMap[b.id] || { totalVisits: 0, totalSpent: 0, lastVisit: null };

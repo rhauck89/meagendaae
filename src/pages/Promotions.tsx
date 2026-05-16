@@ -227,7 +227,7 @@ function formatCountdown(ms: number): string {
 
 export default function Promotions() {
   const { companyId, profile } = useAuth();
-  const { isAdmin } = useUserRole();
+  const { isAdmin, isProfessionalMode } = useUserRole();
   const [searchParams, setSearchParams] = useSearchParams();
   const initialSection = searchParams.get('section') || 'campaigns';
   const [section, setSection] = useState<any>(initialSection);
@@ -413,7 +413,7 @@ export default function Promotions() {
       .order('created_at', { ascending: false });
     
     // Professionals only see their own promotions
-    if (!isAdmin && profile?.id) {
+    if (isProfessionalMode && profile?.id) {
       query = query.eq('created_by', profile.id);
     }
     

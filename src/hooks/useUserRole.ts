@@ -12,8 +12,8 @@ export const useUserRole = () => {
 
   // When an admin+collaborator switches to professional mode, treat as non-admin
   const isProfessionalMode = useMemo(
-    () => !isOwner && isProfessional && isAlsoCollaborator && loginMode === 'professional',
-    [isOwner, isProfessional, isAlsoCollaborator, loginMode]
+    () => isProfessional && isAlsoCollaborator && loginMode === 'professional',
+    [isProfessional, isAlsoCollaborator, loginMode]
   );
 
   const isAdmin = useMemo(

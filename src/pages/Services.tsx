@@ -164,7 +164,7 @@ const Services = () => {
   const canManageServices =
     roles.includes('super_admin') ||
     loginMode === 'admin' ||
-    (isAdmin && !isProfessionalMode && !roles.includes('collaborator'));
+    (isAdmin && !isProfessionalMode);
   const queryClient = useQueryClient();
   const { refresh } = useRefreshData();
   const [dialogOpen, setDialogOpen] = useState(false);

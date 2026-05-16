@@ -82,7 +82,7 @@ const statusFilterMap: Record<StatusTab, (apt: any) => boolean> = {
 const Dashboard = () => {
   const { companyId, user } = useAuth();
   const { isSubscribed, subscribe, permission, isSupported, loading: pushLoading } = usePushNotifications();
-  const { isAdmin, profileId } = useUserRole();
+  const { isAdmin, profileId, isProfessionalMode } = useUserRole();
   const isMobile = useIsMobile();
   const { maskValue } = useFinancialPrivacy();
   const formatCurrency = (v: number) => maskValue(v);
@@ -103,11 +103,11 @@ const Dashboard = () => {
 
   // Cache optimized dashboard stats
   const { data: serverStats } = useQuery({
-    queryKey: ['dashboard-server-stats', companyId, filterProfessional, isAdmin, profileId],
+    queryKey: ['dashboard-server-stats', companyId, filterProfessional, isAdmin, profileId, isProfessionalMode],
     queryFn: async () => {
       if (!companyId) return null;
       console.log('[DASHBOARD] Fetching server stats for company:', companyId);
-      const professionalId = (!isAdmin && profileId) ? profileId : (filterProfessional === 'all' ? null : filterProfessional);
+      const professionalId = (isProfessionalMode && profileId) ? profileId : (filterProfessional === 'all' ? null : filterProfessional);
       const { data, error } = await supabase.rpc('get_company_dashboard_stats', {
         p_company_id: companyId,
         p_professional_id: professionalId
@@ -268,7 +268,7 @@ const Dashboard = () => {
     return () => {
       cancelled = true;
     };
-  }, [companyId, currentDate, viewMode, filterProfessional, isAdmin, profileId]);
+  }, [companyId, currentDate, viewMode, filterProfessional, isAdmin, profileId, isProfessionalMode]);
 
   const fetchPremiumMetrics = async () => {
     if (!companyId) return;
@@ -304,7 +304,7 @@ const Dashboard = () => {
       fetchMonthlyStats();
       fetchUpcomingAppointments();
     }
-  }, [companyId, currentDate, viewMode, filterProfessional, isAdmin, profileId]);
+  }, [companyId, currentDate, viewMode, filterProfessional, isAdmin, profileId, isProfessionalMode]);
   useOnDataRefresh('agenda', handleAgendaRefresh);
 
   const fetchUpcomingAppointments = async () => {
@@ -323,7 +323,7 @@ const Dashboard = () => {
       .order('start_time', { ascending: true })
       .limit(10);
 
-    if (!isAdmin && profileId) {
+    if (isProfessionalMode && profileId) {
       query = query.eq('professional_id', profileId);
     } else if (filterProfessional !== 'all') {
       query = query.eq('professional_id', filterProfessional);
@@ -356,7 +356,7 @@ const Dashboard = () => {
       .gte('block_date', format(start, 'yyyy-MM-dd'))
       .lte('block_date', format(end, 'yyyy-MM-dd'));
 
-    if (!isAdmin && profileId) {
+    if (isProfessionalMode && profileId) {
       query = query.eq('professional_id', profileId);
     } else if (filterProfessional !== 'all') {
       query = query.eq('professional_id', filterProfessional);
@@ -2028,7 +2028,7 @@ const Dashboard = () => {
               </div>
             )}
             {/* Column mode toggle for calendar view */}
-            {!isMobile && agendaDisplayMode === 'calendario' && viewMode === 'day' && isAdmin && collaboratorsList.length > 1 && (
+            {!isMobile && agendaDisplayMode === 'calendario' && viewMode === 'day' && !isProfessionalMode && collaboratorsList.length > 1 && (
               <div className="flex gap-1 bg-muted rounded-lg p-1">
                 <Button
                   variant={timelineColumnMode === 'day' ? 'default' : 'ghost'}
@@ -2050,7 +2050,7 @@ const Dashboard = () => {
         </CardHeader>
         <CardContent>
           {/* Professional Legend & Day Stats */}
-          {agendaDisplayMode === 'calendario' && isAdmin && (
+          {agendaDisplayMode === 'calendario' && !isProfessionalMode && (
             <div className="flex flex-wrap items-center justify-between gap-4 mb-6 p-4 rounded-xl bg-muted/20 border border-border/10">
               <div className="flex flex-wrap items-center gap-4">
                 <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mr-2">Profissionais:</p>

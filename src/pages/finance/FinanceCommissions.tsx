@@ -21,9 +21,9 @@ import { toast } from 'sonner';
 const FinanceCommissions = () => {
   const { companyId } = useAuth();
   const { maskValue } = useFinancialPrivacy();
-  const { isAdmin, profileId } = useUserRole();
+  const { isAdmin, isProfessionalMode, profileId } = useUserRole();
   const location = useLocation();
-  const showAdminView = isAdmin && !location.pathname.startsWith('/dashboard/my-finance');
+  const showAdminView = !isProfessionalMode && !location.pathname.startsWith('/dashboard/my-finance');
   const [startDate, setStartDate] = useState<Date>(startOfMonth(new Date()));
   const [endDate, setEndDate] = useState<Date>(new Date());
   const [rows, setRows] = useState<any[]>([]);

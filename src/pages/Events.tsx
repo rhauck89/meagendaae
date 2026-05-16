@@ -119,7 +119,7 @@ const WIZARD_STEPS = [
 
 const Events = () => {
   const { companyId, profile } = useAuth();
-  const { isAdmin } = useUserRole();
+  const { isAdmin, isProfessionalMode } = useUserRole();
   const { hasSeen, markSeen, loading: discoveryLoading } = useFeatureDiscovery();
   const [showIntro, setShowIntro] = useState(false);
   const [events, setEvents] = useState<Event[]>([]);
@@ -230,7 +230,7 @@ const Events = () => {
       .order('start_date', { ascending: false });
     
     // Professionals only see their own events
-    if (!isAdmin && profile?.id) {
+    if (isProfessionalMode && profile?.id) {
       query = query.eq('created_by', profile.id);
     }
     
@@ -388,7 +388,7 @@ const Events = () => {
       setEventServices([]);
     }
     // For professionals, always lock to their own profile
-    if (!isAdmin && profile?.id) {
+    if (isProfessionalMode && profile?.id) {
       setSlotProfessionals([profile.id]);
     } else if (professionals.length > 0) {
       setSlotProfessionals([professionals[0].profile_id]);
