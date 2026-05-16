@@ -230,7 +230,7 @@ const Events = () => {
       .order('start_date', { ascending: false });
     
     // Professionals only see their own events
-    if (!isAdmin && profile?.id) {
+    if (isProfessionalMode && profile?.id) {
       query = query.eq('created_by', profile.id);
     }
     
