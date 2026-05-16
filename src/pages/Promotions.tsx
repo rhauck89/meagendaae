@@ -413,7 +413,7 @@ export default function Promotions() {
       .order('created_at', { ascending: false });
     
     // Professionals only see their own promotions
-    if (!isAdmin && profile?.id) {
+    if (isProfessionalMode && profile?.id) {
       query = query.eq('created_by', profile.id);
     }
     
