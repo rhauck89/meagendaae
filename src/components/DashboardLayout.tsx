@@ -608,16 +608,16 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
             <nav className="flex-1 px-3 space-y-1 overflow-y-auto sidebar-nav">
               {navItems.map(item => (
                 <div key={item.href}>
-                  {isAdmin && item.href === '/dashboard/events' && renderCollapsibleGroup('Assinaturas', ClipboardList, isSubscriptionsActive, subscriptionsOpen, setSubscriptionsOpen, subscriptionSubItems)}
+                  {!isProfessionalMode && item.href === '/dashboard/events' && renderCollapsibleGroup('Assinaturas', ClipboardList, isSubscriptionsActive, subscriptionsOpen, setSubscriptionsOpen, subscriptionSubItems)}
                   {renderNavLink(item, item.href === '/dashboard/solicitacoes' ? pendingRequests : undefined)}
                 </div>
               ))}
-              {isAdmin && renderCollapsibleGroup('Financeiro', DollarSign, isFinanceActive, financeOpen, setFinanceOpen, financeSubItems)}
-              {isAdmin && renderCollapsibleGroup('Configurações', Settings, isSettingsActive, settingsOpen, setSettingsOpen, settingsSubItems)}
+              {!isProfessionalMode && renderCollapsibleGroup('Financeiro', DollarSign, isFinanceActive, financeOpen, setFinanceOpen, financeSubItems)}
+              {!isProfessionalMode && renderCollapsibleGroup('Configurações', Settings, isSettingsActive, settingsOpen, setSettingsOpen, settingsSubItems)}
 
-              {!isAdmin && profPerms.finance && renderCollapsibleGroup('Financeiro', DollarSign, isProfessionalFinanceActive, professionalFinanceOpen, setProfessionalFinanceOpen, professionalFinanceSubItems)}
+              {isProfessionalMode && profPerms.finance && renderCollapsibleGroup('Financeiro', DollarSign, isProfessionalFinanceActive, professionalFinanceOpen, setProfessionalFinanceOpen, professionalFinanceSubItems)}
 
-              {!isAdmin && (
+              {isProfessionalMode && (
                 <>
                   {renderNavLink({ href: '/dashboard/profile', icon: User, label: 'Meu Perfil' })}
                   {!collapsed && profile?.full_name && (
@@ -629,7 +629,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
               <div className="pt-2 mt-2 border-t border-sidebar-border">
                 {!collapsed && <p className="px-3 py-1.5 text-xs font-semibold text-sidebar-foreground/40 uppercase tracking-wider">Ajuda</p>}
                 {renderNavLink({ href: '/dashboard/help', icon: HelpCircle, label: 'Tutoriais' })}
-                {isAdmin && renderNavLink({ href: '/dashboard/support', icon: MessageSquare, label: 'Suporte' }, unreadTickets)}
+                {!isProfessionalMode && renderNavLink({ href: '/dashboard/support', icon: MessageSquare, label: 'Suporte' }, unreadTickets)}
               </div>
             </nav>
 
