@@ -103,11 +103,11 @@ const Dashboard = () => {
 
   // Cache optimized dashboard stats
   const { data: serverStats } = useQuery({
-    queryKey: ['dashboard-server-stats', companyId, filterProfessional, isAdmin, profileId],
+    queryKey: ['dashboard-server-stats', companyId, filterProfessional, isAdmin, profileId, isProfessionalMode],
     queryFn: async () => {
       if (!companyId) return null;
       console.log('[DASHBOARD] Fetching server stats for company:', companyId);
-      const professionalId = (!isAdmin && profileId) ? profileId : (filterProfessional === 'all' ? null : filterProfessional);
+      const professionalId = (isProfessionalMode && profileId) ? profileId : (filterProfessional === 'all' ? null : filterProfessional);
       const { data, error } = await supabase.rpc('get_company_dashboard_stats', {
         p_company_id: companyId,
         p_professional_id: professionalId
