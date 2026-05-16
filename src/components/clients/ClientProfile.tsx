@@ -223,7 +223,7 @@ export const ClientProfile = ({ client, companyId, profileMap, onBack }: ClientP
       client.is_blocked = newBlocked;
       refresh('clients');
       toast.success(newBlocked ? 'Cliente bloqueado' : 'Cliente desbloqueado');
-    } catch { toast.error('Erro ao atualizar status do cliente'); }
+    } catch (err) { handleError(err, { area: 'client.profile.toggleBlock', companyId }); }
   };
 
   return (
