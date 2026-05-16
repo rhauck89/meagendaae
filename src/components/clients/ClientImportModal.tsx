@@ -393,7 +393,13 @@ export function ClientImportModal({ open, onOpenChange, companyId, onImportSucce
 
           {step === 'preview' && (
             <div className="flex flex-col h-full space-y-4">
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                <StatsCard 
+                  label="Linha" 
+                  value={0} 
+                  icon={<Info className="h-4 w-4 text-gray-400" />}
+                  isHeader
+                />
                 <StatsCard 
                   label="Prontos" 
                   value={previewData.filter(p => p.status === 'ready' || p.status === 'incomplete').length} 
@@ -410,9 +416,9 @@ export function ClientImportModal({ open, onOpenChange, companyId, onImportSucce
                   icon={<XCircle className="h-4 w-4 text-red-500" />}
                 />
                 <StatsCard 
-                  label="Total" 
-                  value={previewData.length} 
-                  icon={<Users className="h-4 w-4 text-blue-500" />}
+                  label="Importados" 
+                  value={previewData.filter(p => p.status === 'imported').length} 
+                  icon={<CheckCircle2 className="h-4 w-4 text-blue-500" />}
                 />
               </div>
 
