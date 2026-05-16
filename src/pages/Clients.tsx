@@ -60,7 +60,7 @@ const Clients = () => {
         .select('id, client_id, professional_id, start_time, total_price, status')
         .eq('company_id', companyId)
         .in('status', ['completed', 'confirmed', 'pending', 'cancelled']);
-      if (!isAdmin && profileId) query = query.eq('professional_id', profileId);
+      if (isProfessionalMode && profileId) query = query.eq('professional_id', profileId);
       const { data, error } = await query;
       if (error) throw error;
       return data;
