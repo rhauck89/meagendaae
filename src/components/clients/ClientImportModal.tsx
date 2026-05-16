@@ -308,16 +308,19 @@ export function ClientImportModal({ open, onOpenChange, companyId, onImportSucce
       const p = updatedPreview[i];
       if (p.status !== 'ready' && p.status !== 'incomplete') continue;
 
+      const normalizedBirth = normalizeBirthDate(p.birth_date);
+      const birthDateToSave = (typeof normalizedBirth === 'string' || normalizedBirth === null) ? normalizedBirth : p.birth_date;
+
       try {
         const { error } = await supabase.from('clients').insert({
           company_id: companyId,
           name: p.name,
           whatsapp: p.whatsapp,
           email: p.email || null,
-          birth_date: p.birth_date || null,
+          birth_date: birthDateToSave || null,
           notes: p.notes || null,
           opt_in_whatsapp: true,
-          registration_complete: !!(p.email && p.birth_date)
+          registration_complete: !!(p.email && birthDateToSave)
         } as any);
 
         if (error) {
