@@ -566,7 +566,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
                       </button>
                     </TooltipTrigger>
                     <TooltipContent side="right">
-                      {isAdmin ? 'Modo Administrador — Clique para trocar' : 'Modo Profissional — Clique para trocar'}
+                      {!isProfessionalMode ? 'Modo Administrador — Clique para trocar' : 'Modo Profissional — Clique para trocar'}
                     </TooltipContent>
                   </Tooltip>
                 ) : (
