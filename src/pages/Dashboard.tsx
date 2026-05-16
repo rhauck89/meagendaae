@@ -356,7 +356,7 @@ const Dashboard = () => {
       .gte('block_date', format(start, 'yyyy-MM-dd'))
       .lte('block_date', format(end, 'yyyy-MM-dd'));
 
-    if (!isAdmin && profileId) {
+    if (isProfessionalMode && profileId) {
       query = query.eq('professional_id', profileId);
     } else if (filterProfessional !== 'all') {
       query = query.eq('professional_id', filterProfessional);
