@@ -2028,7 +2028,7 @@ const Dashboard = () => {
               </div>
             )}
             {/* Column mode toggle for calendar view */}
-            {!isMobile && agendaDisplayMode === 'calendario' && viewMode === 'day' && isAdmin && collaboratorsList.length > 1 && (
+            {!isMobile && agendaDisplayMode === 'calendario' && viewMode === 'day' && !isProfessionalMode && collaboratorsList.length > 1 && (
               <div className="flex gap-1 bg-muted rounded-lg p-1">
                 <Button
                   variant={timelineColumnMode === 'day' ? 'default' : 'ghost'}
