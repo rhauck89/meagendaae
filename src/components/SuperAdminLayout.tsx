@@ -25,6 +25,7 @@ const navItems = [
   { href: '/super-admin/tutorials', icon: Video, label: 'Tutoriais' },
   { href: '/super-admin/messages', icon: Megaphone, label: 'Mensagens' },
   { href: '/super-admin/whatsapp-center', icon: MessageSquare, label: 'WhatsApp Center' },
+  { href: '/super-admin/error-logs', icon: Terminal, label: 'Logs de Erros' },
   { href: '/super-admin/settings', icon: Settings, label: 'Configurações' },
 ];
 
