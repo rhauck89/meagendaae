@@ -6501,16 +6501,21 @@ export type Database = {
       subscription_plans: {
         Row: {
           all_professionals: boolean | null
+          commission_timing: string
           company_id: string
           created_at: string
           description: string | null
           id: string
           included_services: string[] | null
           is_active: boolean | null
+          limit_period: string | null
           name: string
           observations: string | null
+          plan_commission_type: string
+          plan_commission_value: number
           price_monthly: number
           price_yearly: number | null
+          quantity_available: number | null
           type: string
           updated_at: string
           usage_count_mode: string | null
@@ -6521,16 +6526,21 @@ export type Database = {
         }
         Insert: {
           all_professionals?: boolean | null
+          commission_timing?: string
           company_id: string
           created_at?: string
           description?: string | null
           id?: string
           included_services?: string[] | null
           is_active?: boolean | null
+          limit_period?: string | null
           name: string
           observations?: string | null
+          plan_commission_type?: string
+          plan_commission_value?: number
           price_monthly?: number
           price_yearly?: number | null
+          quantity_available?: number | null
           type: string
           updated_at?: string
           usage_count_mode?: string | null
@@ -6541,16 +6551,21 @@ export type Database = {
         }
         Update: {
           all_professionals?: boolean | null
+          commission_timing?: string
           company_id?: string
           created_at?: string
           description?: string | null
           id?: string
           included_services?: string[] | null
           is_active?: boolean | null
+          limit_period?: string | null
           name?: string
           observations?: string | null
+          plan_commission_type?: string
+          plan_commission_value?: number
           price_monthly?: number
           price_yearly?: number | null
+          quantity_available?: number | null
           type?: string
           updated_at?: string
           usage_count_mode?: string | null
