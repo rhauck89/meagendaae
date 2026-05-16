@@ -152,7 +152,7 @@ const Clients = () => {
     newClientsMonth: Number(serverMetrics?.new_clients_month || 0),
     totalAppointments: Number(serverMetrics?.total_appointments || 0),
     topClientMonth: serverMetrics?.top_client_name ? { name: serverMetrics.top_client_name, count: Number(serverMetrics.top_client_count) } : null,
-    filteredClientIds: new Set(isAdmin && profFilter !== 'all' ? appointments.filter(a => a.professional_id === profFilter && ['completed', 'confirmed'].includes(a.status)).map(a => a.client_id) : [])
+    filteredClientIds: new Set(!isProfessionalMode && profFilter !== 'all' ? appointments.filter(a => a.professional_id === profFilter && ['completed', 'confirmed'].includes(a.status)).map(a => a.client_id) : [])
   }), [serverMetrics, isAdmin, profFilter, appointments]);
 
   const filtered = useMemo(() => {
