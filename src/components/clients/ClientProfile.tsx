@@ -239,10 +239,10 @@ export const ClientProfile = ({ client, companyId, profileMap, onBack }: ClientP
             {clientSubscription && <Badge className="text-xs gap-1 bg-amber-100 text-amber-800 border-none"><Crown className="h-3 w-3" /> Assinante</Badge>}
             {client.is_blocked && <Badge variant="destructive" className="text-xs gap-1"><Ban className="h-3 w-3" /> Bloqueado</Badge>}
           </div>
-          <p className="text-muted-foreground text-sm break-words">
+          <p className="text-muted-foreground text-sm flex items-center gap-1 flex-wrap">
             {client.whatsapp ? displayWhatsApp(client.whatsapp) : 'Sem WhatsApp'}
-            {client.email && ` â€¢ ${client.email}`}
-            {client.birth_date && ` â€¢ ðŸŽ‚ ${format(parseISO(client.birth_date), 'dd/MM/yyyy', { locale: ptBR })}`}
+            {client.email && ` | ${client.email}`}
+            {client.birth_date && ` | Nasc.: ${format(parseISO(client.birth_date), 'dd/MM/yyyy')}`}
           </p>
         </div>
         <div className="flex gap-2 shrink-0 flex-wrap">
