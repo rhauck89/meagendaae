@@ -20,7 +20,7 @@ interface ClientImportModalProps {
   onImportSuccess: () => void;
 }
 
-type Step = 'upload' | 'mapping' | 'preview' | 'importing';
+type Step = 'upload' | 'mapping' | 'preview' | 'importing' | 'results';
 
 interface RawRow {
   [key: string]: string;
@@ -35,12 +35,13 @@ interface ColumnMapping {
 }
 
 interface PreviewRow {
+  line: number;
   name: string;
   whatsapp: string;
   email?: string;
   birth_date?: string;
   notes?: string;
-  status: 'ready' | 'error' | 'duplicate' | 'incomplete';
+  status: 'ready' | 'error' | 'duplicate' | 'incomplete' | 'imported';
   errorDetails?: string;
 }
 
