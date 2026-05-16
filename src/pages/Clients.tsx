@@ -69,7 +69,7 @@ const Clients = () => {
   });
 
   const professionalClientIds = useMemo(() => {
-    if (isAdmin) return null;
+    if (!isProfessionalMode) return null;
     return new Set(appointments.filter(a => ['completed', 'confirmed', 'pending'].includes(a.status)).map(a => a.client_id).filter(Boolean));
   }, [isAdmin, appointments]);
 
