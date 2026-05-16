@@ -182,7 +182,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
     return (profPerms as any)[item.permKey];
   });
 
-  const navItems = isAdmin ? adminNavItems : professionalNavItems;
+  const navItems = isProfessionalMode ? professionalNavItems : adminNavItems;
 
   const handleRoleSelect = (mode: 'admin' | 'professional') => {
     setLoginMode(mode);
