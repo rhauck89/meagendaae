@@ -303,6 +303,79 @@ const SettingsCompany = () => {
         </CardContent>
       </Card>
 
+      {/* Payment Data */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <CreditCard className="h-5 w-5" /> Dados de pagamento
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label className="text-xs">Chave PIX</Label>
+              <Input 
+                value={paymentPixKey} 
+                onChange={(e) => setPaymentPixKey(e.target.value)} 
+                placeholder="E-mail, CPF, CNPJ ou Celular" 
+              />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Titular</Label>
+              <Input 
+                value={paymentHolderName} 
+                onChange={(e) => setPaymentHolderName(e.target.value)} 
+                placeholder="Nome completo ou Razão Social" 
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label className="text-xs">CPF/CNPJ</Label>
+              <Input 
+                value={paymentDocument} 
+                onChange={(e) => setPaymentDocument(e.target.value)} 
+                placeholder="00.000.000/0000-00" 
+              />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Banco</Label>
+              <Input 
+                value={paymentBankName} 
+                onChange={(e) => setPaymentBankName(e.target.value)} 
+                placeholder="Nome do banco" 
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label className="text-xs">Agência</Label>
+              <Input 
+                value={paymentBankAgency} 
+                onChange={(e) => setPaymentBankAgency(e.target.value)} 
+                placeholder="0000" 
+              />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Conta</Label>
+              <Input 
+                value={paymentBankAccount} 
+                onChange={(e) => setPaymentBankAccount(e.target.value)} 
+                placeholder="00000-0" 
+              />
+            </div>
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs">Observação para cobranças</Label>
+            <Input 
+              value={subscriptionPaymentNotes} 
+              onChange={(e) => setSubscriptionPaymentNotes(e.target.value)} 
+              placeholder="Ex: Enviar comprovante via WhatsApp" 
+            />
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Professional Permissions */}
       <Card>
         <CardHeader><CardTitle className="flex items-center gap-2"><ShieldCheck className="h-5 w-5" /> Permissões do Profissional</CardTitle></CardHeader>
