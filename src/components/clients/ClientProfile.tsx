@@ -197,7 +197,7 @@ export const ClientProfile = ({ client, companyId, profileMap, onBack }: ClientP
   const selectedDayAppointments = selectedHistoryDate ? appointments.filter(a => isSameDay(parseISO(a.start_time), selectedHistoryDate)) : [];
 
   const handleSaveClient = async () => {
-    if (!editForm.name.trim()) { toast.error('Nome Ã© obrigatÃ³rio'); return; }
+    if (!editForm.name.trim()) { toast.error('Nome é obrigatório'); return; }
     setSaving(true);
     try {
       const { error } = await supabase.from('clients').update({
@@ -211,7 +211,7 @@ export const ClientProfile = ({ client, companyId, profileMap, onBack }: ClientP
       refresh('clients');
       toast.success('Cliente atualizado com sucesso');
       setEditOpen(false);
-    } catch { toast.error('Erro ao atualizar cliente'); } finally { setSaving(false); }
+    } catch (err) { handleError(err, { area: 'client.profile.update', companyId }); } finally { setSaving(false); }
   };
 
   const handleToggleBlock = async () => {
