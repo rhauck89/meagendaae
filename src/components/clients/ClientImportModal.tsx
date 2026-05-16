@@ -12,6 +12,45 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Label } from '@/components/ui/label';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+const normalizeBirthDate = (value: string | undefined | null): string | null | { error: string } => {
+  if (!value || value.trim() === '') return null;
+  
+  const trimmedValue = value.trim();
+  
+  // Excel serial number (numeric string)
+  if (/^\d+$/.test(trimmedValue)) {
+    const serial = parseInt(trimmedValue, 10);
+    // Excel date starts from 1900-01-01. 
+    // JS dates start from 1970-01-01.
+    // Difference is ~25569 days.
+    const date = new Date((serial - 25569) * 86400 * 1000);
+    if (!isNaN(date.getTime())) {
+      return date.toISOString().split('T')[0];
+    }
+  }
+
+  // YYYY-MM-DD
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmedValue)) {
+    return trimmedValue;
+  }
+
+  // DD/MM/YYYY, DD-MM-YYYY, DD.MM.YYYY
+  const brDateMatch = trimmedValue.match(/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})$/);
+  if (brDateMatch) {
+    const day = brDateMatch[1].padStart(2, '0');
+    const month = brDateMatch[2].padStart(2, '0');
+    const year = brDateMatch[3];
+    const isoDate = `${year}-${month}-${day}`;
+    // Basic validation
+    const date = new Date(isoDate);
+    if (!isNaN(date.getTime()) && date.toISOString().startsWith(isoDate)) {
+      return isoDate;
+    }
+  }
+
+  return { error: "Data de nascimento inválida. Use DD/MM/AAAA ou AAAA-MM-DD." };
+};
+
 
 interface ClientImportModalProps {
   open: boolean;
