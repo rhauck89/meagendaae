@@ -256,8 +256,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         permissions: ctx.permissions || {}
       };
 
-      const serviceProvider = ctx.is_service_provider !== false;
-      const normalizedLoginMode = serviceProvider ? (ctx.login_mode || null) : 'admin';
+      const isSuperAdmin = ctx.roles?.includes('super_admin');
+      const isOwner = ctx.is_company_owner || ctx.is_owner || false;
+      const isServiceProvider = ctx.is_service_provider === true;
+      
+      // If not service provider and not owner/super_admin, force admin mode if they have any staff role
+      const isStaff = ctx.roles?.some((r: string) => ['collaborator', 'admin', 'recepcionista', 'gerente', 'atendente'].includes(r));
+      
+      let normalizedLoginMode = ctx.login_mode;
+      if (!isServiceProvider && isStaff) {
+        normalizedLoginMode = 'admin';
+      } else if (!normalizedLoginMode && (isOwner || isSuperAdmin)) {
+        normalizedLoginMode = 'admin';
+      } else if (!normalizedLoginMode && isServiceProvider) {
+        normalizedLoginMode = 'professional';
+      }
 
       // Comparison logic to prevent redundant state updates
       const profileChanged = JSON.stringify(stateRef.current.profile) !== JSON.stringify(mappedProfile);
@@ -291,9 +304,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         stateRef.current.permissions = ctx.permissions || {};
       }
       
-      setIsAlsoCollaborator(Boolean(ctx.is_collaborator && serviceProvider));
-      setIsServiceProvider(serviceProvider);
-      setIsOwner(ctx.is_company_owner || ctx.is_owner || false);
+      const isOwnerNow = ctx.is_company_owner || ctx.is_owner || false;
+      setIsAlsoCollaborator(Boolean(ctx.is_collaborator && isServiceProvider));
+      setIsServiceProvider(isServiceProvider);
+      setIsOwner(isOwnerNow);
       stateRef.current.hasContext = true;
 
       console.log("[AUTH_CONTEXT_DIAG] State updated successfully. Changed:", { profileChanged, companyChanged, rolesChanged });

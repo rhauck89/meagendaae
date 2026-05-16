@@ -18,7 +18,9 @@ export interface ProfessionalPermissions {
 }
 
 export const useProfessionalPermissions = (): ProfessionalPermissions => {
-  const { isOwner, permissions, loading: authLoading, loginMode } = useAuth();
+  const { isOwner, permissions, loading: authLoading, loginMode, roles } = useAuth();
+
+  const isSuperAdmin = roles.includes('super_admin');
 
   const fullProfessionalPanel = {
     agenda: true,
@@ -37,26 +39,58 @@ export const useProfessionalPermissions = (): ProfessionalPermissions => {
     loading: authLoading
   };
 
-  // If owner, has all permissions. Professional mode is only for service providers.
-  if (isOwner || loginMode === 'professional') {
+  // Helper to check permission flexibly
+  const canAccess = (module: string) => {
+    if (isOwner || isSuperAdmin) return true;
+    if (!permissions) return false;
+
+    // Check direct boolean or nested view permission
+    const perm = permissions[module];
+    if (perm === true) return true;
+    if (perm && typeof perm === 'object' && perm.view === true) return true;
+
+    // Aliases
+    const aliases: Record<string, string> = {
+      'schedule': 'agenda',
+      'servicos': 'services',
+      'equipe': 'team',
+      'clientes': 'clients',
+      'assinaturas': 'subscriptions',
+      'promocoes': 'promotions',
+      'solicitacoes': 'requests',
+      'financeiro': 'finance',
+      'configuracoes': 'settings',
+      'relatorios': 'reports'
+    };
+
+    const aliasedModule = aliases[module];
+    if (aliasedModule) {
+      const aliasedPerm = permissions[aliasedModule];
+      if (aliasedPerm === true) return true;
+      if (aliasedPerm && typeof aliasedPerm === 'object' && aliasedPerm.view === true) return true;
+    }
+
+    return false;
+  };
+
+  if (loginMode === 'professional') {
     return fullProfessionalPanel;
   }
 
-  // Map backend permissions to frontend keys
   return {
-    agenda: permissions?.agenda?.view ?? false,
-    services: permissions?.services?.view ?? false,
-    team: permissions?.team?.view ?? false,
-    clients: permissions?.clients?.view ?? false,
-    whatsapp: permissions?.whatsapp?.view ?? false,
-    subscriptions: permissions?.subscriptions?.view ?? false,
-    events: permissions?.events?.view ?? false,
-    promotions: permissions?.promotions?.view ?? false,
-    loyalty: permissions?.loyalty?.view ?? false,
-    requests: permissions?.requests?.view ?? false,
-    finance: permissions?.finance?.view ?? false,
-    settings: permissions?.settings?.view ?? false,
-    reports: permissions?.reports?.view ?? false,
+    agenda: canAccess('agenda'),
+    services: canAccess('services'),
+    team: canAccess('team'),
+    clients: canAccess('clients'),
+    whatsapp: canAccess('whatsapp'),
+    subscriptions: canAccess('subscriptions'),
+    events: canAccess('events'),
+    promotions: canAccess('promotions'),
+    loyalty: canAccess('loyalty'),
+    requests: canAccess('requests'),
+    finance: canAccess('finance'),
+    settings: canAccess('settings'),
+    reports: canAccess('reports'),
     loading: authLoading
   };
 };

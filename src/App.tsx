@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes, Navigate, useLocation } from "react-router-dom";
+import { BrowserRouter, Route, Routes, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -7,6 +7,7 @@ import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { FinancialPrivacyProvider } from "@/contexts/FinancialPrivacyContext";
 import { useDomainRouting } from "@/hooks/useDomainRouting";
 import { useEffect } from "react";
+import { useProfessionalPermissions } from "@/hooks/useProfessionalPermissions";
 import { ENABLE_PUSH_NOTIFICATIONS } from "@/lib/constants";
 import Index from "./pages/Index";
 import MarketplaceHome from "./pages/MarketplaceHome";
@@ -112,33 +113,14 @@ const queryClient = new QueryClient({
   },
 });
 
-const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+const ProtectedRoute = ({ children, module }: { children: React.ReactNode; module?: string }) => {
   const { user, loading, profile, roles, companyId } = useAuth();
+  const profPerms = useProfessionalPermissions();
   const location = useLocation();
-  
-  // Trace logs
-  useEffect(() => {
-    const count = (window as any)._trace_ProtectedRoute = ((window as any)._trace_ProtectedRoute || 0) + 1;
-    console.log('[SUPER_ADMIN_RENDER_TRACE]', { component: "ProtectedRoute", count, pathname: location.pathname, timestamp: Date.now() });
-  });
-
-  useEffect(() => {
-    console.log('[SUPER_ADMIN_EFFECT_TRACE]', { component: "ProtectedRoute", effect: "mount/deps", deps: [loading, !!user, roles?.join(',')] });
-  }, [loading, user, roles]);
-
+  const navigate = useNavigate();
   
   const isSuperAdmin = roles?.includes('super_admin');
   const isSuperAdminRoute = location.pathname.startsWith('/super-admin');
-
-  console.log('[SUPER_ADMIN_ROUTE_GUARD]', { 
-    pathname: location.pathname,
-    roles, 
-    companyId,
-    isSuperAdmin,
-    isSuperAdminRoute,
-    loading,
-    userId: user?.id
-  });
 
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center bg-background">
@@ -153,9 +135,36 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     return <Navigate to="/auth" replace />;
   }
 
-  // Se o usuário está autenticado mas o profile sumiu (inconsistência crítica)
   if (!profile) {
     console.error("[AUTH_CHECK] User authenticated but profile missing.");
+  }
+
+  // Permission check
+  if (module && !profPerms.loading) {
+    const hasAccess = (profPerms as any)[module];
+    if (hasAccess === false) {
+      console.warn(`[PERMISSIONS] Access denied to module: ${module}. Redirecting...`);
+      // Find first allowed module
+      const modules = ['agenda', 'services', 'team', 'clients', 'whatsapp', 'events', 'subscriptions', 'promotions', 'loyalty', 'requests', 'finance', 'settings'];
+      const firstAllowed = modules.find(m => (profPerms as any)[m]);
+      
+      const redirectMap: Record<string, string> = {
+        'agenda': '/dashboard',
+        'services': '/dashboard/services',
+        'team': '/dashboard/team',
+        'clients': '/dashboard/clients',
+        'whatsapp': '/dashboard/whatsapp',
+        'events': '/dashboard/events',
+        'subscriptions': '/dashboard/subscriptions/subscribers',
+        'promotions': '/dashboard/promotions',
+        'loyalty': '/dashboard/loyalty',
+        'requests': '/dashboard/solicitacoes',
+        'finance': '/dashboard/finance',
+        'settings': '/dashboard/settings/general'
+      };
+
+      return <Navigate to={firstAllowed ? redirectMap[firstAllowed] : '/dashboard/profile'} replace />;
+    }
   }
 
   return <>{children}</>;
@@ -168,18 +177,14 @@ const AuthRedirect = () => {
   if (!user) return <Navigate to="/" replace />;
   
   if (roles?.includes('super_admin')) {
-    const count = (window as any)._trace_AuthRedirect = ((window as any)._trace_AuthRedirect || 0) + 1;
-    console.log('[SUPER_ADMIN_RENDER_TRACE]', { component: "AuthRedirect", count, target: "/super-admin", timestamp: Date.now() });
     return <Navigate to="/super-admin" replace />;
   }
   
-  console.log('[AUTH_REDIRECT_DECISION] Standard User -> /dashboard');
   return <Navigate to="/dashboard" replace />;
-
 };
 
-const DashboardRoute = ({ children }: { children: React.ReactNode }) => (
-  <ProtectedRoute>
+const DashboardRoute = ({ children, module }: { children: React.ReactNode; module?: string }) => (
+  <ProtectedRoute module={module}>
     <DashboardLayout>{children}</DashboardLayout>
   </ProtectedRoute>
 );
@@ -261,47 +266,47 @@ const PlatformRoutes = () => (
     <Route path="/super-admin/error-logs" element={<RequireRole role="super_admin"><SuperAdminLayout><SuperAdminErrorLogs /></SuperAdminLayout></RequireRole>} />
     <Route path="/admin/debug-agenda" element={<RequireRole role="super_admin"><DebugAgenda /></RequireRole>} />
     <Route path="/debug-auth-context" element={<ProtectedRoute><DebugAuthContext /></ProtectedRoute>} />
-    <Route path="/dashboard" element={<DashboardRoute><Dashboard /></DashboardRoute>} />
-    <Route path="/dashboard/services" element={<DashboardRoute><Services /></DashboardRoute>} />
-    <Route path="/dashboard/team" element={<DashboardRoute><Team /></DashboardRoute>} />
+    <Route path="/dashboard" element={<DashboardRoute module="agenda"><Dashboard /></DashboardRoute>} />
+    <Route path="/dashboard/services" element={<DashboardRoute module="services"><Services /></DashboardRoute>} />
+    <Route path="/dashboard/team" element={<DashboardRoute module="team"><Team /></DashboardRoute>} />
     
-    <Route path="/dashboard/waitlist" element={<DashboardRoute><Waitlist /></DashboardRoute>} />
-    <Route path="/dashboard/clients" element={<DashboardRoute><Clients /></DashboardRoute>} />
+    <Route path="/dashboard/waitlist" element={<DashboardRoute module="agenda"><Waitlist /></DashboardRoute>} />
+    <Route path="/dashboard/clients" element={<DashboardRoute module="clients"><Clients /></DashboardRoute>} />
     <Route path="/dashboard/subscriptions" element={<Navigate to="/dashboard/subscriptions/subscribers" replace />} />
-    <Route path="/dashboard/subscriptions/subscribers" element={<DashboardRoute><Subscriptions /></DashboardRoute>} />
-    <Route path="/dashboard/subscriptions/plans" element={<DashboardRoute><Subscriptions /></DashboardRoute>} />
-    <Route path="/dashboard/subscriptions/charges" element={<DashboardRoute><Subscriptions /></DashboardRoute>} />
+    <Route path="/dashboard/subscriptions/subscribers" element={<DashboardRoute module="subscriptions"><Subscriptions /></DashboardRoute>} />
+    <Route path="/dashboard/subscriptions/plans" element={<DashboardRoute module="subscriptions"><Subscriptions /></DashboardRoute>} />
+    <Route path="/dashboard/subscriptions/charges" element={<DashboardRoute module="subscriptions"><Subscriptions /></DashboardRoute>} />
     <Route path="/dashboard/profile" element={<DashboardRoute><ProfilePage /></DashboardRoute>} />
     <Route path="/dashboard/my-finance" element={<DashboardRoute><ProfessionalFinance /></DashboardRoute>} />
     <Route path="/dashboard/my-finance/commissions" element={<DashboardRoute><FinanceCommissions /></DashboardRoute>} />
-    <Route path="/dashboard/events" element={<DashboardRoute><Events /></DashboardRoute>} />
-    <Route path="/dashboard/promotions" element={<DashboardRoute><Promotions /></DashboardRoute>} />
-    <Route path="/dashboard/loyalty" element={<DashboardRoute><Loyalty /></DashboardRoute>} />
+    <Route path="/dashboard/events" element={<DashboardRoute module="events"><Events /></DashboardRoute>} />
+    <Route path="/dashboard/promotions" element={<DashboardRoute module="promotions"><Promotions /></DashboardRoute>} />
+    <Route path="/dashboard/loyalty" element={<DashboardRoute module="loyalty"><Loyalty /></DashboardRoute>} />
     <Route path="/dashboard/support" element={<DashboardRoute><Support /></DashboardRoute>} />
-    <Route path="/dashboard/solicitacoes" element={<DashboardRoute><AppointmentRequests /></DashboardRoute>} />
-    <Route path="/dashboard/whatsapp" element={<DashboardRoute><WhatsAppCenter /></DashboardRoute>} />
+    <Route path="/dashboard/solicitacoes" element={<DashboardRoute module="requests"><AppointmentRequests /></DashboardRoute>} />
+    <Route path="/dashboard/whatsapp" element={<DashboardRoute module="whatsapp"><WhatsAppCenter /></DashboardRoute>} />
     <Route path="/dashboard/help" element={<DashboardRoute><HelpCenter /></DashboardRoute>} />
     {/* Settings sub-routes */}
     <Route path="/dashboard/settings" element={<Navigate to="/dashboard/settings/general" replace />} />
-    <Route path="/dashboard/settings/general" element={<DashboardRoute><SettingsGeneral /></DashboardRoute>} />
-    <Route path="/dashboard/settings/company" element={<DashboardRoute><SettingsCompany /></DashboardRoute>} />
-    <Route path="/dashboard/settings/schedule" element={<DashboardRoute><SettingsSchedule /></DashboardRoute>} />
-    <Route path="/dashboard/settings/automation" element={<DashboardRoute><SettingsAutomation /></DashboardRoute>} />
-    <Route path="/dashboard/settings/branding" element={<DashboardRoute><SettingsBranding /></DashboardRoute>} />
-    <Route path="/dashboard/settings/domain" element={<DashboardRoute><SettingsDomain /></DashboardRoute>} />
-    <Route path="/dashboard/settings/plan" element={<DashboardRoute><SettingsPlan /></DashboardRoute>} />
-    <Route path="/dashboard/settings/swap-history" element={<DashboardRoute><SettingsSwapHistory /></DashboardRoute>} />
-    <Route path="/dashboard/settings/security" element={<DashboardRoute><SettingsSecurity /></DashboardRoute>} />
+    <Route path="/dashboard/settings/general" element={<DashboardRoute module="settings"><SettingsGeneral /></DashboardRoute>} />
+    <Route path="/dashboard/settings/company" element={<DashboardRoute module="settings"><SettingsCompany /></DashboardRoute>} />
+    <Route path="/dashboard/settings/schedule" element={<DashboardRoute module="settings"><SettingsSchedule /></DashboardRoute>} />
+    <Route path="/dashboard/settings/automation" element={<DashboardRoute module="settings"><SettingsAutomation /></DashboardRoute>} />
+    <Route path="/dashboard/settings/branding" element={<DashboardRoute module="settings"><SettingsBranding /></DashboardRoute>} />
+    <Route path="/dashboard/settings/domain" element={<DashboardRoute module="settings"><SettingsDomain /></DashboardRoute>} />
+    <Route path="/dashboard/settings/plan" element={<DashboardRoute module="settings"><SettingsPlan /></DashboardRoute>} />
+    <Route path="/dashboard/settings/swap-history" element={<DashboardRoute module="settings"><SettingsSwapHistory /></DashboardRoute>} />
+    <Route path="/dashboard/settings/security" element={<DashboardRoute module="settings"><SettingsSecurity /></DashboardRoute>} />
     {/* Finance sub-routes */}
-    <Route path="/dashboard/finance" element={<DashboardRoute><FinanceDashboard /></DashboardRoute>} />
-    <Route path="/dashboard/finance/transactions" element={<DashboardRoute><FinanceTransactions /></DashboardRoute>} />
-    <Route path="/dashboard/finance/revenues" element={<DashboardRoute><FinanceRevenues /></DashboardRoute>} />
-    <Route path="/dashboard/finance/expenses" element={<DashboardRoute><FinanceExpenses /></DashboardRoute>} />
-    <Route path="/dashboard/finance/categories" element={<DashboardRoute><FinanceCategories /></DashboardRoute>} />
-    <Route path="/dashboard/finance/commissions" element={<DashboardRoute><FinanceCommissions /></DashboardRoute>} />
-    <Route path="/dashboard/finance/reports" element={<DashboardRoute><FinanceReports /></DashboardRoute>} />
-    <Route path="/dashboard/finance/payables" element={<DashboardRoute><FinancePayables /></DashboardRoute>} />
-    <Route path="/dashboard/finance/receivables" element={<DashboardRoute><FinanceReceivables /></DashboardRoute>} />
+    <Route path="/dashboard/finance" element={<DashboardRoute module="finance"><FinanceDashboard /></DashboardRoute>} />
+    <Route path="/dashboard/finance/transactions" element={<DashboardRoute module="finance"><FinanceTransactions /></DashboardRoute>} />
+    <Route path="/dashboard/finance/revenues" element={<DashboardRoute module="finance"><FinanceRevenues /></DashboardRoute>} />
+    <Route path="/dashboard/finance/expenses" element={<DashboardRoute module="finance"><FinanceExpenses /></DashboardRoute>} />
+    <Route path="/dashboard/finance/categories" element={<DashboardRoute module="finance"><FinanceCategories /></DashboardRoute>} />
+    <Route path="/dashboard/finance/commissions" element={<DashboardRoute module="finance"><FinanceCommissions /></DashboardRoute>} />
+    <Route path="/dashboard/finance/reports" element={<DashboardRoute module="finance"><FinanceReports /></DashboardRoute>} />
+    <Route path="/dashboard/finance/payables" element={<DashboardRoute module="finance"><FinancePayables /></DashboardRoute>} />
+    <Route path="/dashboard/finance/receivables" element={<DashboardRoute module="finance"><FinanceReceivables /></DashboardRoute>} />
     <Route path="/settings/plans" element={<ProtectedRoute><PlansPage /></ProtectedRoute>} />
     <Route path="/checkout/success" element={<ProtectedRoute><CheckoutSuccess /></ProtectedRoute>} />
     <Route path="/:companySlug/evento/:eventSlug" element={<EventPublic />} />
