@@ -257,19 +257,19 @@ export function ClientImportModal({ open, onOpenChange, companyId, onImportSucce
       const birth_date = (typeof normalizedResult === 'string' || normalizedResult === null) ? normalizedResult : undefined;
       const dateError = (typeof normalizedResult === 'object' && normalizedResult !== null) ? normalizedResult.error : null;
 
-      if (!name) return { line, name: '', whatsapp, status: 'error', errorDetails: 'Nome obrigatório' };
-      if (!whatsapp || !isValidWhatsApp(whatsapp)) return { line, name, whatsapp: rawWa || '', status: 'error', errorDetails: 'WhatsApp inválido' };
-      if (dateError) return { line, name, whatsapp, birth_date: rawBirthDate, status: 'error', errorDetails: dateError };
+      if (!name) return { line, name: '', whatsapp, status: 'error', errorDetails: 'Nome obrigatório' } as PreviewRow;
+      if (!whatsapp || !isValidWhatsApp(whatsapp)) return { line, name, whatsapp: rawWa || '', status: 'error', errorDetails: 'WhatsApp inválido' } as PreviewRow;
+      if (dateError) return { line, name, whatsapp, birth_date: rawBirthDate || '', status: 'error', errorDetails: dateError } as PreviewRow;
       
       // Check for duplicates within the file itself
       if (fileWas.has(whatsapp)) {
-        return { line, name, whatsapp, email, birth_date: birth_date || rawBirthDate, status: 'duplicate', errorDetails: 'Duplicado no arquivo' };
+        return { line, name, whatsapp, email, birth_date: birth_date || rawBirthDate || '', status: 'duplicate', errorDetails: 'Duplicado no arquivo' } as PreviewRow;
       }
       fileWas.add(whatsapp);
 
       // Check for duplicates in the DB
       if (dbWas.has(whatsapp)) {
-        return { line, name, whatsapp, email, birth_date: birth_date || rawBirthDate, status: 'duplicate', errorDetails: 'Já cadastrado no sistema' };
+        return { line, name, whatsapp, email, birth_date: birth_date || rawBirthDate || '', status: 'duplicate', errorDetails: 'Já cadastrado no sistema' } as PreviewRow;
       }
 
       const isIncomplete = !email || !birth_date;
@@ -281,7 +281,7 @@ export function ClientImportModal({ open, onOpenChange, companyId, onImportSucce
         birth_date: birth_date || undefined,
         notes,
         status: isIncomplete ? 'incomplete' : 'ready'
-      };
+      } as PreviewRow;
     });
 
     setPreviewData(preview);
