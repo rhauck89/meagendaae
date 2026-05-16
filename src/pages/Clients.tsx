@@ -35,7 +35,7 @@ interface ClientRow {
 
 const Clients = () => {
   const { companyId } = useAuth();
-  const { isAdmin, profileId } = useUserRole();
+  const { isAdmin, isProfessionalMode, profileId } = useUserRole();
   const queryClient = useQueryClient();
   const { refresh } = useRefreshData();
   const [search, setSearch] = useState('');
