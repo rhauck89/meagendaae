@@ -1,310 +1,149 @@
-/**
- * Global Error Handler
- * ----------------------------------------------------
- * - Maps technical errors (Supabase / HTTP / RPC / Network) to friendly PT-BR messages.
- * - Logs the full technical detail to internal console (dev only) / future monitoring.
- * - Never exposes raw SQL / stack traces to end users.
- *
- * Usage:
- *   import { friendlyError, reportError, handleError } from '@/lib/error-handler';
- *
- *   try { ... } catch (e) {
- *     handleError(e, { area: 'booking.create', userId, companyId });
- *   }
- */
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
-import { toast } from 'sonner';
-
-const isDev = import.meta.env.DEV;
-
-export type ErrorKind =
-  | 'duplicate'
-  | 'foreign_key'
-  | 'not_null'
-  | 'network'
-  | 'auth'
-  | 'permission'
-  | 'conflict'
-  | 'not_found'
-  | 'rate_limit'
-  | 'server'
-  | 'validation'
-  | 'unknown';
-
-export interface FriendlyError {
-  kind: ErrorKind;
-  title: string;
-  message: string;
-  /** Technical detail kept for logs only — never displayed */
-  technical: string;
-  retryable: boolean;
-}
-
-interface ReportContext {
-  area?: string;
-  endpoint?: string;
-  userId?: string;
+export interface ErrorDetails {
+  area: string;
   companyId?: string;
-  payload?: Record<string, unknown>;
+  userId?: string;
+  metadata?: Record<string, any>;
 }
 
-/* --------------------------- Mapping --------------------------- */
+export const classifyError = (error: any) => {
+  const message = error?.message || String(error);
+  const code = error?.code || "";
 
-export function classifyError(raw: unknown): FriendlyError {
-  const err: any = raw ?? {};
-  const message = String(err?.message ?? err?.error_description ?? err ?? '');
-  const code = String(err?.code ?? err?.status ?? '').toLowerCase();
-  const lower = message.toLowerCase();
-  const technical = `${code} ${message}`.trim();
-
-  // Network / fetch
+  // Schema cache / structure errors
   if (
-    /failed to fetch|network ?error|timeout|networkrequestfailed|err_internet|load failed/i.test(message) ||
-    err?.name === 'TypeError' && /fetch/i.test(message)
+    message.includes("schema cache") ||
+    message.includes("column does not exist") ||
+    message.includes("relation does not exist") ||
+    code === "PGRST204" ||
+    code === "42703" ||
+    code === "42P01"
   ) {
     return {
-      kind: 'network',
-      title: 'Sem conexão',
-      message: 'Problema de conexão. Verifique sua internet e tente novamente.',
-      technical,
-      retryable: true,
+      friendlyTitle: "Sincronizando...",
+      friendlyMessage: "A estrutura do sistema ainda está sincronizando. Recarregue a página e tente novamente.",
+      category: "schema"
     };
   }
 
-  // Auth — session expired / unauthorized
+  // Date/time errors
   if (
-    /jwt expired|invalid jwt|unauthorized|not authenticated|auth_required|session.*expired/i.test(message) ||
-    code === '401' || code === '28000'
+    message.includes("date/time field value out of range") ||
+    message.includes("invalid date") ||
+    code === "22007" ||
+    code === "22008"
   ) {
     return {
-      kind: 'auth',
-      title: 'Sessão expirada',
-      message: 'Sua sessão expirou. Faça login novamente para continuar.',
-      technical,
-      retryable: false,
+      friendlyTitle: "Data inválida",
+      friendlyMessage: "A data informada não é válida. Use o formato dia/mês/ano, por exemplo 15/05/1990.",
+      category: "validation"
     };
   }
 
-  // Permission
-  if (/permission denied|forbidden|rls|new row violates row-level security/i.test(message) || code === '403' || code === '42501') {
+  // Duplicate key errors
+  if (message.includes("duplicate key") || code === "23505") {
     return {
-      kind: 'permission',
-      title: 'Acesso não permitido',
-      message: 'Você não tem permissão para esta ação.',
-      technical,
-      retryable: false,
+      friendlyTitle: "Cadastro duplicado",
+      friendlyMessage: "Já existe um cadastro com estes dados. Revise as informações e tente novamente.",
+      category: "validation"
     };
   }
 
-  // Slot conflict (booking specific)
-  if (/time slot already booked|slot.*conflict|no_overlapping_appointments|already booked/i.test(message)) {
+  // Not-null constraint errors
+  if (message.includes("null value in column") || code === "23502") {
     return {
-      kind: 'conflict',
-      title: 'Horário indisponível',
-      message: 'Esse horário acabou de ser reservado. Escolha outro disponível.',
-      technical,
-      retryable: false,
+      friendlyTitle: "Campos obrigatórios",
+      friendlyMessage: "Preencha todos os campos obrigatórios e tente novamente.",
+      category: "validation"
     };
   }
 
-  // Duplicate / unique violation
-  if (/duplicate key|unique constraint|already exists|23505/i.test(message) || code === '23505') {
-    // Specific case for clients index
-    if (/idx_clients_user_company|clients.*user.*company/i.test(message)) {
-      return {
-        kind: 'duplicate',
-        title: 'Cadastro já existe',
-        message: 'Já encontramos seu cadastro. Continuando...',
-        technical,
-        retryable: true,
-      };
-    }
-    return {
-      kind: 'duplicate',
-      title: 'Registro já existe',
-      message: 'Já encontramos esse cadastro. Tente novamente em instantes.',
-      technical,
-      retryable: true,
-    };
-  }
-
-  // Foreign key
-  if (/foreign key|violates foreign key|23503/i.test(message) || code === '23503') {
-    return {
-      kind: 'foreign_key',
-      title: 'Operação inválida',
-      message: 'Não foi possível concluir: o item está vinculado a outro registro.',
-      technical,
-      retryable: false,
-    };
-  }
-
-  // Not null
-  if (/null value in column|not-null|23502/i.test(message) || code === '23502') {
-    return {
-      kind: 'not_null',
-      title: 'Dados incompletos',
-      message: 'Preencha todos os campos obrigatórios e tente novamente.',
-      technical,
-      retryable: false,
-    };
-  }
-
-  // Not found
-  if (/not found|pgrst116|no rows/i.test(message) || code === '404') {
-    return {
-      kind: 'not_found',
-      title: 'Não encontrado',
-      message: 'Não encontramos o que você procurava. Atualize a página e tente novamente.',
-      technical,
-      retryable: true,
-    };
-  }
-
-  // Rate limit
-  if (/rate limit|too many requests|429/i.test(message) || code === '429') {
-    return {
-      kind: 'rate_limit',
-      title: 'Muitas tentativas',
-      message: 'Aguarde alguns instantes antes de tentar novamente.',
-      technical,
-      retryable: true,
-    };
-  }
-
-  // Server / 5xx
-  if (/internal server error|5\d\d|edge function.*error/i.test(message) || /^5/.test(code)) {
-    return {
-      kind: 'server',
-      title: 'Imprevisto no servidor',
-      message: 'Ocorreu um imprevisto. Nossa equipe já foi avisada. Tente novamente em alguns instantes.',
-      technical,
-      retryable: true,
-    };
-  }
-
-  // Validation (PT messages from RPCs that are already friendly)
+  // Permission/RLS errors
   if (
-    message &&
-    !/^[\[\]A-Z_0-9 ]+$/.test(message) &&
-    !/select|insert|update|delete|column|relation|constraint|pg_/i.test(lower) &&
-    message.length < 160
+    message.includes("row-level security policy") ||
+    message.includes("permission denied") ||
+    code === "42501"
   ) {
     return {
-      kind: 'validation',
-      title: 'Atenção',
-      message,
-      technical,
-      retryable: false,
+      friendlyTitle: "Acesso negado",
+      friendlyMessage: "Você não tem permissão para esta ação.",
+      category: "auth"
+    };
+  }
+
+  // Network errors
+  if (
+    message.includes("fetch") ||
+    message.includes("network") ||
+    message.includes("timeout") ||
+    message.includes("Failed to fetch")
+  ) {
+    return {
+      friendlyTitle: "Erro de conexão",
+      friendlyMessage: "Problema de conexão. Verifique sua internet e tente novamente.",
+      category: "network"
+    };
+  }
+
+  // Edge Function / Server errors
+  if (code.startsWith("5") || message.includes("Edge Function")) {
+    return {
+      friendlyTitle: "Imprevisto no servidor",
+      friendlyMessage: "Ocorreu um imprevisto. Nossa equipe já foi avisada. Tente novamente em alguns instantes.",
+      category: "server"
     };
   }
 
   return {
-    kind: 'unknown',
-    title: 'Não foi possível concluir',
-    message: 'Não foi possível concluir agora. Tente novamente.',
-    technical,
-    retryable: true,
+    friendlyTitle: "Algo deu errado",
+    friendlyMessage: "Ocorreu um erro inesperado. Tente novamente ou entre em contato com o suporte.",
+    category: "unknown"
   };
-}
+};
 
-/* --------------------------- Logging --------------------------- */
+export const reportError = async (error: any, details: ErrorDetails) => {
+  const { friendlyTitle, friendlyMessage } = classifyError(error);
+  
+  try {
+    const { error: insertError } = await supabase.from("app_error_logs").insert({
+      company_id: details.companyId || null,
+      user_id: details.userId || null,
+      context: details.area,
+      friendly_title: friendlyTitle,
+      friendly_message: friendlyMessage,
+      technical_message: error?.message || String(error),
+      error_code: error?.code || null,
+      error_name: error?.name || null,
+      stack: error?.stack || null,
+      metadata: details.metadata || {},
+    } as any);
 
-export function reportError(raw: unknown, ctx: ReportContext = {}): FriendlyError {
-  const friendly = classifyError(raw);
-  const entry = {
-    timestamp: new Date().toISOString(),
-    kind: friendly.kind,
-    area: ctx.area,
-    endpoint: ctx.endpoint,
-    userId: ctx.userId,
-    companyId: ctx.companyId,
-    technical: friendly.technical,
-    stack: (raw as any)?.stack,
-    payload: ctx.payload,
-  };
-
-  if (isDev) {
-    // eslint-disable-next-line no-console
-    console.groupCollapsed(`%c[ERROR:${friendly.kind}] ${ctx.area ?? 'app'}`, 'color:#ef4444');
-    // eslint-disable-next-line no-console
-    console.error(raw);
-    // eslint-disable-next-line no-console
-    console.table(entry);
-    // eslint-disable-next-line no-console
-    console.groupEnd();
-  } else {
-    // In production, keep silent on raw error; only record sanitized entry
-    // (Can be wired to Sentry/PostHog/etc later)
-    try {
-      const buf = (window as any).__errorBuffer || ((window as any).__errorBuffer = []);
-      buf.push(entry);
-      if (buf.length > 50) buf.shift();
-    } catch { /* noop */ }
+    if (insertError) console.error("Error reporting to logs:", insertError);
+  } catch (err) {
+    console.error("Critical error reporting to logs:", err);
   }
+};
 
-  return friendly;
-}
-
-/* --------------------------- UI Helpers --------------------------- */
-
-interface HandleOptions extends ReportContext {
-  /** Show toast? default true */
-  toast?: boolean;
-  /** Optional onRetry callback — adds a "Tentar novamente" action to the toast */
-  onRetry?: () => void;
-}
-
-export function handleError(raw: unknown, options: HandleOptions = {}): FriendlyError {
-  const friendly = reportError(raw, options);
-
-  if (options.toast !== false) {
-    toast.error(friendly.title, {
-      description: friendly.message,
-      action: friendly.retryable && options.onRetry
-        ? { label: 'Tentar novamente', onClick: options.onRetry }
-        : undefined,
-    });
-  }
-
-  return friendly;
-}
-
-/** Convenience: just get the friendly text without showing toast */
-export function friendlyError(raw: unknown): string {
-  return classifyError(raw).message;
-}
-
-/* --------------------------- Global capture --------------------------- */
-
-let installed = false;
-
-export function installGlobalErrorHandlers() {
-  if (installed || typeof window === 'undefined') return;
-  installed = true;
-
-  window.addEventListener('error', (event) => {
-    // Ignore ResizeObserver loop / script-loading noise
-    const msg = String(event.message || '');
-    if (/ResizeObserver|Script error\.?$|Loading chunk \d+ failed/i.test(msg)) return;
-    reportError(event.error || event.message, { area: 'window.error' });
+export const handleError = (error: any, details: ErrorDetails) => {
+  console.error(`[Error in ${details.area}]:`, error);
+  
+  const { friendlyTitle, friendlyMessage } = classifyError(error);
+  
+  toast.error(friendlyTitle, {
+    description: friendlyMessage,
   });
 
-  window.addEventListener('unhandledrejection', (event) => {
-    reportError(event.reason, { area: 'unhandledrejection' });
-  });
+  reportError(error, details);
+};
 
-  // In production, dampen raw console.error spam from third-party libs
-  if (!isDev) {
-    const origError = console.error;
-    console.error = (...args: unknown[]) => {
-      try {
-        const buf = (window as any).__consoleErrorBuffer || ((window as any).__consoleErrorBuffer = []);
-        buf.push({ t: Date.now(), args: args.map(a => String(a).slice(0, 500)) });
-        if (buf.length > 100) buf.shift();
-      } catch { /* noop */ }
-      // Still forward, but you can comment this out to fully silence:
-      origError.apply(console, args);
-    };
-  }
-}
+export const installGlobalErrorHandlers = () => {
+  window.onerror = (message, source, lineno, colno, error) => {
+    reportError(error || message, { area: "global.window.onerror" });
+  };
+
+  window.onunhandledrejection = (event) => {
+    reportError(event.reason, { area: "global.unhandledrejection" });
+  };
+};
