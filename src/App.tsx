@@ -258,6 +258,7 @@ const PlatformRoutes = () => (
     <Route path="/super-admin/tutorials" element={<RequireRole role="super_admin"><SuperAdminLayout><SuperAdminTutorials /></SuperAdminLayout></RequireRole>} />
     <Route path="/super-admin/messages" element={<RequireRole role="super_admin"><SuperAdminLayout><SuperAdminMessages /></SuperAdminLayout></RequireRole>} />
     <Route path="/super-admin/whatsapp-center" element={<RequireRole role="super_admin"><SuperAdminLayout><SuperAdminWhatsAppCenter /></SuperAdminLayout></RequireRole>} />
+    <Route path="/super-admin/error-logs" element={<RequireRole role="super_admin"><SuperAdminLayout><SuperAdminErrorLogs /></SuperAdminLayout></RequireRole>} />
     <Route path="/admin/debug-agenda" element={<RequireRole role="super_admin"><DebugAgenda /></RequireRole>} />
     <Route path="/debug-auth-context" element={<ProtectedRoute><DebugAuthContext /></ProtectedRoute>} />
     <Route path="/dashboard" element={<DashboardRoute><Dashboard /></DashboardRoute>} />
