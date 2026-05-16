@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
-import { Building2, Camera, Phone, MapPin, Globe, Instagram, Facebook, ShieldCheck } from 'lucide-react';
+import { Building2, Camera, Phone, MapPin, Globe, Instagram, Facebook, ShieldCheck, CreditCard } from 'lucide-react';
 import SettingsBreadcrumb from '@/components/SettingsBreadcrumb';
 import AmenitiesSettings from '@/components/AmenitiesSettings';
 import ImageCropDialog from '@/components/ImageCropDialog';
@@ -32,6 +32,15 @@ const SettingsCompany = () => {
   const [companyInstagram, setCompanyInstagram] = useState('');
   const [companyFacebook, setCompanyFacebook] = useState('');
   const [companyWebsite, setCompanyWebsite] = useState('');
+  
+  // Payment Data
+  const [paymentPixKey, setPaymentPixKey] = useState('');
+  const [paymentHolderName, setPaymentHolderName] = useState('');
+  const [paymentDocument, setPaymentDocument] = useState('');
+  const [paymentBankName, setPaymentBankName] = useState('');
+  const [paymentBankAgency, setPaymentBankAgency] = useState('');
+  const [paymentBankAccount, setPaymentBankAccount] = useState('');
+  const [subscriptionPaymentNotes, setSubscriptionPaymentNotes] = useState('');
   const [brStates, setBrStates] = useState<{ id: number; name: string; uf: string }[]>([]);
   const [brCities, setBrCities] = useState<{ id: number; name: string }[]>([]);
   const [loadingCities, setLoadingCities] = useState(false);
@@ -86,6 +95,13 @@ const SettingsCompany = () => {
       setCompanyInstagram((data as any).instagram ?? '');
       setCompanyFacebook((data as any).facebook ?? '');
       setCompanyWebsite((data as any).website ?? '');
+      setPaymentPixKey((data as any).payment_pix_key ?? '');
+      setPaymentHolderName((data as any).payment_holder_name ?? '');
+      setPaymentDocument((data as any).payment_document ?? '');
+      setPaymentBankName((data as any).payment_bank_name ?? '');
+      setPaymentBankAgency((data as any).payment_bank_agency ?? '');
+      setPaymentBankAccount((data as any).payment_bank_account ?? '');
+      setSubscriptionPaymentNotes((data as any).subscription_payment_notes ?? '');
       setProfPermClients((data as any).prof_perm_clients ?? true);
       setProfPermPromotions((data as any).prof_perm_promotions ?? true);
       setProfPermEvents((data as any).prof_perm_events ?? true);
@@ -157,6 +173,13 @@ const SettingsCompany = () => {
       district: companyDistrict, city: companyCity, state: companyState,
       postal_code: companyPostalCode, google_maps_url: companyGoogleMapsUrl,
       instagram: companyInstagram, facebook: companyFacebook, website: companyWebsite,
+      payment_pix_key: paymentPixKey,
+      payment_holder_name: paymentHolderName,
+      payment_document: paymentDocument,
+      payment_bank_name: paymentBankName,
+      payment_bank_agency: paymentBankAgency,
+      payment_bank_account: paymentBankAccount,
+      subscription_payment_notes: subscriptionPaymentNotes,
       prof_perm_clients: profPermClients,
       prof_perm_promotions: profPermPromotions,
       prof_perm_events: profPermEvents,
@@ -277,6 +300,79 @@ const SettingsCompany = () => {
           <div className="space-y-1"><Label className="text-xs flex items-center gap-1"><Instagram className="w-3 h-3" /> Instagram</Label><Input value={companyInstagram} onChange={(e) => setCompanyInstagram(e.target.value)} placeholder="@suaempresa" /></div>
           <div className="space-y-1"><Label className="text-xs flex items-center gap-1"><Facebook className="w-3 h-3" /> Facebook</Label><Input value={companyFacebook} onChange={(e) => setCompanyFacebook(e.target.value)} /></div>
           <div className="space-y-1"><Label className="text-xs flex items-center gap-1"><Globe className="w-3 h-3" /> Website</Label><Input value={companyWebsite} onChange={(e) => setCompanyWebsite(e.target.value)} /></div>
+        </CardContent>
+      </Card>
+
+      {/* Payment Data */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <CreditCard className="h-5 w-5" /> Dados de pagamento
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label className="text-xs">Chave PIX</Label>
+              <Input 
+                value={paymentPixKey} 
+                onChange={(e) => setPaymentPixKey(e.target.value)} 
+                placeholder="E-mail, CPF, CNPJ ou Celular" 
+              />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Titular</Label>
+              <Input 
+                value={paymentHolderName} 
+                onChange={(e) => setPaymentHolderName(e.target.value)} 
+                placeholder="Nome completo ou Razão Social" 
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label className="text-xs">CPF/CNPJ</Label>
+              <Input 
+                value={paymentDocument} 
+                onChange={(e) => setPaymentDocument(e.target.value)} 
+                placeholder="00.000.000/0000-00" 
+              />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Banco</Label>
+              <Input 
+                value={paymentBankName} 
+                onChange={(e) => setPaymentBankName(e.target.value)} 
+                placeholder="Nome do banco" 
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label className="text-xs">Agência</Label>
+              <Input 
+                value={paymentBankAgency} 
+                onChange={(e) => setPaymentBankAgency(e.target.value)} 
+                placeholder="0000" 
+              />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Conta</Label>
+              <Input 
+                value={paymentBankAccount} 
+                onChange={(e) => setPaymentBankAccount(e.target.value)} 
+                placeholder="00000-0" 
+              />
+            </div>
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs">Observação para cobranças</Label>
+            <Input 
+              value={subscriptionPaymentNotes} 
+              onChange={(e) => setSubscriptionPaymentNotes(e.target.value)} 
+              placeholder="Ex: Enviar comprovante via WhatsApp" 
+            />
+          </div>
         </CardContent>
       </Card>
 
