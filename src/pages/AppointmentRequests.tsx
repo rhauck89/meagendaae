@@ -81,7 +81,7 @@ const AppointmentRequests = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [companyId, isAdmin, profileId]);
+  }, [companyId, isAdmin, profileId, isProfessionalMode]);
 
   const fetchRequests = async () => {
     setLoading(true);
