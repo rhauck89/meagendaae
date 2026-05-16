@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes, Navigate, useLocation } from "react-router-dom";
+import { BrowserRouter, Route, Routes, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -7,6 +7,7 @@ import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { FinancialPrivacyProvider } from "@/contexts/FinancialPrivacyContext";
 import { useDomainRouting } from "@/hooks/useDomainRouting";
 import { useEffect } from "react";
+import { useProfessionalPermissions } from "@/hooks/useProfessionalPermissions";
 import { ENABLE_PUSH_NOTIFICATIONS } from "@/lib/constants";
 import Index from "./pages/Index";
 import MarketplaceHome from "./pages/MarketplaceHome";
