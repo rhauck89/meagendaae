@@ -98,7 +98,7 @@ const Clients = () => {
   });
 
   const visibleClients = useMemo(() => {
-    if (isAdmin || !professionalClientIds) return clients;
+    if (!isProfessionalMode || !professionalClientIds) return clients;
     return clients.filter(c => professionalClientIds.has(c.id));
   }, [clients, isAdmin, professionalClientIds]);
 
