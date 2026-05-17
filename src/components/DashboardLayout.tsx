@@ -160,7 +160,8 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
 
   // Route blocking logic for permissions
   useEffect(() => {
-    if (authLoading || isSuperAdmin || isOwner || !companyId) return;
+    const isAdminPrincipal = profile?.system_role === 'admin_principal' || profile?.system_role === 'admin';
+    if (authLoading || isSuperAdmin || isOwner || isAdminPrincipal || !companyId) return;
 
     const currentPath = location.pathname;
     
