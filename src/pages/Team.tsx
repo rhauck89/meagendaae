@@ -830,7 +830,7 @@ const Team = () => {
         break_time: editForm.break_time,
         use_company_banner: editForm.use_company_banner,
         system_role: editForm.system_role,
-        permissions: editForm.permissions,
+        permissions: editForm.permissions || SYSTEM_ROLE_PRESETS[editForm.system_role] || {},
         is_service_provider: editIsProvider,
         salary_amount: editIsProvider ? 0 : (Number(editForm.salary_amount) || 0),
         salary_payment_day: !editIsProvider && editForm.salary_payment_day ? Number(editForm.salary_payment_day) : null,
@@ -838,6 +838,7 @@ const Team = () => {
         salary_recurrence: editIsProvider ? 'none' : editForm.salary_recurrence,
         salary_payment_method: editIsProvider ? null : editForm.salary_payment_method,
         salary_auto_expense: !editIsProvider && editForm.salary_auto_expense,
+        has_system_access: true
       };
       // Only allow booking_mode change if permitted
       if ((company as any)?.prof_perm_booking_mode) {
