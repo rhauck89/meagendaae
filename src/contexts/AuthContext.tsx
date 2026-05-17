@@ -19,6 +19,7 @@ interface AuthContextType {
   isServiceProvider: boolean;
   isAdmin: boolean;
   isOwner: boolean;
+  isFullAdminAccess: boolean;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
   updateAuthState: (session: Session | null) => Promise<void>;
@@ -39,6 +40,7 @@ const AuthContext = createContext<AuthContextType>({
   isServiceProvider: false,
   isAdmin: false,
   isOwner: false,
+  isFullAdminAccess: false,
   signOut: async () => {},
   refreshProfile: async () => {},
   updateAuthState: async () => {},
@@ -58,6 +60,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isAlsoCollaborator, setIsAlsoCollaborator] = useState(false);
   const [isServiceProvider, setIsServiceProvider] = useState(false);
   const [isOwner, setIsOwner] = useState(false);
+  const [isFullAdminAccess, setIsFullAdminAccess] = useState(false);
   const authLockRef = useRef<Promise<void>>(Promise.resolve());
   const stateRef = useRef({
     userId: null as string | null,
@@ -187,11 +190,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           supabase.from('profiles').select('*').eq('user_id', userId).maybeSingle() as any,
           { data: null, error: { message: 'profile fallback timeout' } } as any
         );
+        
+        const { data: companyData } = await withTimeout(
+          supabase.from('companies').select('id').eq('user_id', userId).maybeSingle() as any,
+          { data: null, error: null } as any
+        );
+
         if (profileData) {
-          const recoveredCompanyId = profileData.company_id || await recoverCompanyId(profileData.id);
+          const recoveredCompanyId = profileData.company_id || companyData?.id || await recoverCompanyId(profileData.id);
+          const isActuallyOwner = !!companyData?.id;
+          
           setProfile(profileData);
           setCompanyId(recoveredCompanyId);
-          console.log("[AUTH_CONTEXT_DIAG] setCompanyId (fallback):", recoveredCompanyId);
+          setIsOwner(isActuallyOwner);
+          setIsFullAdminAccess(isActuallyOwner);
+          console.log("[AUTH_CONTEXT_DIAG] setCompanyId (fallback):", recoveredCompanyId, "isOwner:", isActuallyOwner);
         }
         setLoading(false);
         return;
@@ -275,11 +288,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       // Force full permissions for owners and system admins
-      let finalPermissions = ctx.permissions || {};
       const isOwnerNow = ctx.is_company_owner || ctx.is_owner || false;
       const isAdminPrincipalNow = ctx.system_role === 'admin_principal' || ctx.system_role === 'admin';
+      const isFullAdmin = isOwnerNow || isSuperAdmin || isAdminPrincipalNow;
       
-      if (isOwnerNow || isSuperAdmin || isAdminPrincipalNow) {
+      let finalPermissions = ctx.permissions || {};
+      
+      if (isFullAdmin) {
         finalPermissions = {
           agenda: true,
           services: true,
@@ -296,6 +311,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           reports: true
         };
       }
+
+      console.log('[ACCESS_DEBUG]', {
+        userId,
+        companyId: ctx.company_id,
+        roles: ctx.roles,
+        systemRole: ctx.system_role,
+        isOwner: isOwnerNow,
+        isFullAdminAccess: isFullAdmin,
+        permissions: finalPermissions
+      });
 
       // Comparison logic to prevent redundant state updates
       const profileChanged = JSON.stringify(stateRef.current.profile) !== JSON.stringify(mappedProfile);
@@ -332,6 +357,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setIsAlsoCollaborator(Boolean(ctx.is_collaborator && isServiceProvider));
       setIsServiceProvider(isServiceProvider);
       setIsOwner(isOwnerNow);
+      setIsFullAdminAccess(isFullAdmin);
       stateRef.current.hasContext = true;
 
       console.log("[AUTH_CONTEXT_DIAG] State updated successfully. Changed:", { profileChanged, companyChanged, rolesChanged });
@@ -392,6 +418,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setIsAlsoCollaborator(false);
         setIsServiceProvider(false);
         setIsOwner(false);
+        setIsFullAdminAccess(false);
       }
     } catch (error) {
       console.error('[AUTH_CONTEXT] Error in updateAuthState:', error);
@@ -476,6 +503,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setCompanyId(null);
     setRoles([]);
     setIsOwner(false);
+    setIsFullAdminAccess(false);
     setIsServiceProvider(false);
     
     window.location.replace('/');
@@ -502,6 +530,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       roles, 
       isAdmin,
       isOwner,
+      isFullAdminAccess,
       isServiceProvider,
       loginMode, 
       setLoginMode, 
