@@ -158,6 +158,38 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   const isSuperAdmin = roles?.includes('super_admin');
   const isSuperAdminRoute = location.pathname.startsWith('/super-admin');
 
+  // Route blocking logic for permissions
+  useEffect(() => {
+    if (authLoading || isSuperAdmin || !companyId) return;
+
+    const currentPath = location.pathname;
+    
+    // Skip protection for common dashboard areas
+    if (['/dashboard', '/dashboard/help', '/dashboard/profile', '/dashboard/support'].includes(currentPath)) return;
+
+    // Check if current route matches a permission key
+    const navItem = [...allAdminNavItems, ...settingsSubItems, ...financeSubItems, ...subscriptionSubItems].find(item => 
+      currentPath === item.href || (item.href !== '/dashboard' && currentPath.startsWith(item.href))
+    );
+
+    if (navItem?.permKey) {
+      const hasAccess = profPerms[navItem.permKey as keyof typeof profPerms];
+      if (!hasAccess && !profPerms.loading) {
+        console.warn(`[DASHBOARD_LAYOUT] Unauthorized access attempt to ${currentPath}. Redirecting...`);
+        
+        // Find first allowed module to redirect to
+        const firstAllowed = allAdminNavItems.find(item => profPerms[item.permKey as keyof typeof profPerms]);
+        if (firstAllowed) {
+          navigate(firstAllowed.href, { replace: true });
+        } else {
+          // If no modules allowed, we could show a special screen or just let it be handled by a global error state
+          // For now, redirect to dashboard which will handle the "no permissions" state if needed
+          if (currentPath !== '/dashboard') navigate('/dashboard', { replace: true });
+        }
+      }
+    }
+  }, [location.pathname, profPerms, authLoading, isSuperAdmin, companyId, navigate]);
+
   // Redirect Super Admin to their proper home if they land in the company dashboard
   useEffect(() => {
     if (isSuperAdmin && !isSuperAdminRoute) {
@@ -181,12 +213,12 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
 
   const professionalNavItems = allProfessionalNavItems.filter(item => {
     if (!item.permKey) return true;
-    return (profPerms as any)[item.permKey];
+    return profPerms[item.permKey as keyof typeof profPerms];
   });
   
   const adminNavItems = allAdminNavItems.filter(item => {
     if (!item.permKey) return true;
-    return (profPerms as any)[item.permKey];
+    return profPerms[item.permKey as keyof typeof profPerms];
   });
 
   const navItems = isProfessionalMode ? professionalNavItems : adminNavItems;
@@ -769,6 +801,24 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
               </div>
             )}
             <div className="w-full max-w-[1400px] mx-auto min-w-0">
+              {/* Permission check for the whole dashboard content if no modules are accessible */}
+              {!profPerms.loading && !isSuperAdmin && !isProfessionalMode && 
+                !allAdminNavItems.some(item => profPerms[item.permKey as keyof typeof profPerms]) && 
+                location.pathname === '/dashboard' && (
+                <div className="flex flex-col items-center justify-center py-20 px-4 text-center">
+                  <div className="bg-amber-100 p-4 rounded-full mb-4">
+                    <Lock className="h-10 w-10 text-amber-600" />
+                  </div>
+                  <h2 className="text-xl font-bold mb-2">Acesso Restrito</h2>
+                  <p className="text-muted-foreground max-w-md">
+                    Seu usuário não possui permissões liberadas. Peça ao administrador para revisar seu acesso nas configurações de equipe.
+                  </p>
+                  <Button variant="outline" className="mt-6" onClick={() => window.location.reload()}>
+                    Recarregar página
+                  </Button>
+                </div>
+              )}
+
               {platformMessages && platformMessages.length > 0 && (
                 <div className="mb-4 space-y-2">
                   {platformMessages.slice(0, 3).map((msg: any) => (

@@ -44,10 +44,10 @@ export const useProfessionalPermissions = (): ProfessionalPermissions => {
     if (isOwner || isSuperAdmin) return true;
     if (!permissions) return false;
 
-    // Check direct boolean or nested view permission
+    // Direct match (boolean or nested object)
     const perm = permissions[module];
     if (perm === true) return true;
-    if (perm && typeof perm === 'object' && perm.view === true) return true;
+    if (perm && typeof perm === 'object' && (perm.view === true || perm.create === true || perm.edit === true || perm.delete === true)) return true;
 
     // Aliases
     const aliases: Record<string, string> = {
@@ -67,7 +67,7 @@ export const useProfessionalPermissions = (): ProfessionalPermissions => {
     if (aliasedModule) {
       const aliasedPerm = permissions[aliasedModule];
       if (aliasedPerm === true) return true;
-      if (aliasedPerm && typeof aliasedPerm === 'object' && aliasedPerm.view === true) return true;
+      if (aliasedPerm && typeof aliasedPerm === 'object' && (aliasedPerm.view === true || aliasedPerm.create === true || aliasedPerm.edit === true || aliasedPerm.delete === true)) return true;
     }
 
     return false;
