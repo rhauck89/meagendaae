@@ -132,6 +132,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [routeBootLoading, setRouteBootLoading] = useState(false);
   const [showDataLoader, setShowDataLoader] = useState(false);
+  const [serviceProviderFallback, setServiceProviderFallback] = useState(false);
   const [collapsed, setCollapsed] = useState(() => {
     try { return localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === 'true'; } catch { return false; }
   });
@@ -157,9 +158,6 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
     return () => clearTimeout(timer);
   }, [routeBootLoading, activeFetches, isDashboardHome]);
 
-  // Determine if role selection dialog is needed
-  const needsRoleSelection = canSwitchAdminProfessional && !loginMode;
-
   const isSettingsActive = location.pathname.startsWith('/dashboard/settings');
   const isFinanceActive = location.pathname.startsWith('/dashboard/finance');
   const isSubscriptionsActive = location.pathname.startsWith('/dashboard/subscriptions');
@@ -173,6 +171,9 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
 
   const isSuperAdmin = roles?.includes('super_admin');
   const isSuperAdminRoute = location.pathname.startsWith('/super-admin');
+  const shouldShowModeSwitch = canSwitchAdminProfessional || (isAdmin && serviceProviderFallback);
+  // Determine if role selection dialog is needed
+  const needsRoleSelection = shouldShowModeSwitch && !loginMode;
 
   // Redirect Super Admin to their proper home if they land in the company dashboard
   useEffect(() => {
@@ -181,6 +182,41 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
       navigate('/super-admin', { replace: true });
     }
   }, [isSuperAdmin, isSuperAdminRoute, navigate]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadServiceProviderFallback = async () => {
+      if (!companyId || !profile?.id) {
+        setServiceProviderFallback(false);
+        return;
+      }
+
+      const { data } = await supabase
+        .from('collaborators')
+        .select('id, is_service_provider, system_role, active')
+        .eq('company_id', companyId)
+        .eq('profile_id', profile.id)
+        .eq('active', true)
+        .maybeSingle();
+
+      if (cancelled) return;
+
+      const collaborator = data as any;
+      const nonProviderRoles = ['receptionist', 'recepcionista', 'attendant', 'atendente', 'manager', 'gerente', 'administrative', 'administrativo', 'admin_financeiro'];
+      const isActiveServiceProvider = Boolean(collaborator)
+        && collaborator.is_service_provider !== false
+        && !nonProviderRoles.includes(String(collaborator.system_role || '').toLowerCase());
+
+      setServiceProviderFallback(isActiveServiceProvider);
+    };
+
+    loadServiceProviderFallback();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [companyId, profile?.id]);
 
   // Debug logging for role detection
   useEffect(() => {
@@ -206,8 +242,10 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
       isServiceProvider,
       isAlsoCollaborator,
       canSwitchAdminProfessional,
+      serviceProviderFallback,
+      shouldShowModeSwitch,
     });
-  }, [user?.id, profile?.id, companyId, roles, loginMode, isOwner, isServiceProvider, isAlsoCollaborator, canSwitchAdminProfessional]);
+  }, [user?.id, profile?.id, companyId, roles, loginMode, isOwner, isServiceProvider, isAlsoCollaborator, canSwitchAdminProfessional, serviceProviderFallback, shouldShowModeSwitch]);
 
   const professionalNavItems = allProfessionalNavItems.filter(item => profPerms.canAccessModule(item.permKey));
   const adminNavItems = allAdminNavItems.filter(item => profPerms.canAccessModule(item.permKey));
@@ -596,7 +634,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
             </div>
 
             {/* Mode indicator badge */}
-            {canSwitchAdminProfessional && (
+            {shouldShowModeSwitch && (
               <div className={cn('mx-3 mb-2', collapsed && 'lg:mx-1')}>
                 {collapsed ? (
                   <Tooltip>
@@ -725,7 +763,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
             <h1 className="text-lg font-display font-semibold flex-1">{currentLabel}</h1>
 
             {/* Mode switcher for admin+professional users */}
-            {canSwitchAdminProfessional && (
+            {shouldShowModeSwitch && (
               <Tooltip>
                 <TooltipTrigger asChild>
                   <button
