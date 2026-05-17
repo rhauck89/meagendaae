@@ -2,7 +2,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useMemo, useCallback } from 'react';
 
 export const useUserRole = () => {
-  const { roles, profile, loginMode, isAlsoCollaborator, isOwner } = useAuth();
+  const { roles, profile, loginMode, isAlsoCollaborator, isOwner, canSwitchAdminProfessional } = useAuth();
 
   const isProfessional = useMemo(() => roles.includes('professional'), [roles]);
   const isCollaborator = useMemo(() => roles.includes('collaborator'), [roles]);
@@ -10,10 +10,11 @@ export const useUserRole = () => {
   const isClient = useMemo(() => roles.includes('client'), [roles]);
   const profileId = profile?.id;
 
-  // When an admin+collaborator switches to professional mode, treat as non-admin
+  // When an owner/admin who also provides services switches to professional mode,
+  // treat the dashboard as the professional panel so every query/filter follows that context.
   const isProfessionalMode = useMemo(
-    () => isProfessional && isAlsoCollaborator && loginMode === 'professional',
-    [isProfessional, isAlsoCollaborator, loginMode]
+    () => (canSwitchAdminProfessional || (isProfessional && isAlsoCollaborator)) && loginMode === 'professional',
+    [canSwitchAdminProfessional, isProfessional, isAlsoCollaborator, loginMode]
   );
 
   const isAdmin = useMemo(
