@@ -801,6 +801,24 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
               </div>
             )}
             <div className="w-full max-w-[1400px] mx-auto min-w-0">
+              {/* Permission check for the whole dashboard content if no modules are accessible */}
+              {!profPerms.loading && !isSuperAdmin && !isProfessionalMode && 
+                !allAdminNavItems.some(item => profPerms[item.permKey as keyof typeof profPerms]) && 
+                location.pathname === '/dashboard' && (
+                <div className="flex flex-col items-center justify-center py-20 px-4 text-center">
+                  <div className="bg-amber-100 p-4 rounded-full mb-4">
+                    <Lock className="h-10 w-10 text-amber-600" />
+                  </div>
+                  <h2 className="text-xl font-bold mb-2">Acesso Restrito</h2>
+                  <p className="text-muted-foreground max-w-md">
+                    Seu usuário não possui permissões liberadas. Peça ao administrador para revisar seu acesso nas configurações de equipe.
+                  </p>
+                  <Button variant="outline" className="mt-6" onClick={() => window.location.reload()}>
+                    Recarregar página
+                  </Button>
+                </div>
+              )}
+
               {platformMessages && platformMessages.length > 0 && (
                 <div className="mb-4 space-y-2">
                   {platformMessages.slice(0, 3).map((msg: any) => (
