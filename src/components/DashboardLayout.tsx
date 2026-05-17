@@ -96,7 +96,7 @@ const allProfessionalNavItems = [
 ];
 
 const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
-  const { user, profile, companyId, signOut, loading: authLoading, loginMode, setLoginMode, isAlsoCollaborator, roles, refreshProfile } = useAuth();
+  const { user, profile, companyId, signOut, loading: authLoading, loginMode, setLoginMode, isAlsoCollaborator, roles, refreshProfile, isOwner } = useAuth();
   const { isAdmin, isProfessionalMode, isProfessional, profileId } = useUserRole();
   // isProfessional = raw role check (always true if user has 'professional' role)
   // isAdmin = false when in professional mode (by design)
