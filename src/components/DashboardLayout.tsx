@@ -44,7 +44,6 @@ const allAdminNavItems = [
   { href: '/dashboard/clients', icon: UserCheck, label: 'Clientes', permKey: 'clients' },
   { href: '/dashboard/whatsapp', icon: MessageSquare, label: 'WhatsApp Center', permKey: 'whatsapp' },
   { href: '/dashboard/events', icon: PartyPopper, label: 'Agenda Aberta', permKey: 'events' },
-  { href: '/dashboard/subscriptions/subscribers', icon: ClipboardList, label: 'Assinaturas', permKey: 'subscriptions' },
   { href: '/dashboard/promotions', icon: Megaphone, label: 'Promoções', permKey: 'promotions' },
   { href: '/dashboard/loyalty', icon: Star, label: 'Fidelidade', permKey: 'loyalty' },
   { href: '/dashboard/solicitacoes', icon: Inbox, label: 'Solicitações', permKey: 'requests' },
@@ -148,6 +147,13 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   const [professionalFinanceOpen, setProfessionalFinanceOpen] = useState(isProfessionalFinanceActive);
   const [companyRecoveryLoading, setCompanyRecoveryLoading] = useState(false);
   const [companyRecoveryChecked, setCompanyRecoveryChecked] = useState(false);
+
+  useEffect(() => {
+    if (isSettingsActive) setSettingsOpen(true);
+    if (isFinanceActive) setFinanceOpen(true);
+    if (isSubscriptionsActive) setSubscriptionsOpen(true);
+    if (isProfessionalFinanceActive) setProfessionalFinanceOpen(true);
+  }, [isSettingsActive, isFinanceActive, isSubscriptionsActive, isProfessionalFinanceActive]);
 
   const isSuperAdmin = roles?.includes('super_admin');
   const isSuperAdminRoute = location.pathname.startsWith('/super-admin');
@@ -613,6 +619,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
                 </div>
               ))}
               {!isProfessionalMode && (profPerms.finance || profPerms.reports) && renderCollapsibleGroup('Financeiro', DollarSign, isFinanceActive, financeOpen, setFinanceOpen, financeSubItems)}
+              {!isProfessionalMode && profPerms.subscriptions && renderCollapsibleGroup('Assinaturas', ClipboardList, isSubscriptionsActive, subscriptionsOpen, setSubscriptionsOpen, subscriptionSubItems)}
               {!isProfessionalMode && renderCollapsibleGroup('Configurações', Settings, isSettingsActive, settingsOpen, setSettingsOpen, settingsSubItems)}
 
               {isProfessionalMode && profPerms.finance && renderCollapsibleGroup('Financeiro', DollarSign, isProfessionalFinanceActive, professionalFinanceOpen, setProfessionalFinanceOpen, professionalFinanceSubItems)}
