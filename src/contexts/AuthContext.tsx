@@ -274,12 +274,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         normalizedLoginMode = 'professional';
       }
 
+      // Force full permissions for owners and system admins
+      let finalPermissions = ctx.permissions || {};
+      const isOwnerNow = ctx.is_company_owner || ctx.is_owner || false;
+      const isAdminPrincipalNow = ctx.system_role === 'admin_principal' || ctx.system_role === 'admin';
+      
+      if (isOwnerNow || isSuperAdmin || isAdminPrincipalNow) {
+        finalPermissions = {
+          agenda: true,
+          services: true,
+          team: true,
+          clients: true,
+          whatsapp: true,
+          subscriptions: true,
+          events: true,
+          promotions: true,
+          loyalty: true,
+          requests: true,
+          finance: true,
+          settings: true,
+          reports: true
+        };
+      }
+
       // Comparison logic to prevent redundant state updates
       const profileChanged = JSON.stringify(stateRef.current.profile) !== JSON.stringify(mappedProfile);
       const companyChanged = stateRef.current.companyId !== ctx.company_id;
       const rolesChanged = JSON.stringify(stateRef.current.roles) !== JSON.stringify(ctx.roles || []);
       const loginModeChanged = stateRef.current.loginMode !== normalizedLoginMode;
-      const permissionsChanged = JSON.stringify(stateRef.current.permissions) !== JSON.stringify(ctx.permissions || {});
+      const permissionsChanged = JSON.stringify(stateRef.current.permissions) !== JSON.stringify(finalPermissions);
 
       if (profileChanged) {
         setProfile(mappedProfile);
@@ -302,11 +325,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       if (permissionsChanged) {
-        setPermissions(ctx.permissions || {});
-        stateRef.current.permissions = ctx.permissions || {};
+        setPermissions(finalPermissions);
+        stateRef.current.permissions = finalPermissions;
       }
       
-      const isOwnerNow = ctx.is_company_owner || ctx.is_owner || false;
       setIsAlsoCollaborator(Boolean(ctx.is_collaborator && isServiceProvider));
       setIsServiceProvider(isServiceProvider);
       setIsOwner(isOwnerNow);
