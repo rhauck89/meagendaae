@@ -612,6 +612,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
                 </div>
               ))}
               {!isProfessionalMode && (profPerms.finance || profPerms.reports) && renderCollapsibleGroup('Financeiro', DollarSign, isFinanceActive, financeOpen, setFinanceOpen, financeSubItems)}
+              {!isProfessionalMode && profPerms.subscriptions && renderCollapsibleGroup('Assinaturas', ClipboardList, isSubscriptionsActive, subscriptionsOpen, setSubscriptionsOpen, subscriptionSubItems)}
               {!isProfessionalMode && renderCollapsibleGroup('Configurações', Settings, isSettingsActive, settingsOpen, setSettingsOpen, settingsSubItems)}
 
               {isProfessionalMode && profPerms.finance && renderCollapsibleGroup('Financeiro', DollarSign, isProfessionalFinanceActive, professionalFinanceOpen, setProfessionalFinanceOpen, professionalFinanceSubItems)}
