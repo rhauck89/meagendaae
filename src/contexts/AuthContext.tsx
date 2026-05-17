@@ -190,11 +190,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           supabase.from('profiles').select('*').eq('user_id', userId).maybeSingle() as any,
           { data: null, error: { message: 'profile fallback timeout' } } as any
         );
+        
+        const { data: companyData } = await withTimeout(
+          supabase.from('companies').select('id').eq('user_id', userId).maybeSingle() as any,
+          { data: null, error: null } as any
+        );
+
         if (profileData) {
-          const recoveredCompanyId = profileData.company_id || await recoverCompanyId(profileData.id);
+          const recoveredCompanyId = profileData.company_id || companyData?.id || await recoverCompanyId(profileData.id);
+          const isActuallyOwner = !!companyData?.id;
+          
           setProfile(profileData);
           setCompanyId(recoveredCompanyId);
-          console.log("[AUTH_CONTEXT_DIAG] setCompanyId (fallback):", recoveredCompanyId);
+          setIsOwner(isActuallyOwner);
+          setIsFullAdminAccess(isActuallyOwner);
+          console.log("[AUTH_CONTEXT_DIAG] setCompanyId (fallback):", recoveredCompanyId, "isOwner:", isActuallyOwner);
         }
         setLoading(false);
         return;
