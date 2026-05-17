@@ -44,7 +44,6 @@ const allAdminNavItems = [
   { href: '/dashboard/clients', icon: UserCheck, label: 'Clientes', permKey: 'clients' },
   { href: '/dashboard/whatsapp', icon: MessageSquare, label: 'WhatsApp Center', permKey: 'whatsapp' },
   { href: '/dashboard/events', icon: PartyPopper, label: 'Agenda Aberta', permKey: 'events' },
-  { href: '/dashboard/subscriptions/subscribers', icon: ClipboardList, label: 'Assinaturas', permKey: 'subscriptions' },
   { href: '/dashboard/promotions', icon: Megaphone, label: 'Promoções', permKey: 'promotions' },
   { href: '/dashboard/loyalty', icon: Star, label: 'Fidelidade', permKey: 'loyalty' },
   { href: '/dashboard/solicitacoes', icon: Inbox, label: 'Solicitações', permKey: 'requests' },
