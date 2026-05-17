@@ -804,7 +804,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
             )}
             <div className="w-full max-w-[1400px] mx-auto min-w-0">
               {/* Permission check for the whole dashboard content if no modules are accessible */}
-              {!profPerms.loading && !isSuperAdmin && !isProfessionalMode && 
+              {!profPerms.loading && !isSuperAdmin && !isOwner && !isFullAdminAccess && !isProfessionalMode && 
                 !allAdminNavItems.some(item => profPerms[item.permKey as keyof typeof profPerms]) && 
                 location.pathname === '/dashboard' && (
                 <div className="flex flex-col items-center justify-center py-20 px-4 text-center">
