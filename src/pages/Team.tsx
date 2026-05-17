@@ -107,6 +107,16 @@ const PERMISSION_PRESETS: Record<string, any> = {
     reports: { view: false }
   }
 };
+
+const SYSTEM_ROLE_PRESETS: Record<string, any> = {
+  admin: PERMISSION_PRESETS.admin,
+  manager: PERMISSION_PRESETS.manager,
+  receptionist: PERMISSION_PRESETS.receptionist,
+  attendant: PERMISSION_PRESETS.receptionist,
+  atendente: PERMISSION_PRESETS.receptionist,
+  administrative: PERMISSION_PRESETS.admin,
+  collaborator: PERMISSION_PRESETS.collaborator
+};
 const WIZARD_STEPS = 5;
 
 const PAYMENT_METHOD_OPTIONS = [
@@ -117,8 +127,8 @@ const PAYMENT_METHOD_OPTIONS = [
   { value: 'outro', label: 'Outro' },
 ];
 
-const NON_PROVIDER_SYSTEM_ROLES = ['receptionist', 'manager', 'administrative', 'admin', 'admin_financeiro'];
-const isNonProviderSystemRole = (role?: string | null) => Boolean(role && NON_PROVIDER_SYSTEM_ROLES.includes(role));
+const NON_PROVIDER_SYSTEM_ROLES = ['receptionist', 'manager', 'administrative', 'admin', 'admin_financeiro', 'atendente'];
+const isNonProviderSystemRole = (role?: string | null) => Boolean(role && (NON_PROVIDER_SYSTEM_ROLES.includes(role) || role === 'attendant'));
 
 const PERMISSION_MODULE_LABELS: Record<string, string> = {
   agenda: 'Agenda',
@@ -2192,12 +2202,12 @@ const Team = () => {
                   <Select
                     value={editForm.system_role}
                     onValueChange={(role) => {
-                      const providerRole = role === 'collaborator';
+                      const isProvider = role === 'collaborator';
                       setEditForm({
                         ...editForm,
                         system_role: role,
-                        is_service_provider: providerRole,
-                        permissions: PERMISSION_PRESETS[role] || editForm.permissions,
+                        is_service_provider: isProvider,
+                        permissions: SYSTEM_ROLE_PRESETS[role] || editForm.permissions,
                       });
                     }}
                   >
@@ -2216,8 +2226,8 @@ const Team = () => {
                     </SelectContent>
                   </Select>
                   {isNonProviderSystemRole(editForm.system_role) && (
-                    <p className="text-xs text-muted-foreground">
-                      Esta função é administrativa e não cria perfil público, agenda própria nem vínculo com serviços.
+                    <p className="text-xs text-amber-600 font-medium">
+                      Esta função é administrativa e não cria perfil público nem agenda própria. Este usuário não aparecerá na página pública da empresa.
                     </p>
                   )}
                 </div>
