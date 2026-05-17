@@ -148,6 +148,13 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   const [companyRecoveryLoading, setCompanyRecoveryLoading] = useState(false);
   const [companyRecoveryChecked, setCompanyRecoveryChecked] = useState(false);
 
+  useEffect(() => {
+    if (isSettingsActive) setSettingsOpen(true);
+    if (isFinanceActive) setFinanceOpen(true);
+    if (isSubscriptionsActive) setSubscriptionsOpen(true);
+    if (isProfessionalFinanceActive) setProfessionalFinanceOpen(true);
+  }, [isSettingsActive, isFinanceActive, isSubscriptionsActive, isProfessionalFinanceActive]);
+
   const isSuperAdmin = roles?.includes('super_admin');
   const isSuperAdminRoute = location.pathname.startsWith('/super-admin');
 
