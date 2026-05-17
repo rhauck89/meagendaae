@@ -253,18 +253,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         email: ctx.email,
         company_id: ctx.company_id,
         last_login_mode: ctx.login_mode,
-        permissions: ctx.permissions || {}
+        permissions: ctx.permissions || {},
+        system_role: ctx.system_role
       };
 
       const isSuperAdmin = ctx.roles?.includes('super_admin');
       const isOwner = ctx.is_company_owner || ctx.is_owner || false;
       const isServiceProvider = ctx.is_service_provider === true;
-      
-      // If not service provider and not owner/super_admin, force admin mode if they have any staff role
       const isStaff = ctx.roles?.some((r: string) => ['collaborator', 'admin', 'recepcionista', 'gerente', 'atendente'].includes(r));
       
       let normalizedLoginMode = ctx.login_mode;
-      if (!isServiceProvider && isStaff) {
+      if (!isServiceProvider && (isStaff || ctx.system_role)) {
         normalizedLoginMode = 'admin';
       } else if (!normalizedLoginMode && (isOwner || isSuperAdmin)) {
         normalizedLoginMode = 'admin';
