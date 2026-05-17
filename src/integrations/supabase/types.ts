@@ -8597,6 +8597,7 @@ export type Database = {
           permissions: Json
           profile_id: string
           roles: string[]
+          system_role: string
           user_id: string
         }[]
       }
