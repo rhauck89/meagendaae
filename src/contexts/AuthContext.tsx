@@ -259,13 +259,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       const isSuperAdmin = ctx.roles?.includes('super_admin');
       const isOwner = ctx.is_company_owner || ctx.is_owner || false;
+      const isAdminPrincipal = ctx.system_role === 'admin_principal' || ctx.system_role === 'admin';
       const isServiceProvider = ctx.is_service_provider === true;
       const isStaff = ctx.roles?.some((r: string) => ['collaborator', 'admin', 'recepcionista', 'gerente', 'atendente'].includes(r));
       
       let normalizedLoginMode = ctx.login_mode;
-      if (!isServiceProvider && (isStaff || ctx.system_role)) {
+      
+      // Principal rule: Owners and main admins always stay in admin mode by default
+      if (!normalizedLoginMode && (isOwner || isSuperAdmin || isAdminPrincipal)) {
         normalizedLoginMode = 'admin';
-      } else if (!normalizedLoginMode && (isOwner || isSuperAdmin)) {
+      } else if (!isServiceProvider && (isStaff || ctx.system_role)) {
         normalizedLoginMode = 'admin';
       } else if (!normalizedLoginMode && isServiceProvider) {
         normalizedLoginMode = 'professional';
