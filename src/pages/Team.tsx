@@ -857,7 +857,8 @@ const Team = () => {
         .from('company_collaborators')
         .update({
           is_service_provider: editIsProvider,
-          permissions: editForm.permissions,
+          permissions: updateData.permissions,
+          system_role: editForm.system_role,
           salary_amount: updateData.salary_amount,
           salary_payment_day: updateData.salary_payment_day,
           salary_next_due_date: updateData.salary_next_due_date,
