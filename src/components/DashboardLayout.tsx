@@ -1,4 +1,4 @@
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+﻿import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useIsFetching } from '@tanstack/react-query';
 import { PaymentTestModeBanner } from './PaymentTestModeBanner';
 import { ReadOnlyBanner } from './ReadOnlyGuard';
@@ -17,7 +17,7 @@ import {
   ClipboardList, LayoutDashboard, Loader2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { ENABLE_PUSH_NOTIFICATIONS } from '@/lib/constants';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -95,9 +95,32 @@ const allProfessionalNavItems = [
   { href: '/dashboard/solicitacoes', icon: Inbox, label: 'Solicitações', permKey: 'requests' as const },
 ];
 
+const dashboardRouteModules: Array<{ test: (pathname: string) => boolean; module: string | null }> = [
+  { test: (path) => path.startsWith('/dashboard/settings'), module: 'settings' },
+  { test: (path) => path.startsWith('/dashboard/my-finance'), module: 'finance' },
+  { test: (path) => path === '/dashboard/finance/reports', module: 'reports' },
+  { test: (path) => path.startsWith('/dashboard/finance'), module: 'finance' },
+  { test: (path) => path.startsWith('/dashboard/subscriptions'), module: 'subscriptions' },
+  { test: (path) => path === '/dashboard/services', module: 'services' },
+  { test: (path) => path === '/dashboard/team', module: 'team' },
+  { test: (path) => path === '/dashboard/clients', module: 'clients' },
+  { test: (path) => path === '/dashboard/whatsapp', module: 'whatsapp' },
+  { test: (path) => path === '/dashboard/events', module: 'events' },
+  { test: (path) => path === '/dashboard/promotions', module: 'promotions' },
+  { test: (path) => path === '/dashboard/loyalty', module: 'loyalty' },
+  { test: (path) => path === '/dashboard/solicitacoes', module: 'requests' },
+  { test: (path) => path === '/dashboard', module: 'agenda' },
+  { test: (path) => path === '/dashboard/help', module: null },
+  { test: (path) => path === '/dashboard/support', module: null },
+  { test: (path) => path === '/dashboard/profile', module: null },
+];
+
+const getDashboardRouteModule = (pathname: string) =>
+  dashboardRouteModules.find((item) => item.test(pathname))?.module;
+
 const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
-  const { user, profile, companyId, signOut, loading: authLoading, loginMode, setLoginMode, isAlsoCollaborator, roles, refreshProfile, isOwner, isFullAdminAccess } = useAuth();
-  const { isAdmin, isProfessionalMode, isProfessional, profileId } = useUserRole();
+  const { user, profile, companyId, signOut, loading: authLoading, loginMode, setLoginMode, isAlsoCollaborator, isServiceProvider, isOwner, canSwitchAdminProfessional, roles, refreshProfile } = useAuth();
+  const { isAdmin, isProfessionalMode, isProfessional } = useUserRole();
   // isProfessional = raw role check (always true if user has 'professional' role)
   // isAdmin = false when in professional mode (by design)
   const profPerms = useProfessionalPermissions();
@@ -135,7 +158,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   }, [routeBootLoading, activeFetches, isDashboardHome]);
 
   // Determine if role selection dialog is needed
-  const needsRoleSelection = isProfessional && isAlsoCollaborator && !loginMode;
+  const needsRoleSelection = canSwitchAdminProfessional && !loginMode;
 
   const isSettingsActive = location.pathname.startsWith('/dashboard/settings');
   const isFinanceActive = location.pathname.startsWith('/dashboard/finance');
@@ -148,48 +171,8 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   const [companyRecoveryLoading, setCompanyRecoveryLoading] = useState(false);
   const [companyRecoveryChecked, setCompanyRecoveryChecked] = useState(false);
 
-  useEffect(() => {
-    if (isSettingsActive) setSettingsOpen(true);
-    if (isFinanceActive) setFinanceOpen(true);
-    if (isSubscriptionsActive) setSubscriptionsOpen(true);
-    if (isProfessionalFinanceActive) setProfessionalFinanceOpen(true);
-  }, [isSettingsActive, isFinanceActive, isSubscriptionsActive, isProfessionalFinanceActive]);
-
   const isSuperAdmin = roles?.includes('super_admin');
   const isSuperAdminRoute = location.pathname.startsWith('/super-admin');
-
-  // Route blocking logic for permissions
-  useEffect(() => {
-    const isAdminPrincipal = profile?.system_role === 'admin_principal' || profile?.system_role === 'admin';
-    if (authLoading || isSuperAdmin || isOwner || isAdminPrincipal || isFullAdminAccess || !companyId) return;
-
-    const currentPath = location.pathname;
-    
-    // Skip protection for common dashboard areas
-    if (['/dashboard', '/dashboard/help', '/dashboard/profile', '/dashboard/support'].includes(currentPath)) return;
-
-    // Check if current route matches a permission key
-    const navItem = [...allAdminNavItems, ...settingsSubItems, ...financeSubItems, ...subscriptionSubItems].find(item => 
-      currentPath === item.href || (item.href !== '/dashboard' && currentPath.startsWith(item.href))
-    );
-
-    if (navItem?.permKey) {
-      const hasAccess = profPerms[navItem.permKey as keyof typeof profPerms];
-      if (!hasAccess && !profPerms.loading) {
-        console.warn(`[DASHBOARD_LAYOUT] Unauthorized access attempt to ${currentPath}. Redirecting...`);
-        
-        // Find first allowed module to redirect to
-        const firstAllowed = allAdminNavItems.find(item => profPerms[item.permKey as keyof typeof profPerms]);
-        if (firstAllowed) {
-          navigate(firstAllowed.href, { replace: true });
-        } else {
-          // If no modules allowed, we could show a special screen or just let it be handled by a global error state
-          // For now, redirect to dashboard which will handle the "no permissions" state if needed
-          if (currentPath !== '/dashboard') navigate('/dashboard', { replace: true });
-        }
-      }
-    }
-  }, [location.pathname, profPerms, authLoading, isSuperAdmin, companyId, navigate]);
 
   // Redirect Super Admin to their proper home if they land in the company dashboard
   useEffect(() => {
@@ -212,18 +195,43 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
     });
   }, [location.pathname, roles, companyId, isSuperAdmin, isSuperAdminRoute, authLoading, user?.id]);
 
-  const professionalNavItems = allProfessionalNavItems.filter(item => {
-    if (!item.permKey) return true;
-    return profPerms[item.permKey as keyof typeof profPerms];
-  });
-  
-  const adminNavItems = allAdminNavItems.filter(item => {
-    if (isFullAdminAccess || isOwner || isSuperAdmin) return true;
-    if (!item.permKey) return true;
-    return profPerms[item.permKey as keyof typeof profPerms];
-  });
+  useEffect(() => {
+    console.log('[SWITCH_BUTTON_RENDER]', {
+      userId: user?.id,
+      profileId: profile?.id,
+      companyId,
+      roles,
+      loginMode,
+      isOwner,
+      isServiceProvider,
+      isAlsoCollaborator,
+      canSwitchAdminProfessional,
+    });
+  }, [user?.id, profile?.id, companyId, roles, loginMode, isOwner, isServiceProvider, isAlsoCollaborator, canSwitchAdminProfessional]);
 
-  const navItems = isProfessionalMode ? professionalNavItems : adminNavItems;
+  const professionalNavItems = allProfessionalNavItems.filter(item => profPerms.canAccessModule(item.permKey));
+  const adminNavItems = allAdminNavItems.filter(item => profPerms.canAccessModule(item.permKey));
+
+  const navItems = isAdmin ? adminNavItems : professionalNavItems;
+  const firstAllowedAdminPath = useMemo(() => {
+    const primary = allAdminNavItems.find(item => profPerms.canAccessModule(item.permKey));
+    if (primary) return primary.href;
+    const subscription = subscriptionSubItems.find(item => profPerms.canAccessModule(item.permKey));
+    if (subscription) return subscription.href;
+    const finance = financeSubItems.find(item => profPerms.canAccessModule(item.permKey));
+    if (finance) return finance.href;
+    const settings = settingsSubItems.find(item => profPerms.canAccessModule(item.permKey));
+    if (settings) return settings.href;
+    return '/dashboard/help';
+  }, [profPerms]);
+
+  useEffect(() => {
+    if (authLoading || !isAdmin || isProfessionalMode || !location.pathname.startsWith('/dashboard')) return;
+    const currentModule = getDashboardRouteModule(location.pathname);
+    if (currentModule && !profPerms.canAccessModule(currentModule)) {
+      navigate(firstAllowedAdminPath, { replace: true });
+    }
+  }, [authLoading, firstAllowedAdminPath, isAdmin, isProfessionalMode, location.pathname, navigate, profPerms]);
 
   const handleRoleSelect = (mode: 'admin' | 'professional') => {
     setLoginMode(mode);
@@ -437,8 +445,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
     subItems: any[],
   ) => {
     const filteredSubItems = subItems.filter(item => {
-      if (!item.permKey) return true;
-      return (profPerms as any)[item.permKey];
+      return profPerms.canAccessModule(item.permKey);
     });
 
     if (filteredSubItems.length === 0) return null;
@@ -589,7 +596,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
             </div>
 
             {/* Mode indicator badge */}
-            {isProfessional && isAlsoCollaborator && loginMode && (
+            {canSwitchAdminProfessional && (
               <div className={cn('mx-3 mb-2', collapsed && 'lg:mx-1')}>
                 {collapsed ? (
                   <Tooltip>
@@ -598,7 +605,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
                         onClick={handleSwitchMode}
                         className={cn(
                           'w-full flex items-center justify-center py-2 rounded-lg text-xs font-medium transition-colors',
-                          !isProfessionalMode
+                          isAdmin
                             ? 'bg-amber-500/15 text-amber-300 hover:bg-amber-500/25'
                             : 'bg-teal-500/15 text-teal-300 hover:bg-teal-500/25'
                         )}
@@ -607,7 +614,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
                       </button>
                     </TooltipTrigger>
                     <TooltipContent side="right">
-                      {!isProfessionalMode ? 'Modo Administrador — Clique para trocar' : 'Modo Profissional — Clique para trocar'}
+                      {isAdmin ? 'Modo Administrador — Clique para trocar' : 'Modo Profissional — Clique para trocar'}
                     </TooltipContent>
                   </Tooltip>
                 ) : (
@@ -615,15 +622,15 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
                     onClick={handleSwitchMode}
                     className={cn(
                       'w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-xs font-medium transition-colors',
-                      !isProfessionalMode
+                      isAdmin
                         ? 'bg-amber-500/15 text-amber-300 hover:bg-amber-500/25'
                         : 'bg-teal-500/15 text-teal-300 hover:bg-teal-500/25'
                     )}
                   >
-                    {!isProfessionalMode ? <Crown className="h-4 w-4 shrink-0" /> : <Scissors className="h-4 w-4 shrink-0" />}
+                    {isAdmin ? <Crown className="h-4 w-4 shrink-0" /> : <Scissors className="h-4 w-4 shrink-0" />}
                     <div className="flex-1 text-left min-w-0">
                       <p className="font-semibold text-[11px] leading-tight">
-                        {!isProfessionalMode ? 'Administrando empresa' : `Atendendo como: ${profile?.full_name || 'Profissional'}`}
+                        {isAdmin ? 'Administrando empresa' : `Atendendo como: ${profile?.full_name || 'Profissional'}`}
                       </p>
                     </div>
                     <ArrowLeftRight className="h-3 w-3 opacity-50 shrink-0" />
@@ -652,13 +659,13 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
                   {renderNavLink(item, item.href === '/dashboard/solicitacoes' ? pendingRequests : undefined)}
                 </div>
               ))}
-              {!isProfessionalMode && (profPerms.finance || profPerms.reports) && renderCollapsibleGroup('Financeiro', DollarSign, isFinanceActive, financeOpen, setFinanceOpen, financeSubItems)}
-              {!isProfessionalMode && profPerms.subscriptions && renderCollapsibleGroup('Assinaturas', ClipboardList, isSubscriptionsActive, subscriptionsOpen, setSubscriptionsOpen, subscriptionSubItems)}
-              {!isProfessionalMode && renderCollapsibleGroup('Configurações', Settings, isSettingsActive, settingsOpen, setSettingsOpen, settingsSubItems)}
+              {isAdmin && renderCollapsibleGroup('Assinaturas', ClipboardList, isSubscriptionsActive, subscriptionsOpen, setSubscriptionsOpen, subscriptionSubItems)}
+              {isAdmin && renderCollapsibleGroup('Financeiro', DollarSign, isFinanceActive, financeOpen, setFinanceOpen, financeSubItems)}
+              {isAdmin && renderCollapsibleGroup('Configurações', Settings, isSettingsActive, settingsOpen, setSettingsOpen, settingsSubItems)}
 
-              {isProfessionalMode && profPerms.finance && renderCollapsibleGroup('Financeiro', DollarSign, isProfessionalFinanceActive, professionalFinanceOpen, setProfessionalFinanceOpen, professionalFinanceSubItems)}
+              {!isAdmin && profPerms.finance && renderCollapsibleGroup('Financeiro', DollarSign, isProfessionalFinanceActive, professionalFinanceOpen, setProfessionalFinanceOpen, professionalFinanceSubItems)}
 
-              {isProfessionalMode && (
+              {!isAdmin && (
                 <>
                   {renderNavLink({ href: '/dashboard/profile', icon: User, label: 'Meu Perfil' })}
                   {!collapsed && profile?.full_name && (
@@ -670,7 +677,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
               <div className="pt-2 mt-2 border-t border-sidebar-border">
                 {!collapsed && <p className="px-3 py-1.5 text-xs font-semibold text-sidebar-foreground/40 uppercase tracking-wider">Ajuda</p>}
                 {renderNavLink({ href: '/dashboard/help', icon: HelpCircle, label: 'Tutoriais' })}
-                {!isProfessionalMode && renderNavLink({ href: '/dashboard/support', icon: MessageSquare, label: 'Suporte' }, unreadTickets)}
+                {isAdmin && renderNavLink({ href: '/dashboard/support', icon: MessageSquare, label: 'Suporte' }, unreadTickets)}
               </div>
             </nav>
 
@@ -718,7 +725,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
             <h1 className="text-lg font-display font-semibold flex-1">{currentLabel}</h1>
 
             {/* Mode switcher for admin+professional users */}
-            {isProfessional && isAlsoCollaborator && loginMode && (
+            {canSwitchAdminProfessional && (
               <Tooltip>
                 <TooltipTrigger asChild>
                   <button
@@ -803,24 +810,6 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
               </div>
             )}
             <div className="w-full max-w-[1400px] mx-auto min-w-0">
-              {/* Permission check for the whole dashboard content if no modules are accessible */}
-              {!profPerms.loading && !isSuperAdmin && !isOwner && !isFullAdminAccess && !isProfessionalMode && 
-                !allAdminNavItems.some(item => profPerms[item.permKey as keyof typeof profPerms]) && 
-                location.pathname === '/dashboard' && (
-                <div className="flex flex-col items-center justify-center py-20 px-4 text-center">
-                  <div className="bg-amber-100 p-4 rounded-full mb-4">
-                    <Lock className="h-10 w-10 text-amber-600" />
-                  </div>
-                  <h2 className="text-xl font-bold mb-2">Acesso Restrito</h2>
-                  <p className="text-muted-foreground max-w-md">
-                    Seu usuário não possui permissões liberadas. Peça ao administrador para revisar seu acesso nas configurações de equipe.
-                  </p>
-                  <Button variant="outline" className="mt-6" onClick={() => window.location.reload()}>
-                    Recarregar página
-                  </Button>
-                </div>
-              )}
-
               {platformMessages && platformMessages.length > 0 && (
                 <div className="mb-4 space-y-2">
                   {platformMessages.slice(0, 3).map((msg: any) => (
@@ -858,4 +847,5 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
 };
 
 export default DashboardLayout;
+
 
