@@ -96,7 +96,7 @@ const allProfessionalNavItems = [
 ];
 
 const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
-  const { user, profile, companyId, signOut, loading: authLoading, loginMode, setLoginMode, isAlsoCollaborator, roles, refreshProfile, isOwner } = useAuth();
+  const { user, profile, companyId, signOut, loading: authLoading, loginMode, setLoginMode, isAlsoCollaborator, roles, refreshProfile, isOwner, isFullAdminAccess } = useAuth();
   const { isAdmin, isProfessionalMode, isProfessional, profileId } = useUserRole();
   // isProfessional = raw role check (always true if user has 'professional' role)
   // isAdmin = false when in professional mode (by design)
@@ -161,7 +161,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   // Route blocking logic for permissions
   useEffect(() => {
     const isAdminPrincipal = profile?.system_role === 'admin_principal' || profile?.system_role === 'admin';
-    if (authLoading || isSuperAdmin || isOwner || isAdminPrincipal || !companyId) return;
+    if (authLoading || isSuperAdmin || isOwner || isAdminPrincipal || isFullAdminAccess || !companyId) return;
 
     const currentPath = location.pathname;
     
@@ -218,6 +218,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   });
   
   const adminNavItems = allAdminNavItems.filter(item => {
+    if (isFullAdminAccess || isOwner || isSuperAdmin) return true;
     if (!item.permKey) return true;
     return profPerms[item.permKey as keyof typeof profPerms];
   });

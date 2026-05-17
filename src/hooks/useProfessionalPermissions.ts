@@ -18,7 +18,7 @@ export interface ProfessionalPermissions {
 }
 
 export const useProfessionalPermissions = (): ProfessionalPermissions => {
-  const { isOwner, permissions, loading: authLoading, loginMode, roles, profile } = useAuth();
+  const { isOwner, isFullAdminAccess, permissions, loading: authLoading, loginMode, roles, profile } = useAuth();
 
   const isSuperAdmin = roles.includes('super_admin');
   const isAdminPrincipal = profile?.system_role === 'admin_principal' || profile?.system_role === 'admin';
@@ -43,7 +43,7 @@ export const useProfessionalPermissions = (): ProfessionalPermissions => {
   // Helper to check permission flexibly
   const canAccess = (module: string) => {
     // Definitive rule: Owners, Super Admins and Principal Admins always have full access
-    if (isOwner || isSuperAdmin || isAdminPrincipal) return true;
+    if (isOwner || isSuperAdmin || isAdminPrincipal || isFullAdminAccess) return true;
     if (!permissions) return false;
 
     // Direct match (boolean or nested object)
