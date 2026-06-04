@@ -328,6 +328,66 @@ serve(async (req) => {
     // ==========================================
     // 5. OTHER ACTIONS (Original code)
     // ==========================================
+    const normalizeEvolutionQr = (value: any): string | null => {
+      if (!value || typeof value !== 'string') return null;
+      const trimmed = value.trim();
+      if (trimmed.length < 5) return null;
+      if (trimmed.startsWith('{') || trimmed.startsWith('[') || /^https?:\/\//i.test(trimmed)) return null;
+
+      const upper = trimmed.toUpperCase();
+      if (
+        upper.includes('FAILED_TO_CREATE') ||
+        upper.includes('UNAUTHORIZED') ||
+        upper.includes('STREAM ERRORED') ||
+        upper.includes('CONFLICT') ||
+        upper.includes('DEVICE_REMOVED') ||
+        upper.includes('CONNECTIONSTATUS') ||
+        upper.includes('DISCONNECTION') ||
+        upper.includes('WHATSAPP.NET') ||
+        upper.includes('ERROR')
+      ) {
+        return null;
+      }
+
+      const signature = /^(iVBOR|\/9j\/|UklGR|R0lGOD|PHN2Zy)/;
+      if (trimmed.startsWith('data:image')) {
+        const base64 = trimmed.split(',')[1] || '';
+        return signature.test(base64.trim()) ? trimmed : null;
+      }
+
+      const compact = trimmed.replace(/\s/g, '');
+      if (!signature.test(compact)) return null;
+      if (compact.startsWith('/9j/')) return `data:image/jpeg;base64,${compact}`;
+      if (compact.startsWith('UklGR')) return `data:image/webp;base64,${compact}`;
+      if (compact.startsWith('R0lGOD')) return `data:image/gif;base64,${compact}`;
+      if (compact.startsWith('PHN2Zy')) return `data:image/svg+xml;base64,${compact}`;
+      return `data:image/png;base64,${compact}`;
+    };
+
+    const readQrCandidate = (data: any): string | null => {
+      const candidates = [
+        data?.qrcode?.base64,
+        data?.qrcode,
+        data?.qrCode,
+        data?.qr_code,
+        data?.qr,
+        data?.base64,
+        data?.instance?.qrcode?.base64,
+        data?.instance?.qrcode,
+        data?.data?.qrcode?.base64,
+        data?.data?.qrcode,
+        data?.data?.qrCode,
+        data?.data?.qr_code,
+        data?.data?.qr,
+        data?.data?.base64,
+      ];
+
+      for (const candidate of candidates) {
+        const normalized = normalizeEvolutionQr(candidate);
+        if (normalized) return normalized;
+      }
+      return null;
+    };
     if (action === 'create' || action === 'get-qr') {
       let qrBase64 = null;
       if (action === 'create') {
@@ -344,7 +404,7 @@ serve(async (req) => {
             integration: "WHATSAPP-BAILEYS"
           });
           if (res.ok || res.status === 403 || res.text?.includes("already exists")) {
-            qrBase64 = res.data?.qrcode?.base64 || res.data?.qrcode || res.data?.instance?.qrcode;
+            qrBase64 = readQrCandidate(res.data);
             break;
           }
         }
@@ -355,13 +415,29 @@ serve(async (req) => {
       if (!qrBase64) {
         for (let i = 0; i < 15; i++) {
           const res = await callEvolution(`/instance/qrcode/${instanceName}`);
-          qrBase64 = res.data?.qrcode?.base64 || res.data?.qrcode;
+          qrBase64 = readQrCandidate(res.data);
           if (qrBase64) break;
           await delay(3000);
         }
       }
 
-      if (qrBase64 && !qrBase64.startsWith("data:image")) qrBase64 = `data:image/png;base64,${qrBase64}`;
+      if (!qrBase64) {
+        await supabaseClient.from('whatsapp_instances').upsert({
+          company_id: companyId,
+          instance_name: instanceName,
+          status: 'disconnected',
+          qr_code: null,
+          updated_at: new Date().toISOString()
+        });
+
+        return new Response(JSON.stringify({
+          success: false,
+          instanceName,
+          qrcode: null,
+          error: 'QR_NOT_AVAILABLE',
+          message: 'A Evolution API não retornou uma imagem de QR Code válida.'
+        }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 502 });
+      }
 
       await supabaseClient.from('whatsapp_instances').upsert({
         company_id: companyId,
