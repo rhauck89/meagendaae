@@ -89,31 +89,60 @@ const looksLikeErrorPayload = (value: any) => {
 };
 
 const normalizeWhatsAppQr = (raw: any): string | null => {
-  if (!raw || looksLikeErrorPayload(raw)) return null;
+  if (!raw) return null;
 
-  let value = raw;
-  if (typeof value === 'object') {
-    value = value.qrcode || value.qr || value.base64 || value.code || value.pairingCode || value.qr_code || value.data;
-  }
+  const pickCandidate = (value: any): any => {
+    if (!value) return null;
+    if (typeof value === 'string') return value;
+    if (Array.isArray(value)) {
+      for (const item of value) {
+        const found = pickCandidate(item);
+        if (found) return found;
+      }
+      return null;
+    }
+    if (typeof value !== 'object') return null;
 
-  if (!value || looksLikeErrorPayload(value)) return null;
+    const direct =
+      value.qrcode ||
+      value.qrCode ||
+      value.qr_code ||
+      value.qr ||
+      value.base64 ||
+      value.code ||
+      value.pairingCode ||
+      value.pairing_code;
+
+    if (direct) return direct;
+
+    return pickCandidate(value.data) || pickCandidate(value.instance) || pickCandidate(value.response);
+  };
+
+  const value = pickCandidate(raw) ?? raw;
+  if (!value) return null;
 
   const qr = String(value).trim();
   if (!qr || qr === '[object Object]') return null;
 
-  if (qr.startsWith('data:image/')) {
-    const commaIndex = qr.indexOf(',');
-    if (commaIndex === -1) return null;
-    const payload = qr.slice(commaIndex + 1).trim();
-    if (!payload || looksLikeErrorPayload(payload)) return null;
-    return qr;
-  }
+  if (qr.startsWith('data:image/')) return qr;
 
+  if (looksLikeErrorPayload(qr)) return null;
   if (qr.startsWith('{') || qr.startsWith('[') || /^https?:\/\//i.test(qr)) return null;
+
   const compact = qr.replace(/\s/g, '');
-  const looksLikeImagePayload = compact.startsWith('iVBOR') || compact.startsWith('/9j/') || compact.startsWith('PHN2Zy');
+  const looksLikeImagePayload =
+    compact.startsWith('iVBOR') ||
+    compact.startsWith('/9j/') ||
+    compact.startsWith('UklGR') ||
+    compact.startsWith('R0lGOD') ||
+    compact.startsWith('PHN2Zy');
+
   if (!looksLikeImagePayload) return null;
 
+  if (compact.startsWith('/9j/')) return `data:image/jpeg;base64,${compact}`;
+  if (compact.startsWith('UklGR')) return `data:image/webp;base64,${compact}`;
+  if (compact.startsWith('R0lGOD')) return `data:image/gif;base64,${compact}`;
+  if (compact.startsWith('PHN2Zy')) return `data:image/svg+xml;base64,${compact}`;
   return `data:image/png;base64,${compact}`;
 };
 
