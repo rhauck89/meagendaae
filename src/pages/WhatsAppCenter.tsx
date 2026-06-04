@@ -111,9 +111,8 @@ const normalizeWhatsAppQr = (raw: any): string | null => {
 
   if (qr.startsWith('{') || qr.startsWith('[') || /^https?:\/\//i.test(qr)) return null;
   const compact = qr.replace(/\s/g, '');
-  const looksLikeImagePayload = compact.startsWith('iVBOR') || compact.startsWith('/9j/') || compact.length > 500;
-  const looksLikeWhatsAppPayload = /^[A-Za-z0-9+/=_,-]{80,}$/.test(compact);
-  if (!looksLikeImagePayload && !looksLikeWhatsAppPayload) return null;
+  const looksLikeImagePayload = compact.startsWith('iVBOR') || compact.startsWith('/9j/') || compact.startsWith('PHN2Zy');
+  if (!looksLikeImagePayload) return null;
 
   return `data:image/png;base64,${compact}`;
 };
