@@ -76,6 +76,53 @@ const translateWhatsAppError = (err: any) => {
   return { title: 'Falha na conexão', message: 'Não foi possível completar a ação. Tente novamente.' };
 };
 
+const looksLikeErrorPayload = (value: any) => {
+  if (!value) return false;
+  if (typeof value === 'object') {
+    const error = String(value.error || value.message || value.response?.error || '').toUpperCase();
+    if (value.success === false || error.includes('FAILED') || error.includes('ERROR') || error.includes('UNAUTHORIZED')) return true;
+    return false;
+  }
+  const text = String(value).trim();
+  const upper = text.toUpperCase();
+  return upper.includes('FAILED_TO_CREATE') || upper.includes('QR_NOT_AVAILABLE') || upper.includes('UNAUTHORIZED') || upper.includes('STREAM ERRORED') || upper.includes('CONFLICT') || upper.includes('"SUCCESS":FALSE') || upper.includes('"ERROR"');
+};
+
+const normalizeWhatsAppQr = (raw: any): string | null => {
+  if (!raw || looksLikeErrorPayload(raw)) return null;
+
+  let value = raw;
+  if (typeof value === 'object') {
+    value = value.qrcode || value.qr || value.base64 || value.code || value.pairingCode || value.qr_code || value.data;
+  }
+
+  if (!value || looksLikeErrorPayload(value)) return null;
+
+  const qr = String(value).trim();
+  if (!qr || qr === '[object Object]') return null;
+
+  if (qr.startsWith('data:image/')) {
+    const commaIndex = qr.indexOf(',');
+    if (commaIndex === -1) return null;
+    const payload = qr.slice(commaIndex + 1).trim();
+    if (!payload || looksLikeErrorPayload(payload)) return null;
+    return qr;
+  }
+
+  if (qr.startsWith('{') || qr.startsWith('[') || /^https?:\/\//i.test(qr)) return null;
+  const compact = qr.replace(/\s/g, '');
+  const looksLikeImagePayload = compact.startsWith('iVBOR') || compact.startsWith('/9j/') || compact.length > 500;
+  const looksLikeWhatsAppPayload = /^[A-Za-z0-9+/=_,-]{80,}$/.test(compact);
+  if (!looksLikeImagePayload && !looksLikeWhatsAppPayload) return null;
+
+  return `data:image/png;base64,${compact}`;
+};
+
+const getPayloadErrorMessage = (payload: any) => {
+  if (!payload) return 'A Evolution API não retornou um QR Code válido.';
+  if (typeof payload === 'object') return String(payload.error || payload.message || payload.response?.error || 'A Evolution API não retornou um QR Code válido.');
+  return String(payload);
+};
 export default function WhatsAppCenter() {
   const { companyId, user } = useAuth();
   const [tab, setTab] = useState('overview');
@@ -401,11 +448,14 @@ function ConnectionTab({ companyId, userId, instance, loading, onChange }: { com
         // If we have no QR and we are connecting, try to fetch it
         if (res.mappedStatus === 'connecting' && (!instance?.qr_code && !localQrCode)) {
            const qrRes = await getQrCode(companyId);
-           const qr = (qrRes as any)?.qrcode || (qrRes as any)?.qr || (qrRes as any)?.base64 || qrRes?.qr_code;
+           const qr = normalizeWhatsAppQr(qrRes);
            if (qr) {
-             console.log("QR POLLING:", qr);
-             setLocalQrCode(qr.startsWith('data:image') ? qr : `data:image/png;base64,${qr}`);
+             console.log("QR POLLING valido capturado");
+             setLocalQrCode(qr);
              onChange();
+           } else if (looksLikeErrorPayload(qrRes)) {
+             console.warn('QR polling retornou erro:', qrRes);
+             setLocalQrCode(null);
            }
         }
       } catch (e: any) {
@@ -433,15 +483,23 @@ function ConnectionTab({ companyId, userId, instance, loading, onChange }: { com
       const res = await connectInstance(companyId); 
       console.log('RESPOSTA EDGE FINAL:', res);
       
-      const qrCode = (res as any)?.qrcode;
+      if (looksLikeErrorPayload(res)) {
+        throw new Error(getPayloadErrorMessage(res));
+      }
 
-      if (qrCode) {
-        console.log("QR FINAL CAPTURADO:", qrCode);
-        const formattedQr = qrCode.startsWith('data:image') ? qrCode : `data:image/png;base64,${qrCode}`;
+      const formattedQr = normalizeWhatsAppQr(res);
+
+      if (formattedQr) {
+        console.log("QR FINAL CAPTURADO: QR valido");
         setLocalQrCode(formattedQr);
         toast.success('QR Code gerado!', { description: 'Escaneie agora para conectar.' });
       } else {
-        console.warn('QR Code não retornado na primeira tentativa, o polling tentará buscar.');
+        if ((res as any)?.mappedStatus === 'connected' || (res as any)?.status === 'connected') {
+          setLocalQrCode(null);
+          toast.success('WhatsApp conectado!', { description: 'Sua instância já está pronta para uso.' });
+        } else {
+          console.warn('QR Code não retornado na primeira tentativa, o polling tentará buscar.');
+        }
       }
       
       onChange();
@@ -472,10 +530,13 @@ function ConnectionTab({ companyId, userId, instance, loading, onChange }: { com
       await new Promise(resolve => setTimeout(resolve, 4000));
       const qrRes = await getQrCode(companyId);
       console.log('RESPOSTA EDGE (reconnect):', qrRes);
-      const qr = (qrRes as any)?.qrcode || (qrRes as any)?.qr || (qrRes as any)?.base64 || qrRes?.qr_code;
+      if (looksLikeErrorPayload(qrRes)) {
+        throw new Error(getPayloadErrorMessage(qrRes));
+      }
+      const qr = normalizeWhatsAppQr(qrRes);
       if (qr) {
-        console.log("QR FINAL (reconnect):", qr);
-        setLocalQrCode(qr.startsWith('data:image') ? qr : `data:image/png;base64,${qr}`);
+        console.log("QR FINAL (reconnect): QR valido");
+        setLocalQrCode(qr);
       }
       toast.success('Nova instância pronta', { description: 'Escaneie o novo QR Code.' });
       onChange();
@@ -564,10 +625,10 @@ function ConnectionTab({ companyId, userId, instance, loading, onChange }: { com
             <p className="font-medium">
               {!(instance?.qr_code || localQrCode) ? 'Gerando QR Code...' : 'Escaneie o QR Code com seu WhatsApp'}
             </p>
-            {(instance?.qr_code || localQrCode) ? (
+            {(normalizeWhatsAppQr(localQrCode || instance?.qr_code)) ? (
               <div className="space-y-4">
                 <img 
-                  src={localQrCode || instance?.qr_code || ''} 
+                  src={normalizeWhatsAppQr(localQrCode || instance?.qr_code) || ''} 
                   alt="QR Code WhatsApp" 
                   className="mx-auto h-48 w-48 sm:h-60 sm:w-60 border rounded-lg shadow-sm" 
                   style={{ width: 250 }}
@@ -597,7 +658,7 @@ function ConnectionTab({ companyId, userId, instance, loading, onChange }: { com
             </p>
             <div className="flex flex-col sm:flex-row justify-center gap-2">
               <Button variant="outline" onClick={handleDisconnect} disabled={busy}>Cancelar</Button>
-              {instance?.qr_code && (
+              {normalizeWhatsAppQr(instance?.qr_code) && (
                 <Button variant="ghost" onClick={handleConnect} disabled={busy} size="sm">
                   Novo QR Code
                 </Button>
